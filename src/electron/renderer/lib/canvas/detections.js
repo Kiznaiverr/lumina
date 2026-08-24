@@ -11,8 +11,12 @@ var L = window.Lumina;
 
   // ── Transformer accessors (called from render.js) ──
 
-  L.canvas._setTextTransformer = function (t) { _textTransformer = t; };
-  L.canvas._setBubbleTransformer = function (b) { _bubbleTransformer = b; };
+  L.canvas._setTextTransformer = function (t) {
+    _textTransformer = t;
+  };
+  L.canvas._setBubbleTransformer = function (b) {
+    _bubbleTransformer = b;
+  };
 
   // ── Helpers ──
 
@@ -43,46 +47,73 @@ var L = window.Lumina;
   // ── Group factories ──
 
   L.canvas._createTextGroup = function (det, idx, sr, off) {
+    // Clamp dims — model can emit degenerate boxes with negative w/h after scaling
     var x = off.x + det.bbox.x * sr;
     var y = off.y + det.bbox.y * sr;
-    var w = det.bbox.w * sr;
-    var h = det.bbox.h * sr;
+    var w = Math.max(1, det.bbox.w * sr);
+    var h = Math.max(1, det.bbox.h * sr);
 
     var group = new Konva.Group({
-      x: x, y: y, width: w, height: h,
+      x: x,
+      y: y,
+      width: w,
+      height: h,
       draggable: L.state.activeTool === "select",
     });
 
-    group.add(new Konva.Rect({
-      width: w, height: h,
-      stroke: L.canvas.TEXT_COLOR,
-      strokeWidth: 2,
-      cornerRadius: 3,
-      fill: "rgba(0,255,136,0.08)",
-      name: "rect",
-    }));
+    group.add(
+      new Konva.Rect({
+        width: w,
+        height: h,
+        stroke: L.canvas.TEXT_COLOR,
+        strokeWidth: 2,
+        cornerRadius: 3,
+        fill: "rgba(0,255,136,0.08)",
+        name: "rect",
+      }),
+    );
 
     // Badge "T{n}"
     var bg = new Konva.Group({ x: 2, y: -10 });
-    bg.add(new Konva.Rect({
-      width: 28, height: 16, cornerRadius: 8,
-      fill: L.canvas.TEXT_COLOR,
-      shadowColor: "rgba(0,0,0,0.4)", shadowBlur: 3, shadowOffsetY: 1,
-    }));
-    bg.add(new Konva.Text({
-      text: "T" + (idx + 1), fontSize: 10,
-      fontFamily: L.CONST.FONT_FAMILY, fontStyle: "bold", fill: "#000",
-      width: 28, align: "center", y: 2,
-    }));
+    bg.add(
+      new Konva.Rect({
+        width: 28,
+        height: 16,
+        cornerRadius: 8,
+        fill: L.canvas.TEXT_COLOR,
+        shadowColor: "rgba(0,0,0,0.4)",
+        shadowBlur: 3,
+        shadowOffsetY: 1,
+      }),
+    );
+    bg.add(
+      new Konva.Text({
+        text: "T" + (idx + 1),
+        fontSize: 10,
+        fontFamily: L.CONST.FONT_FAMILY,
+        fontStyle: "bold",
+        fill: "#000",
+        width: 28,
+        align: "center",
+        y: 2,
+      }),
+    );
     group.add(bg);
 
     // Type label
     var typeLabel = det.type === "text_bubble" ? "bubble" : "free";
-    group.add(new Konva.Text({
-      text: typeLabel, fontSize: 9 * sr,
-      fontFamily: L.CONST.FONT_FAMILY, fill: "#888",
-      x: 32, y: 2, width: w - 34, wrap: "none",
-    }));
+    group.add(
+      new Konva.Text({
+        text: typeLabel,
+        fontSize: 9 * sr,
+        fontFamily: L.CONST.FONT_FAMILY,
+        fill: "#888",
+        x: 32,
+        y: 2,
+        width: w - 34,
+        wrap: "none",
+      }),
+    );
 
     group.on("click", function (e) {
       e.cancelBubble = true;
@@ -93,17 +124,31 @@ var L = window.Lumina;
       var page = L.state.getActivePage();
       if (!page) return;
       var d = page.textDetections[idx];
-      d.status = d.status === "auto" ? "rejected" : d.status === "rejected" ? "adjusted" : "auto";
+      d.status =
+        d.status === "auto"
+          ? "rejected"
+          : d.status === "rejected"
+            ? "adjusted"
+            : "auto";
       L.canvas._refreshTextGroup(idx);
       L.history.snapshot();
     });
-    group.on("dragmove", function () { _syncTextBboxFromGroup(idx, sr, off); });
-    group.on("dragend", function () { L.history.snapshot(); });
+    group.on("dragmove", function () {
+      _syncTextBboxFromGroup(idx, sr, off);
+    });
+    group.on("dragend", function () {
+      L.history.snapshot();
+    });
     group.on("transformend", function () {
       _syncTextBboxFromGroup(idx, sr, off);
-      group.scaleX(1); group.scaleY(1);
+      group.scaleX(1);
+      group.scaleY(1);
       var page = L.state.getActivePage();
-      if (page && page.textDetections[idx] && page.textDetections[idx].status === "auto") {
+      if (
+        page &&
+        page.textDetections[idx] &&
+        page.textDetections[idx].status === "auto"
+      ) {
         page.textDetections[idx].status = "adjusted";
       }
       L.canvas._refreshTextGroup(idx);
@@ -115,38 +160,58 @@ var L = window.Lumina;
   };
 
   L.canvas._createBubbleGroup = function (det, idx, sr, off) {
+    // Clamp dims — model can emit degenerate boxes with negative w/h after scaling
     var x = off.x + det.bbox.x * sr;
     var y = off.y + det.bbox.y * sr;
-    var w = det.bbox.w * sr;
-    var h = det.bbox.h * sr;
+    var w = Math.max(1, det.bbox.w * sr);
+    var h = Math.max(1, det.bbox.h * sr);
 
     var group = new Konva.Group({
-      x: x, y: y, width: w, height: h,
+      x: x,
+      y: y,
+      width: w,
+      height: h,
       draggable: L.state.activeTool === "select",
     });
 
-    group.add(new Konva.Rect({
-      width: w, height: h,
-      stroke: L.canvas.BUBBLE_COLOR,
-      strokeWidth: 2,
-      cornerRadius: 4,
-      fill: "rgba(0,191,255,0.08)",
-      dash: [6, 3],
-      name: "rect",
-    }));
+    group.add(
+      new Konva.Rect({
+        width: w,
+        height: h,
+        stroke: L.canvas.BUBBLE_COLOR,
+        strokeWidth: 2,
+        cornerRadius: 4,
+        fill: "rgba(0,191,255,0.08)",
+        dash: [6, 3],
+        name: "rect",
+      }),
+    );
 
     // Badge "B{n}"
     var bg = new Konva.Group({ x: w - 30, y: -10 });
-    bg.add(new Konva.Rect({
-      width: 28, height: 16, cornerRadius: 8,
-      fill: L.canvas.BUBBLE_COLOR,
-      shadowColor: "rgba(0,0,0,0.4)", shadowBlur: 3, shadowOffsetY: 1,
-    }));
-    bg.add(new Konva.Text({
-      text: "B" + (idx + 1), fontSize: 10,
-      fontFamily: L.CONST.FONT_FAMILY, fontStyle: "bold", fill: "#000",
-      width: 28, align: "center", y: 2,
-    }));
+    bg.add(
+      new Konva.Rect({
+        width: 28,
+        height: 16,
+        cornerRadius: 8,
+        fill: L.canvas.BUBBLE_COLOR,
+        shadowColor: "rgba(0,0,0,0.4)",
+        shadowBlur: 3,
+        shadowOffsetY: 1,
+      }),
+    );
+    bg.add(
+      new Konva.Text({
+        text: "B" + (idx + 1),
+        fontSize: 10,
+        fontFamily: L.CONST.FONT_FAMILY,
+        fontStyle: "bold",
+        fill: "#000",
+        width: 28,
+        align: "center",
+        y: 2,
+      }),
+    );
     group.add(bg);
 
     group.on("click", function (e) {
@@ -158,17 +223,31 @@ var L = window.Lumina;
       var page = L.state.getActivePage();
       if (!page) return;
       var d = page.bubbleDetections[idx];
-      d.status = d.status === "auto" ? "rejected" : d.status === "rejected" ? "adjusted" : "auto";
+      d.status =
+        d.status === "auto"
+          ? "rejected"
+          : d.status === "rejected"
+            ? "adjusted"
+            : "auto";
       L.canvas._refreshBubbleGroup(idx);
       L.history.snapshot();
     });
-    group.on("dragmove", function () { _syncBubbleBboxFromGroup(idx, sr, off); });
-    group.on("dragend", function () { L.history.snapshot(); });
+    group.on("dragmove", function () {
+      _syncBubbleBboxFromGroup(idx, sr, off);
+    });
+    group.on("dragend", function () {
+      L.history.snapshot();
+    });
     group.on("transformend", function () {
       _syncBubbleBboxFromGroup(idx, sr, off);
-      group.scaleX(1); group.scaleY(1);
+      group.scaleX(1);
+      group.scaleY(1);
       var page = L.state.getActivePage();
-      if (page && page.bubbleDetections[idx] && page.bubbleDetections[idx].status === "auto") {
+      if (
+        page &&
+        page.bubbleDetections[idx] &&
+        page.bubbleDetections[idx].status === "auto"
+      ) {
         page.bubbleDetections[idx].status = "adjusted";
       }
       L.canvas._refreshBubbleGroup(idx);
@@ -205,7 +284,10 @@ var L = window.Lumina;
     });
     _bubbleGroups.forEach(function (g) {
       var rect = g.findOne("rect");
-      if (rect) { rect.stroke(L.canvas.BUBBLE_COLOR); rect.strokeWidth(2); }
+      if (rect) {
+        rect.stroke(L.canvas.BUBBLE_COLOR);
+        rect.strokeWidth(2);
+      }
     });
 
     if (_textTransformer) {
@@ -216,6 +298,11 @@ var L = window.Lumina;
         _textTransformer.nodes([]);
       }
     }
+    // Deselect the other type's transformer too
+    _bubbleGroups.forEach(function (g) {
+      g.draggable(false);
+    });
+    if (_bubbleTransformer) _bubbleTransformer.nodes([]);
     L.canvas._updateStatus();
     if (L.canvas.getLayer()) L.canvas.getLayer().draw();
     if (L.sidebar && L.sidebar.render) L.sidebar.render();
@@ -236,7 +323,10 @@ var L = window.Lumina;
     });
     _textGroups.forEach(function (g) {
       var rect = g.findOne("rect");
-      if (rect) { rect.stroke(L.canvas.TEXT_COLOR); rect.strokeWidth(2); }
+      if (rect) {
+        rect.stroke(L.canvas.TEXT_COLOR);
+        rect.strokeWidth(2);
+      }
     });
 
     if (_bubbleTransformer) {
@@ -247,6 +337,11 @@ var L = window.Lumina;
         _bubbleTransformer.nodes([]);
       }
     }
+    // Deselect the other type's transformer too
+    _textGroups.forEach(function (g) {
+      g.draggable(false);
+    });
+    if (_textTransformer) _textTransformer.nodes([]);
     L.canvas._updateStatus();
     if (L.canvas.getLayer()) L.canvas.getLayer().draw();
     if (L.sidebar && L.sidebar.render) L.sidebar.render();
@@ -266,8 +361,14 @@ var L = window.Lumina;
     var rect = group.findOne("rect");
     if (rect) {
       var isSelected = idx === (page._selectedTextIdx || null);
-      var colors = { auto: L.canvas.TEXT_COLOR, adjusted: "#ffa500", rejected: "#ff4444" };
-      rect.stroke(isSelected ? "#00ff88" : (colors[det.status] || L.canvas.TEXT_COLOR));
+      var colors = {
+        auto: L.canvas.TEXT_COLOR,
+        adjusted: "#ffa500",
+        rejected: "#ff4444",
+      };
+      rect.stroke(
+        isSelected ? "#00ff88" : colors[det.status] || L.canvas.TEXT_COLOR,
+      );
       rect.strokeWidth(isSelected ? 3 : 2);
     }
     if (L.canvas.getLayer()) L.canvas.getLayer().draw();
@@ -286,8 +387,14 @@ var L = window.Lumina;
     var rect = group.findOne("rect");
     if (rect) {
       var isSelected = idx === (page._selectedBubbleIdx || null);
-      var colors = { auto: L.canvas.BUBBLE_COLOR, adjusted: "#ffa500", rejected: "#ff4444" };
-      rect.stroke(isSelected ? "#00bfff" : (colors[det.status] || L.canvas.BUBBLE_COLOR));
+      var colors = {
+        auto: L.canvas.BUBBLE_COLOR,
+        adjusted: "#ffa500",
+        rejected: "#ff4444",
+      };
+      rect.stroke(
+        isSelected ? "#00bfff" : colors[det.status] || L.canvas.BUBBLE_COLOR,
+      );
       rect.strokeWidth(isSelected ? 3 : 2);
       rect.dash(det.status === "rejected" ? [5, 3] : [6, 3]);
     }
@@ -304,11 +411,29 @@ var L = window.Lumina;
     var parts = [];
     parts.push(L.i18n.t("status.textCount", { count: tCount }));
     parts.push(L.i18n.t("status.bubbleCount", { count: bCount }));
-    if (page && page._selectedTextIdx !== null && page._selectedTextIdx !== undefined) {
-      parts.push(L.i18n.t("status.selected", { type: "T", index: page._selectedTextIdx + 1 }));
+    if (
+      page &&
+      page._selectedTextIdx !== null &&
+      page._selectedTextIdx !== undefined
+    ) {
+      parts.push(
+        L.i18n.t("status.selected", {
+          type: "T",
+          index: page._selectedTextIdx + 1,
+        }),
+      );
     }
-    if (page && page._selectedBubbleIdx !== null && page._selectedBubbleIdx !== undefined) {
-      parts.push(L.i18n.t("status.selected", { type: "B", index: page._selectedBubbleIdx + 1 }));
+    if (
+      page &&
+      page._selectedBubbleIdx !== null &&
+      page._selectedBubbleIdx !== undefined
+    ) {
+      parts.push(
+        L.i18n.t("status.selected", {
+          type: "B",
+          index: page._selectedBubbleIdx + 1,
+        }),
+      );
     }
     var el = document.getElementById("status-detections");
     if (el) el.textContent = parts.join(" · ");
@@ -321,8 +446,12 @@ var L = window.Lumina;
       L.canvas.selectTextDetection(null);
       L.canvas.selectBubbleDetection(null);
     }
-    _textGroups.forEach(function (g) { g.draggable(tool === "select"); });
-    _bubbleGroups.forEach(function (g) { g.draggable(tool === "select"); });
+    _textGroups.forEach(function (g) {
+      g.draggable(tool === "select");
+    });
+    _bubbleGroups.forEach(function (g) {
+      g.draggable(tool === "select");
+    });
     if (_textTransformer && tool !== "select") _textTransformer.nodes([]);
     if (_bubbleTransformer && tool !== "select") _bubbleTransformer.nodes([]);
     if (L.canvas.getLayer()) L.canvas.getLayer().draw();

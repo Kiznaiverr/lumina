@@ -1,12 +1,36 @@
 import { spawn, ChildProcess } from "child_process";
+import fs from "fs";
 import path from "path";
 import http from "http";
 
-let pythonProcess: ChildProcess | null = null;
-const PYTHON_PORT = 8765;
-
 // From dist/electron/main/backend.js → ../../../lumina root
 const PROJECT_ROOT = path.join(__dirname, "../../..");
+
+// ── Minimal .env loader ──
+function loadEnvFile(): void {
+  const envPath = path.join(PROJECT_ROOT, ".env");
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, "utf-8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    // Real environment variables take precedence over .env file
+    if (!(key in process.env)) process.env[key] = value;
+  }
+}
+loadEnvFile();
+
+let pythonProcess: ChildProcess | null = null;
+const PYTHON_PORT = parseInt(process.env.LUMINA_BACKEND_PORT || "8765", 10);
 const PYTHON_DIR = path.join(PROJECT_ROOT, "src", "python");
 const PYTHON_ENTRY = path.join(PYTHON_DIR, "main.py");
 const PYTHON_EXECUTABLE =
@@ -22,7 +46,12 @@ export function spawnPythonBackend(): Promise<void> {
       [PYTHON_ENTRY, "--port", String(PYTHON_PORT)],
       {
         cwd: PYTHON_DIR,
-        env: { ...process.env, HF_HUB_DISABLE_TELEMETRY: "1" },
+        env: {
+          ...process.env,
+          // Model cache dir override (used by services/detect.py)
+          LUMINA_MODEL_DIR:
+            process.env.LUMINA_MODEL_DIR || path.join(PROJECT_ROOT, "models"),
+        },
       },
     );
 

@@ -34,9 +34,8 @@ L.state = {
   _modelLoaded: false,
 
   // ── Canvas state ──
-  _zoomLevel: 1,
-  _panX: 0,
-  _panY: 0,
+  // NOTE: _zoomLevel/_panX/_panY are defined below as per-page accessors —
+  // each image keeps its own viewport ("different image = different workspace")
   _resizeTimer: null,
   _viewMode: "original", // "original" | "cleaned"
 
@@ -49,9 +48,46 @@ L.state = {
 
 /** Get the active page object or null */
 L.state.getActivePage = function () {
-  if (this.activePageIdx === null || !this.pages[this.activePageIdx]) return null;
+  if (this.activePageIdx === null || !this.pages[this.activePageIdx])
+    return null;
   return this.pages[this.activePageIdx];
 };
+
+// ── Per-page viewport accessors ──
+// Zoom/pan live on each page object so switching pages restores that page's
+// own viewport. Reads/writes delegate to the active page.
+Object.defineProperties(L.state, {
+  _zoomLevel: {
+    get: function () {
+      var p = this.getActivePage();
+      return p && p._zoomLevel !== undefined ? p._zoomLevel : 1;
+    },
+    set: function (v) {
+      var p = this.getActivePage();
+      if (p) p._zoomLevel = v;
+    },
+  },
+  _panX: {
+    get: function () {
+      var p = this.getActivePage();
+      return p && p._panX !== undefined ? p._panX : 0;
+    },
+    set: function (v) {
+      var p = this.getActivePage();
+      if (p) p._panX = v;
+    },
+  },
+  _panY: {
+    get: function () {
+      var p = this.getActivePage();
+      return p && p._panY !== undefined ? p._panY : 0;
+    },
+    set: function (v) {
+      var p = this.getActivePage();
+      if (p) p._panY = v;
+    },
+  },
+});
 
 /** Add a page and return its index */
 L.state.addPage = function (pageObj) {

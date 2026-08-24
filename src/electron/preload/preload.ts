@@ -12,6 +12,18 @@ contextBridge.exposeInMainWorld("lumina", {
     ipcRenderer.invoke("api-post", endpoint, body),
   checkModel: () => ipcRenderer.invoke("check-model"),
   downloadModel: () => ipcRenderer.invoke("download-model"),
+  onDownloadProgress: (
+    cb: (msg: {
+      running: boolean;
+      progress: number;
+      downloaded: number;
+      total: number;
+      done: boolean;
+      error?: string | null;
+    }) => void,
+  ) => {
+    ipcRenderer.on("model-download-progress", (_e, msg) => cb(msg));
+  },
   getFonts: () => ipcRenderer.invoke("get-fonts"),
   loadTranslations: () => ipcRenderer.invoke("load-translations"),
 });

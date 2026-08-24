@@ -9,7 +9,9 @@ L.pipeline = {
     L.state.isRunning = true;
 
     var btn = document.getElementById("btn-detect");
-    if (btn) { btn.disabled = true; }
+    if (btn) {
+      btn.disabled = true;
+    }
 
     var isFirstRun = !L.state._modelLoaded;
     var loadingToast = null;
@@ -36,14 +38,16 @@ L.pipeline = {
         };
       });
 
-      page.bubbleDetections = (result.bubbleDetections || []).map(function (d, i) {
-        return {
-          id: "bubble-" + i,
-          bbox: Object.assign({}, d.bbox),
-          confidence: d.confidence || 0,
-          status: "auto",
-        };
-      });
+      page.bubbleDetections = (result.bubbleDetections || []).map(
+        function (d, i) {
+          return {
+            id: "bubble-" + i,
+            bbox: Object.assign({}, d.bbox),
+            confidence: d.confidence || 0,
+            status: "auto",
+          };
+        },
+      );
 
       page._selectedTextIdx = null;
       page._selectedBubbleIdx = null;
@@ -55,11 +59,19 @@ L.pipeline = {
       L.state._modelLoaded = true;
       L.history.snapshot();
       L.ui.dismissToast(loadingToast);
-      L.ui.toast(L.i18n.t("toast.detectDone", { texts: page.textDetections.length, bubbles: page.bubbleDetections.length }), "success", 3000);
+      L.ui.toast(
+        L.i18n.t("toast.detectDone", {
+          texts: page.textDetections.length,
+          bubbles: page.bubbleDetections.length,
+        }),
+        "success",
+        3000,
+      );
     } catch (err) {
       console.error("Detection error:", err);
+      if (err && err.stack) console.error(err.stack);
       L.ui.dismissToast(loadingToast);
-      L.ui.toast(err.message || L.i18n.t("toast.detectFailed"), "error", 4000);
+      L.ui.toast(err.message || L.i18n.t("toast.detectFailed"), "error");
     } finally {
       L.state.isRunning = false;
       var btn = document.getElementById("btn-detect");
@@ -81,23 +93,27 @@ L.pipeline = {
         });
         if (!result || result.error) continue;
 
-        page.textDetections = (result.textDetections || []).map(function (d, j) {
-          return {
-            id: "text-" + j,
-            bbox: Object.assign({}, d.bbox),
-            type: d.type,
-            confidence: d.confidence || 0,
-            status: "auto",
-          };
-        });
-        page.bubbleDetections = (result.bubbleDetections || []).map(function (d, j) {
-          return {
-            id: "bubble-" + j,
-            bbox: Object.assign({}, d.bbox),
-            confidence: d.confidence || 0,
-            status: "auto",
-          };
-        });
+        page.textDetections = (result.textDetections || []).map(
+          function (d, j) {
+            return {
+              id: "text-" + j,
+              bbox: Object.assign({}, d.bbox),
+              type: d.type,
+              confidence: d.confidence || 0,
+              status: "auto",
+            };
+          },
+        );
+        page.bubbleDetections = (result.bubbleDetections || []).map(
+          function (d, j) {
+            return {
+              id: "bubble-" + j,
+              bbox: Object.assign({}, d.bbox),
+              confidence: d.confidence || 0,
+              status: "auto",
+            };
+          },
+        );
       } catch (err) {
         console.error("Detection error page " + (i + 1) + ":", err);
       }
@@ -110,4 +126,3 @@ L.pipeline = {
     L.sidebar.render();
   },
 };
-

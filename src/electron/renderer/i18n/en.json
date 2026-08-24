@@ -19,6 +19,10 @@
   "view.original": "Original",
   "view.cleaned": "Cleaned",
 
+  "zoom.zoomIn": "Zoom In (Ctrl+=)",
+  "zoom.zoomOut": "Zoom Out (Ctrl+-)",
+  "zoom.fit": "Fit to Screen (Ctrl+0)",
+
   "progress.processing": "Processing...",
   "progress.preparing": "Preparing model...",
   "progress.checking": "Checking model...",
@@ -61,10 +65,8 @@
 
   "tools.select": "Select (V)",
   "tools.lasso": "Lasso (L)",
-  "tools.hand": "Hand (H)",
   "tools.selectName": "Select",
   "tools.lassoName": "Lasso",
-  "tools.handName": "Hand",
 
   "pages.remove": "Remove page",
   "pages.importMore": "Import more pages",

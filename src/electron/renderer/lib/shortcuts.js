@@ -12,14 +12,20 @@ L.shortcuts = {
     redo: "Ctrl+Shift+Z",
     toolSelect: "V",
     toolLasso: "L",
-    toolHand: "H",
+    zoomIn: "Ctrl+=",
+    zoomOut: "Ctrl+-",
+    zoomFit: "Ctrl+0",
   },
   _custom: {},
 
   init: function () {
     try {
-      this._custom = JSON.parse(localStorage.getItem("lumina-shortcuts") || "{}");
-    } catch (e) { this._custom = {}; }
+      this._custom = JSON.parse(
+        localStorage.getItem("lumina-shortcuts") || "{}",
+      );
+    } catch (e) {
+      this._custom = {};
+    }
   },
 
   /** Get effective binding for an action id */
@@ -82,11 +88,27 @@ L.shortcuts = {
       if (!combo) return;
 
       var actions = {
-        undo: function () { L.history.undo(); },
-        redo: function () { L.history.redo(); },
-        toolSelect: function () { L.tools.setActive("select"); },
-        toolLasso: function () { L.tools.setActive("lasso"); },
-        toolHand: function () { L.tools.setActive("hand"); },
+        undo: function () {
+          L.history.undo();
+        },
+        redo: function () {
+          L.history.redo();
+        },
+        toolSelect: function () {
+          L.tools.setActive("select");
+        },
+        toolLasso: function () {
+          L.tools.setActive("lasso");
+        },
+        zoomIn: function () {
+          L.canvas.zoomIn();
+        },
+        zoomOut: function () {
+          L.canvas.zoomOut();
+        },
+        zoomFit: function () {
+          L.canvas.zoomReset();
+        },
       };
 
       for (var action in actions) {
@@ -163,7 +185,9 @@ L.shortcuts = {
       redo: L.i18n.t("shortcuts.redo"),
       toolSelect: L.i18n.t("tools.select"),
       toolLasso: L.i18n.t("tools.lasso"),
-      toolHand: L.i18n.t("tools.hand"),
+      zoomIn: L.i18n.t("zoom.zoomIn"),
+      zoomOut: L.i18n.t("zoom.zoomOut"),
+      zoomFit: L.i18n.t("zoom.fit"),
     };
 
     Object.keys(labels).forEach(function (action) {
@@ -202,7 +226,11 @@ L.shortcuts = {
           if (conflict && conflict !== action) {
             btn.textContent = self.get(action);
             btn.classList.remove("listening");
-            L.ui.toast(L.i18n.t("shortcuts.conflict", { combo: combo }), "warn", 3000);
+            L.ui.toast(
+              L.i18n.t("shortcuts.conflict", { combo: combo }),
+              "warn",
+              3000,
+            );
             return;
           }
 
@@ -234,8 +262,14 @@ L.shortcuts = {
   /** Sync header button tooltips with current bindings */
   _updateHeaderTitles: function () {
     var undoBtn = document.getElementById("btn-undo");
-    if (undoBtn) undoBtn.title = L.i18n.t("header.undo").replace("Ctrl+Z", this.get("undo"));
+    if (undoBtn)
+      undoBtn.title = L.i18n
+        .t("header.undo")
+        .replace("Ctrl+Z", this.get("undo"));
     var redoBtn = document.getElementById("btn-redo");
-    if (redoBtn) redoBtn.title = L.i18n.t("header.redo").replace("Ctrl+Shift+Z", this.get("redo"));
+    if (redoBtn)
+      redoBtn.title = L.i18n
+        .t("header.redo")
+        .replace("Ctrl+Shift+Z", this.get("redo"));
   },
 };

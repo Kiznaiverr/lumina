@@ -10,19 +10,37 @@
     var toast = L.ui.toast(L.i18n.t("progress.checking"), "running", 0);
     try {
       var res = await window.lumina.checkModel();
-      if (res && res.cached) { L.ui.dismissToast(toast); return; }
-    } catch (e) { /* backend still starting */ }
+      if (res && res.cached) {
+        L.ui.dismissToast(toast);
+        return;
+      }
+    } catch (e) {
+      /* backend still starting */
+    }
 
     L.ui.dismissToast(toast);
-    toast = L.ui.toast(L.i18n.t("progress.downloading"), "running", 0);
+
+    // Download toast with progress bar (bottom-right notification)
+    var dlToast = L.ui.downloadToast(L.i18n.t("progress.downloading"));
     try {
       await window.lumina.downloadModel();
-      L.ui.dismissToast(toast);
-      L.ui.toast(L.i18n.t("progress.downloaded", { msg: "OK" }), "success", 3000);
+      L.ui.dismissToast(dlToast);
+      L.ui.toast(L.i18n.t("progress.downloaded"), "success", 3000);
     } catch (e) {
-      L.ui.dismissToast(toast);
-      L.ui.toast(L.i18n.t("progress.downloadFailed", { error: e.message }), "error", 5000);
+      L.ui.dismissToast(dlToast);
+      L.ui.toast(
+        L.i18n.t("progress.downloadFailed", { error: e.message }),
+        "error",
+        5000,
+      );
     }
+  }
+
+  // Live progress updates from main process polling
+  if (window.lumina.onDownloadProgress) {
+    window.lumina.onDownloadProgress(function (p) {
+      L.ui.updateDownloadToast(p.progress, p.downloaded, p.total);
+    });
   }
 
   // ── Load single image → create page ──
@@ -44,7 +62,9 @@
         };
         resolve(page);
       };
-      img.onerror = function () { resolve(null); };
+      img.onerror = function () {
+        resolve(null);
+      };
       img.src = filePath;
     });
   }
@@ -91,11 +111,17 @@
   // ── Init modules ──
   L.i18n.init().then(function () {
     // ── Wire buttons ──
-    document.getElementById("btn-import-landing").addEventListener("click", importImages);
-    document.getElementById("btn-import").addEventListener("click", importImages);
-    document.getElementById("btn-detect").addEventListener("click", function () {
-      L.pipeline.runDetection();
-    });
+    document
+      .getElementById("btn-import-landing")
+      .addEventListener("click", importImages);
+    document
+      .getElementById("btn-import")
+      .addEventListener("click", importImages);
+    document
+      .getElementById("btn-detect")
+      .addEventListener("click", function () {
+        L.pipeline.runDetection();
+      });
 
     // ── Undo / Redo buttons ──
     document.getElementById("btn-undo").addEventListener("click", function () {
@@ -109,23 +135,33 @@
     L.shortcuts.init();
     L.shortcuts.bindGlobal();
     L.shortcuts.bindSettingsUI();
-    document.getElementById("btn-settings").addEventListener("click", function () {
-      L.shortcuts.openSettings();
-    });
-    document.getElementById("btn-settings-close").addEventListener("click", function () {
-      L.shortcuts.closeSettings();
-    });
-    document.getElementById("btn-settings-done").addEventListener("click", function () {
-      L.shortcuts.closeSettings();
-    });
-    document.getElementById("btn-shortcuts-reset-all").addEventListener("click", function () {
-      L.shortcuts.resetAll();
-      L.shortcuts.openSettings(); // re-render list with defaults
-    });
+    document
+      .getElementById("btn-settings")
+      .addEventListener("click", function () {
+        L.shortcuts.openSettings();
+      });
+    document
+      .getElementById("btn-settings-close")
+      .addEventListener("click", function () {
+        L.shortcuts.closeSettings();
+      });
+    document
+      .getElementById("btn-settings-done")
+      .addEventListener("click", function () {
+        L.shortcuts.closeSettings();
+      });
+    document
+      .getElementById("btn-shortcuts-reset-all")
+      .addEventListener("click", function () {
+        L.shortcuts.resetAll();
+        L.shortcuts.openSettings(); // re-render list with defaults
+      });
     // Click outside modal closes it
-    document.getElementById("settings-overlay").addEventListener("click", function (e) {
-      if (e.target === this) L.shortcuts.closeSettings();
-    });
+    document
+      .getElementById("settings-overlay")
+      .addEventListener("click", function (e) {
+        if (e.target === this) L.shortcuts.closeSettings();
+      });
 
     // ── Expose for page strip "+" button ──
     L.renderer = { importImages: importImages };
@@ -139,8 +175,11 @@
 
     // ── Load system fonts via IPC ──
     if (window.lumina.getFonts) {
-      window.lumina.getFonts()
-        .then(function (fonts) { L.state.fontList = fonts || []; })
+      window.lumina
+        .getFonts()
+        .then(function (fonts) {
+          L.state.fontList = fonts || [];
+        })
         .catch(function () {});
     }
 
@@ -159,7 +198,8 @@
       L.i18n.setLang(this.dataset.lang);
       L.sidebar.render();
       L.canvas._updateStatus();
-      if (L.shortcuts && L.shortcuts._updateHeaderTitles) L.shortcuts._updateHeaderTitles();
+      if (L.shortcuts && L.shortcuts._updateHeaderTitles)
+        L.shortcuts._updateHeaderTitles();
     });
   });
   document.addEventListener("click", function () {

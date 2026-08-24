@@ -71,7 +71,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
         if (!name.endsWith(".json")) continue;
         const code = name.replace(".json", "");
         result[code] = JSON.parse(
-          fs.readFileSync(path.join(i18nDir, name), "utf-8")
+          fs.readFileSync(path.join(i18nDir, name), "utf-8"),
         );
       }
     } catch (err) {
@@ -91,11 +91,37 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   ipcMain.handle("download-model", async () => {
     try {
-      const result = await apiPost("/model/download", {});
-      return result;
+      // Kick off background download in Python backend
+      await apiPost("/model/download", {});
     } catch (err) {
       return { error: String(err) };
     }
+
+    // Poll progress and forward to renderer
+    const send = (msg: Record<string, unknown>) =>
+      mainWindow.webContents.send("model-download-progress", msg);
+
+    return new Promise((resolve) => {
+      const poll = setInterval(async () => {
+        try {
+          const p = (await apiGet("/model/progress")) as {
+            running: boolean;
+            progress: number;
+            downloaded: number;
+            total: number;
+            done: boolean;
+            error: string | null;
+          };
+          send(p);
+          if (p.done || p.error || !p.running) {
+            clearInterval(poll);
+            resolve(p.error ? { error: p.error } : { status: "ok" });
+          }
+        } catch {
+          // backend hiccup — keep polling
+        }
+      }, 500);
+    });
   });
 
   ipcMain.handle("import-image", async () => {

@@ -19,6 +19,10 @@
   "view.original": "Asli",
   "view.cleaned": "Bersih",
 
+  "zoom.zoomIn": "Perbesar (Ctrl+=)",
+  "zoom.zoomOut": "Perkecil (Ctrl+-)",
+  "zoom.fit": "Sesuaikan Layar (Ctrl+0)",
+
   "progress.processing": "Memproses...",
   "progress.preparing": "Menyiapkan model...",
   "progress.checking": "Mengecek model...",
@@ -61,10 +65,8 @@
 
   "tools.select": "Pilih (V)",
   "tools.lasso": "Lasso (L)",
-  "tools.hand": "Genggam (H)",
   "tools.selectName": "Pilih",
   "tools.lassoName": "Lasso",
-  "tools.handName": "Genggam",
 
   "pages.remove": "Hapus halaman",
   "pages.importMore": "Impor halaman lagi",

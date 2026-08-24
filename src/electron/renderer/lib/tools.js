@@ -5,7 +5,6 @@ L.tools = {
   _items: [
     { id: "select", icon: "mouse-pointer-2", titleKey: "tools.select" },
     { id: "lasso", icon: "lasso", titleKey: "tools.lasso" },
-    { id: "hand", icon: "hand", titleKey: "tools.hand" },
   ],
 
   init: function () {
@@ -16,7 +15,8 @@ L.tools = {
     var self = this;
     this._items.forEach(function (item) {
       var btn = document.createElement("button");
-      btn.className = "tool-btn" + (item.id === L.state.activeTool ? " active" : "");
+      btn.className =
+        "tool-btn" + (item.id === L.state.activeTool ? " active" : "");
       btn.innerHTML = '<i data-lucide="' + item.icon + '"></i>';
       btn.title = L.i18n.t(item.titleKey);
       btn.dataset.tool = item.id;
@@ -49,7 +49,7 @@ L.tools = {
 
     // Update cursor
     var container = document.getElementById("canvas-container");
-    var cursors = { hand: "grab", lasso: "crosshair", select: "default" };
+    var cursors = { lasso: "crosshair", select: "default" };
     if (container) container.style.cursor = cursors[toolId] || "default";
 
     if (L.canvas && L.canvas.onToolChange) L.canvas.onToolChange(toolId);

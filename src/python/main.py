@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -9,6 +10,16 @@ import uvicorn
 from schemas import DetectRequest, DetectResponse, TextDetection, BubbleDetection, ModelStatus
 
 app = FastAPI(title="Lumina Backend", version="0.1.0")
+
+# Shared download progress state (written by download thread, read by /model/progress)
+_download_state: dict = {
+    "running": False,
+    "progress": 0,
+    "downloaded": 0,
+    "total": 0,
+    "done": False,
+    "error": None,
+}
 
 
 @app.get("/health")
@@ -29,11 +40,6 @@ def detect(req: DetectRequest):
             textDetections=[TextDetection(**d) for d in result["textDetections"]],
             bubbleDetections=[BubbleDetection(**d) for d in result["bubbleDetections"]],
         )
-    except ImportError as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Detection model not available: {e}. Install deps first.",
-        )
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -48,14 +54,46 @@ def model_check():
 
 @app.post("/model/download")
 def model_download():
-    try:
-        from services.detect import download_model
-        download_model()
-        return {"status": "ok"}
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    """Start model download in background thread. Poll /model/progress for status."""
+    from services import detect as detect_service
+
+    if detect_service.is_model_ready():
+        return {"status": "ok", "alreadyPresent": True}
+
+    if _download_state["running"]:
+        return {"status": "started"}
+
+    _download_state.update(
+        {"running": True, "progress": 0, "downloaded": 0, "total": 0, "done": False, "error": None}
+    )
+
+    def _cb(pct: int, downloaded: int, total: int) -> None:
+        _download_state["progress"] = pct
+        _download_state["downloaded"] = downloaded
+        _download_state["total"] = total
+
+    def _worker() -> None:
+        try:
+            detect_service.progress_callback = _cb
+            detect_service.download_model()
+            _download_state["done"] = True
+            _download_state["progress"] = 100
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            _download_state["error"] = str(e)
+        finally:
+            _download_state["running"] = False
+            detect_service.progress_callback = None
+
+    threading.Thread(target=_worker, daemon=True).start()
+    return {"status": "started"}
+
+
+@app.get("/model/progress")
+def model_progress():
+    """Poll download progress: {running, progress, downloaded, total, done, error}."""
+    return dict(_download_state)
 
 
 def main():
