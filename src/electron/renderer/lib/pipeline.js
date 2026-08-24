@@ -53,6 +53,7 @@ L.pipeline = {
       L.sidebar.render();
 
       L.state._modelLoaded = true;
+      L.history.snapshot();
       L.ui.dismissToast(loadingToast);
       L.ui.toast(L.i18n.t("toast.detectDone", { texts: page.textDetections.length, bubbles: page.bubbleDetections.length }), "success", 3000);
     } catch (err) {

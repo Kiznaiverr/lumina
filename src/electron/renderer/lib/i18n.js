@@ -36,6 +36,9 @@ L.i18n = (function () {
     document.querySelectorAll("[data-i18n]").forEach(function (el) {
       el.textContent = t(el.getAttribute("data-i18n"));
     });
+    document.querySelectorAll("[data-i18n-title]").forEach(function (el) {
+      el.title = t(el.getAttribute("data-i18n-title"));
+    });
     document.title = t("app.title");
   }
 

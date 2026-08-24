@@ -4,35 +4,25 @@
   var L = window.Lumina;
 
   var landing = document.getElementById("landing");
-  var dlOverlay = document.getElementById("download-overlay");
-  var dlTitle = document.getElementById("download-title");
-  var dlStatus = document.getElementById("download-status");
 
-  function showDownload(msg) {
-    if (dlTitle) dlTitle.textContent = msg || L.i18n.t("progress.preparing");
-    if (dlStatus) dlStatus.textContent = "";
-    if (dlOverlay) dlOverlay.classList.add("show");
-  }
-  function hideDownload() {
-    if (dlOverlay) dlOverlay.classList.remove("show");
-  }
-
-  // ── Model check on startup ──
+  // ── Model check on startup──
   async function ensureModel() {
-    showDownload(L.i18n.t("progress.checking"));
+    var toast = L.ui.toast(L.i18n.t("progress.checking"), "running", 0);
     try {
       var res = await window.lumina.checkModel();
-      if (res && res.cached) { hideDownload(); return; }
+      if (res && res.cached) { L.ui.dismissToast(toast); return; }
     } catch (e) { /* backend still starting */ }
 
-    showDownload(L.i18n.t("progress.downloading"));
+    L.ui.dismissToast(toast);
+    toast = L.ui.toast(L.i18n.t("progress.downloading"), "running", 0);
     try {
       await window.lumina.downloadModel();
+      L.ui.dismissToast(toast);
+      L.ui.toast(L.i18n.t("progress.downloaded", { msg: "OK" }), "success", 3000);
     } catch (e) {
-      if (dlStatus) dlStatus.textContent = L.i18n.t("progress.downloadFailed", { error: e.message });
-      return;
+      L.ui.dismissToast(toast);
+      L.ui.toast(L.i18n.t("progress.downloadFailed", { error: e.message }), "error", 5000);
     }
-    hideDownload();
   }
 
   // ── Load single image → create page ──
@@ -95,14 +85,46 @@
     L.ui.updatePageIndicator();
     L.canvas.updateViewToggle();
     L.sidebar.render();
+    L.history.reset();
   }
 
   // ── Init modules ──
   L.i18n.init().then(function () {
     // ── Wire buttons ──
     document.getElementById("btn-import-landing").addEventListener("click", importImages);
+    document.getElementById("btn-import").addEventListener("click", importImages);
     document.getElementById("btn-detect").addEventListener("click", function () {
       L.pipeline.runDetection();
+    });
+
+    // ── Undo / Redo buttons ──
+    document.getElementById("btn-undo").addEventListener("click", function () {
+      L.history.undo();
+    });
+    document.getElementById("btn-redo").addEventListener("click", function () {
+      L.history.redo();
+    });
+
+    // ── Settings modal ──
+    L.shortcuts.init();
+    L.shortcuts.bindGlobal();
+    L.shortcuts.bindSettingsUI();
+    document.getElementById("btn-settings").addEventListener("click", function () {
+      L.shortcuts.openSettings();
+    });
+    document.getElementById("btn-settings-close").addEventListener("click", function () {
+      L.shortcuts.closeSettings();
+    });
+    document.getElementById("btn-settings-done").addEventListener("click", function () {
+      L.shortcuts.closeSettings();
+    });
+    document.getElementById("btn-shortcuts-reset-all").addEventListener("click", function () {
+      L.shortcuts.resetAll();
+      L.shortcuts.openSettings(); // re-render list with defaults
+    });
+    // Click outside modal closes it
+    document.getElementById("settings-overlay").addEventListener("click", function (e) {
+      if (e.target === this) L.shortcuts.closeSettings();
     });
 
     // ── Expose for page strip "+" button ──
@@ -137,6 +159,7 @@
       L.i18n.setLang(this.dataset.lang);
       L.sidebar.render();
       L.canvas._updateStatus();
+      if (L.shortcuts && L.shortcuts._updateHeaderTitles) L.shortcuts._updateHeaderTitles();
     });
   });
   document.addEventListener("click", function () {

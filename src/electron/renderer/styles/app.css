@@ -31,19 +31,100 @@
 *::-webkit-scrollbar-thumb:active { background: #888; background-clip: content-box; }
 *::-webkit-scrollbar-corner { background: transparent; }
 
+/* ── Layered Card UI (VS Code 2026 redesign) ── */
+.card {
+  background: var(--color-surface-1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+.card-raised {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Settings modal tabs ── */
+.settings-tab {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  color: #969696;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.settings-tab:hover { color: #d4d4d4; }
+.settings-tab.active { color: #e94560; border-bottom-color: #e94560; }
+
+.field-select {
+  padding: 4px 8px;
+  background: #0e0e10;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-size: 0.75rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.field-select:focus { border-color: #e94560; }
+
+/* ── Shortcut settings ── */
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.shortcut-name { flex: 1; font-size: 0.78rem; color: #d4d4d4; }
+.shortcut-key {
+  min-width: 110px;
+  padding: 4px 10px;
+  background: #0e0e10;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #969696;
+  font-size: 0.72rem;
+  font-family: monospace;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.shortcut-key:hover { border-color: #555; color: #d4d4d4; }
+.shortcut-key.listening {
+  border-color: #e94560;
+  color: #e94560;
+  animation: pulse-border 1s ease infinite;
+}
+@keyframes pulse-border {
+  0%, 100% { border-color: #e94560; }
+  50% { border-color: rgba(233, 69, 96, 0.3); }
+}
+.shortcut-reset {
+  padding: 4px;
+  background: transparent;
+  border: none;
+  color: #6a6a6a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.shortcut-reset:hover { color: #d4d4d4; }
+.shortcut-reset svg { width: 13px; height: 13px; }
+
 /* ── Sidebar resize handle ── */
 .sidebar-resize {
   position: absolute;
-  left: -2px;
+  left: -4px;
   top: 0;
   bottom: 0;
-  width: 4px;
+  width: 8px;
   cursor: col-resize;
   z-index: 5;
   background: transparent;
   transition: background 0.15s;
 }
-.sidebar-resize:hover { background: #e94560; }
+.sidebar-resize:hover { background: rgba(233, 69, 96, 0.3); }
 
 /* ── Panel groups (collapsible) ── */
 .panel-group-header {
@@ -60,7 +141,7 @@
   user-select: none;
   transition: background 0.1s;
 }
-.panel-group-header:hover { background: #2a2a2a; }
+.panel-group-header:hover { background: rgba(255, 255, 255, 0.04); border-radius: 4px; }
 .panel-group-header .arrow-icon {
   width: 12px;
   height: 12px;

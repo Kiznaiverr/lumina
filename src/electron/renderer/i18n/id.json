@@ -2,6 +2,15 @@
   "app.title": "Lumina",
 
   "header.detect": "Deteksi",
+  "header.import": "Impor",
+  "header.undo": "Undo (Ctrl+Z)",
+  "header.redo": "Redo (Ctrl+Shift+Z)",
+
+  "settings.title": "Pengaturan",
+  "settings.tabGeneral": "Umum",
+  "settings.tabShortcuts": "Shortcut",
+  "settings.language": "Bahasa",
+  "settings.langHint": "Bahasa antarmuka. Langsung berlaku.",
 
   "landing.title": "Editor Terjemahan Manga",
   "landing.subtitle": "Impor halaman untuk mulai",
@@ -15,10 +24,13 @@
   "progress.checking": "Mengecek model...",
   "progress.downloading": "Mengunduh model deteksi...",
   "progress.downloadFailed": "Gagal mengunduh: {{error}}",
+  "progress.downloaded": "Model siap",
 
   "status.noDetections": "Tidak ada deteksi",
   "status.selected": "{{type}}#{{index}} dipilih",
   "status.detections": "{{texts}} · {{bubbles}}",
+  "status.textCount": "{{count}} teks",
+  "status.bubbleCount": "{{count}} bubble",
 
   "sidebar.image": "GAMBAR",
   "sidebar.image.noImage": "Belum ada gambar",
@@ -50,8 +62,23 @@
   "tools.select": "Pilih (V)",
   "tools.lasso": "Lasso (L)",
   "tools.hand": "Genggam (H)",
+  "tools.selectName": "Pilih",
+  "tools.lassoName": "Lasso",
+  "tools.handName": "Genggam",
 
   "pages.remove": "Hapus halaman",
+  "pages.importMore": "Impor halaman lagi",
+
+  "sidebar.bubbleName": "bubble",
+
+  "shortcuts.title": "Shortcut Keyboard",
+  "shortcuts.undo": "Undo",
+  "shortcuts.redo": "Redo",
+  "shortcuts.pressKey": "Tekan tombol...",
+  "shortcuts.conflict": "\"{{combo}}\" sudah dipakai",
+  "shortcuts.reset": "Kembalikan ke default",
+  "shortcuts.resetAll": "Reset Semua",
+  "shortcuts.done": "Selesai",
 
   "error.prefix": "Error: {{message}}"
 }

@@ -118,7 +118,13 @@ var L = window.Lumina;
       sidebar.style.width = newWidth + "px";
       L.state.sidebarWidth = newWidth;
     });
-    document.addEventListener("mouseup", function () { dragging = false; });
+    document.addEventListener("mouseup", function () {
+      if (dragging) {
+        dragging = false;
+        // Canvas stage size depends on container width — re-fit after resize
+        if (L.canvas.render) L.canvas.render();
+      }
+    });
   };
 
   /** Init all canvas-related keyboard/UI bindings */

@@ -46,7 +46,7 @@ L.sidebar = {
 
   _group: function (title, expanded) {
     var div = document.createElement("div");
-    div.className = "panel-group border-b border-surface-3" + (expanded ? "" : " collapsed");
+    div.className = "panel-group" + (expanded ? "" : " collapsed");
     var iconName = expanded ? "chevron-down" : "chevron-right";
     div.innerHTML =
       '<div class="panel-group-header">' +
@@ -134,7 +134,7 @@ L.sidebar = {
       html +=
         '<div class="detection-item' + (isSelected ? " selected" : "") + '" data-type="bubble" data-idx="' + i + '">' +
         '<div class="detection-badge" style="background:' + (statusColors[d.status] || "#00bfff") + '">B</div>' +
-        '<div class="detection-label">B' + (i + 1) + ' · bubble</div>' +
+        '<div class="detection-label">B' + (i + 1) + ' · ' + L.i18n.t("sidebar.bubbleName") + '</div>' +
         '<div class="detection-conf">' + Math.round(d.confidence * 100) + '%</div>' +
         '</div>';
     });

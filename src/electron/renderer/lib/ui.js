@@ -80,7 +80,7 @@ L.ui = {
     var el = document.getElementById("status-detections");
     if (el) {
       var orig = el.textContent;
-      el.textContent = "Error: " + msg;
+      el.textContent = L.i18n.t("error.prefix", { message: msg });
       el.classList.add("text-red-500");
       setTimeout(function () {
         el.textContent = orig;

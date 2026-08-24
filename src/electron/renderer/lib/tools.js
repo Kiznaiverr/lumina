@@ -31,13 +31,7 @@ L.tools = {
     sep.className = "w-6 h-px bg-surface-3 my-1";
     panel.appendChild(sep);
 
-    // Keyboard shortcuts
-    document.addEventListener("keydown", function (e) {
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-      if (e.key === "v" || e.key === "V") self.setActive("select");
-      if (e.key === "l" || e.key === "L") self.setActive("lasso");
-      if (e.key === "h" || e.key === "H") self.setActive("hand");
-    });
+    // Keyboard shortcuts handled by L.shortcuts.bindGlobal()
 
     lucide.createIcons();
   },
@@ -49,7 +43,7 @@ L.tools = {
       btn.classList.toggle("active", btn.dataset.tool === toolId);
     });
 
-    var label = toolId.charAt(0).toUpperCase() + toolId.slice(1);
+    var label = L.i18n.t("tools." + toolId + "Name");
     var statusTool = document.getElementById("status-tool");
     if (statusTool) statusTool.textContent = label;
 

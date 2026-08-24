@@ -95,8 +95,10 @@ var L = window.Lumina;
       var d = page.textDetections[idx];
       d.status = d.status === "auto" ? "rejected" : d.status === "rejected" ? "adjusted" : "auto";
       L.canvas._refreshTextGroup(idx);
+      L.history.snapshot();
     });
     group.on("dragmove", function () { _syncTextBboxFromGroup(idx, sr, off); });
+    group.on("dragend", function () { L.history.snapshot(); });
     group.on("transformend", function () {
       _syncTextBboxFromGroup(idx, sr, off);
       group.scaleX(1); group.scaleY(1);
@@ -105,6 +107,7 @@ var L = window.Lumina;
         page.textDetections[idx].status = "adjusted";
       }
       L.canvas._refreshTextGroup(idx);
+      L.history.snapshot();
     });
 
     _textGroups.push(group);
@@ -157,8 +160,10 @@ var L = window.Lumina;
       var d = page.bubbleDetections[idx];
       d.status = d.status === "auto" ? "rejected" : d.status === "rejected" ? "adjusted" : "auto";
       L.canvas._refreshBubbleGroup(idx);
+      L.history.snapshot();
     });
     group.on("dragmove", function () { _syncBubbleBboxFromGroup(idx, sr, off); });
+    group.on("dragend", function () { L.history.snapshot(); });
     group.on("transformend", function () {
       _syncBubbleBboxFromGroup(idx, sr, off);
       group.scaleX(1); group.scaleY(1);
@@ -167,6 +172,7 @@ var L = window.Lumina;
         page.bubbleDetections[idx].status = "adjusted";
       }
       L.canvas._refreshBubbleGroup(idx);
+      L.history.snapshot();
     });
 
     _bubbleGroups.push(group);
@@ -296,13 +302,13 @@ var L = window.Lumina;
     var tCount = page ? (page.textDetections || []).length : 0;
     var bCount = page ? (page.bubbleDetections || []).length : 0;
     var parts = [];
-    parts.push(tCount + " text" + (tCount !== 1 ? "s" : ""));
-    parts.push(bCount + " bubble" + (bCount !== 1 ? "s" : ""));
+    parts.push(L.i18n.t("status.textCount", { count: tCount }));
+    parts.push(L.i18n.t("status.bubbleCount", { count: bCount }));
     if (page && page._selectedTextIdx !== null && page._selectedTextIdx !== undefined) {
-      parts.push("T#" + (page._selectedTextIdx + 1) + " selected");
+      parts.push(L.i18n.t("status.selected", { type: "T", index: page._selectedTextIdx + 1 }));
     }
     if (page && page._selectedBubbleIdx !== null && page._selectedBubbleIdx !== undefined) {
-      parts.push("B#" + (page._selectedBubbleIdx + 1) + " selected");
+      parts.push(L.i18n.t("status.selected", { type: "B", index: page._selectedBubbleIdx + 1 }));
     }
     var el = document.getElementById("status-detections");
     if (el) el.textContent = parts.join(" · ");

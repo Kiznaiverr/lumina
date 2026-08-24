@@ -61,7 +61,7 @@ var L = window.Lumina;
     // Add "+" button at the end
     var addBtn = document.createElement("div");
     addBtn.className = "page-thumb flex items-center justify-center bg-surface-3 text-text-muted hover:text-text-secondary cursor-pointer";
-    addBtn.title = "Import more pages";
+    addBtn.title = L.i18n.t("pages.importMore");
     addBtn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i>';
     addBtn.addEventListener("click", function () {
       if (L.renderer && L.renderer.importImages) {
