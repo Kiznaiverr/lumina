@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self' https://unpkg.com https://cdn.jsdelivr.net; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; img-src 'self' file: data:; font-src 'self' data: file: https://unpkg.com; connect-src 'self';"
+      content="default-src 'self' https://cdn.jsdelivr.net; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' file: data:; font-src 'self' data: file:; connect-src 'self';"
     />
     <title>Lumina</title>
-    <script src="https://unpkg.com/konva@9/konva.min.js"></script>
-    <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style type="text/tailwindcss">
       @theme {
@@ -331,20 +329,7 @@
       </div>
     </div>
 
-    <!-- Module scripts (order matters) -->
-    <script src="./lib/state.js"></script>
-    <script src="./lib/i18n.js"></script>
-    <script src="./lib/font.js"></script>
-    <script src="./lib/ui.js"></script>
-    <script src="./lib/history.js"></script>
-    <script src="./lib/shortcuts.js"></script>
-    <script src="./lib/canvas/render.js"></script>
-    <script src="./lib/canvas/detections.js"></script>
-    <script src="./lib/canvas/pages.js"></script>
-    <script src="./lib/canvas/index.js"></script>
-    <script src="./lib/sidebar.js"></script>
-    <script src="./lib/tools.js"></script>
-    <script src="./lib/pipeline.js"></script>
-    <script src="./renderer.js"></script>
+    <!-- Bundled renderer (esbuild output) -->
+    <script src="../../../dist/renderer/bundle.js"></script>
   </body>
 </html>

@@ -14,5 +14,5 @@
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["src/electron/**/*"]
+  "include": ["src/electron/main/**/*", "src/electron/preload/**/*"]
 }

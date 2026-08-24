@@ -1,42 +1,42 @@
 /* ── Lumina History — Undo/Redo (snapshot-based) ── */
-var L = window.Lumina;
+import { state } from "./state";
+import { canvas } from "./canvas/index";
+import { sidebar } from "./sidebar";
 
 /**
  * Tracks detection state (bboxes, statuses, selection) per snapshot.
  * Stack-based with moving index: mutations truncate redo tail.
  * Page add/remove is NOT tracked (basic scope).
  */
-L.history = {
-  _stack: [],
+export const history = {
+  _stack: [] as string[],
   _idx: -1,
   _max: 50,
   _restoring: false,
 
   /** Serialize current pages' detection state */
-  _serialize: function () {
+  _serialize(): string {
     return JSON.stringify(
-      L.state.pages.map(function (p) {
-        return {
-          textDetections: p.textDetections,
-          bubbleDetections: p.bubbleDetections,
-          _selectedTextIdx: p._selectedTextIdx,
-          _selectedBubbleIdx: p._selectedBubbleIdx,
-        };
-      })
+      state.pages.map((p) => ({
+        textDetections: p.textDetections,
+        bubbleDetections: p.bubbleDetections,
+        _selectedTextIdx: p._selectedTextIdx,
+        _selectedBubbleIdx: p._selectedBubbleIdx,
+      })),
     );
   },
 
   /** Start fresh history with current state as baseline */
-  reset: function () {
+  reset(): void {
     this._stack = [this._serialize()];
     this._idx = 0;
     this._updateButtons();
   },
 
   /** Push snapshot after a mutation */
-  snapshot: function () {
+  snapshot(): void {
     if (this._restoring) return;
-    var data = this._serialize();
+    const data = this._serialize();
     if (this._stack[this._idx] === data) return; // no change
     this._stack.length = this._idx + 1; // drop redo tail
     this._stack.push(data);
@@ -45,43 +45,52 @@ L.history = {
     this._updateButtons();
   },
 
-  undo: function () {
+  undo(): void {
     if (this._idx <= 0) return;
     this._idx--;
     this._apply(this._stack[this._idx]);
     this._updateButtons();
   },
 
-  redo: function () {
+  redo(): void {
     if (this._idx >= this._stack.length - 1) return;
     this._idx++;
     this._apply(this._stack[this._idx]);
     this._updateButtons();
   },
 
-  canUndo: function () { return this._idx > 0; },
-  canRedo: function () { return this._idx < this._stack.length - 1; },
+  canUndo(): boolean {
+    return this._idx > 0;
+  },
+  canRedo(): boolean {
+    return this._idx < this._stack.length - 1;
+  },
 
   /** Restore a serialized snapshot into live state */
-  _apply: function (data) {
-    var snap = JSON.parse(data);
+  _apply(data: string): void {
+    const snap = JSON.parse(data) as Array<{
+      textDetections: unknown;
+      bubbleDetections: unknown;
+      _selectedTextIdx: number | null;
+      _selectedBubbleIdx: number | null;
+    }>;
     this._restoring = true;
-    L.state.pages.forEach(function (page, i) {
+    state.pages.forEach((page, i) => {
       if (!snap[i]) return;
-      page.textDetections = snap[i].textDetections;
-      page.bubbleDetections = snap[i].bubbleDetections;
+      page.textDetections = snap[i].textDetections as never;
+      page.bubbleDetections = snap[i].bubbleDetections as never;
       page._selectedTextIdx = snap[i]._selectedTextIdx;
       page._selectedBubbleIdx = snap[i]._selectedBubbleIdx;
     });
-    L.canvas._clearGroups();
-    L.canvas.render();
-    if (L.sidebar && L.sidebar.render) L.sidebar.render();
+    canvas._clearGroups();
+    canvas.render();
+    if (sidebar && sidebar.render) sidebar.render();
     this._restoring = false;
   },
 
-  _updateButtons: function () {
-    var u = document.getElementById("btn-undo");
-    var r = document.getElementById("btn-redo");
+  _updateButtons(): void {
+    const u = document.getElementById("btn-undo") as HTMLButtonElement | null;
+    const r = document.getElementById("btn-redo") as HTMLButtonElement | null;
     if (u) u.disabled = !this.canUndo();
     if (r) r.disabled = !this.canRedo();
   },

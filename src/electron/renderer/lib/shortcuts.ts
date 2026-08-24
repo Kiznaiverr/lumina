@@ -1,12 +1,22 @@
 /* ── Lumina Shortcuts — Keybinding Manager + Settings Modal ── */
-var L = window.Lumina;
+import * as i18n from "./i18n";
+import { ui } from "./ui";
+import { history } from "./history";
+import { tools } from "./tools";
+import { canvas } from "./canvas/index";
+import { sidebar } from "./sidebar";
+import { createIcons } from "./icons";
 
-/**
- * Default shortcuts. Values are normalized key combos:
- * modifiers (ctrl, shift, alt) + key, e.g. "Ctrl+Shift+Z".
- * Persisted to localStorage under "lumina-shortcuts".
- */
-L.shortcuts = {
+type ActionId =
+  | "undo"
+  | "redo"
+  | "toolSelect"
+  | "toolLasso"
+  | "zoomIn"
+  | "zoomOut"
+  | "zoomFit";
+
+export const shortcuts = {
   defaults: {
     undo: "Ctrl+Z",
     redo: "Ctrl+Shift+Z",
@@ -15,10 +25,10 @@ L.shortcuts = {
     zoomIn: "Ctrl+=",
     zoomOut: "Ctrl+-",
     zoomFit: "Ctrl+0",
-  },
-  _custom: {},
+  } as Record<ActionId, string>,
+  _custom: {} as Partial<Record<ActionId, string>>,
 
-  init: function () {
+  init(): void {
     try {
       this._custom = JSON.parse(
         localStorage.getItem("lumina-shortcuts") || "{}",
@@ -29,15 +39,15 @@ L.shortcuts = {
   },
 
   /** Get effective binding for an action id */
-  get: function (action) {
+  get(action: ActionId): string | null {
     return this._custom[action] || this.defaults[action] || null;
   },
 
-  isDefault: function (action) {
+  isDefault(action: ActionId): boolean {
     return !this._custom[action];
   },
 
-  set: function (action, combo) {
+  set(action: ActionId, combo: string): void {
     if (!combo || combo === this.defaults[action]) {
       delete this._custom[action];
     } else {
@@ -47,28 +57,29 @@ L.shortcuts = {
     this._updateHeaderTitles();
   },
 
-  resetAll: function () {
+  resetAll(): void {
     this._custom = {};
     localStorage.removeItem("lumina-shortcuts");
     this._updateHeaderTitles();
   },
 
   /** Find action bound to a combo (for conflict detection) */
-  findByCombo: function (combo) {
-    var found = null;
-    Object.keys(this.defaults).forEach(function (a) {
-      if (L.shortcuts.get(a).toLowerCase() === combo.toLowerCase()) found = a;
+  findByCombo(combo: string): ActionId | null {
+    let found: ActionId | null = null;
+    (Object.keys(this.defaults) as ActionId[]).forEach((a) => {
+      if ((shortcuts.get(a) as string).toLowerCase() === combo.toLowerCase())
+        found = a;
     });
     return found;
   },
 
   /** Normalize a KeyboardEvent into a combo string */
-  eventToCombo: function (e) {
-    var parts = [];
+  eventToCombo(e: KeyboardEvent): string | null {
+    const parts: string[] = [];
     if (e.ctrlKey || e.metaKey) parts.push("Ctrl");
     if (e.altKey) parts.push("Alt");
     if (e.shiftKey) parts.push("Shift");
-    var key = e.key;
+    let key = e.key;
     if (["Control", "Shift", "Alt", "Meta"].indexOf(key) === -1) {
       key = key.length === 1 ? key.toUpperCase() : key;
       parts.push(key);
@@ -78,41 +89,44 @@ L.shortcuts = {
   },
 
   /** Global keydown dispatch — call once from init */
-  bindGlobal: function () {
+  bindGlobal(): void {
     document.addEventListener("keydown", function (e) {
       // Don't hijack typing in inputs
-      var tag = e.target.tagName;
+      const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-      var combo = L.shortcuts.eventToCombo(e);
+      const combo = shortcuts.eventToCombo(e);
       if (!combo) return;
 
-      var actions = {
+      const actions: Record<ActionId, () => void> = {
         undo: function () {
-          L.history.undo();
+          history.undo();
         },
         redo: function () {
-          L.history.redo();
+          history.redo();
         },
         toolSelect: function () {
-          L.tools.setActive("select");
+          tools.setActive("select");
         },
         toolLasso: function () {
-          L.tools.setActive("lasso");
+          tools.setActive("lasso");
         },
         zoomIn: function () {
-          L.canvas.zoomIn();
+          canvas.zoomIn();
         },
         zoomOut: function () {
-          L.canvas.zoomOut();
+          canvas.zoomOut();
         },
         zoomFit: function () {
-          L.canvas.zoomReset();
+          canvas.zoomReset();
         },
       };
 
-      for (var action in actions) {
-        if (L.shortcuts.get(action).toLowerCase() === combo.toLowerCase()) {
+      for (const action of Object.keys(actions) as ActionId[]) {
+        if (
+          (shortcuts.get(action) as string).toLowerCase() ===
+          combo.toLowerCase()
+        ) {
           e.preventDefault();
           actions[action]();
           return;
@@ -123,131 +137,131 @@ L.shortcuts = {
 
   // ── Settings modal ──
 
-  openSettings: function () {
-    var overlay = document.getElementById("settings-overlay");
+  openSettings(): void {
+    const overlay = document.getElementById("settings-overlay");
     if (!overlay) return;
     overlay.classList.add("show");
     this._switchTab("general");
     this._renderShortcuts();
   },
 
-  _switchTab: function (tabId) {
-    document.querySelectorAll(".settings-tab").forEach(function (t) {
+  _switchTab(tabId: string): void {
+    document.querySelectorAll<HTMLElement>(".settings-tab").forEach((t) => {
       t.classList.toggle("active", t.dataset.tab === tabId);
     });
-    document.querySelectorAll(".settings-pane").forEach(function (p) {
+    document.querySelectorAll<HTMLElement>(".settings-pane").forEach((p) => {
       p.classList.add("hidden");
     });
-    var pane = document.getElementById("tab-" + tabId);
+    const pane = document.getElementById("tab-" + tabId);
     if (pane) pane.classList.remove("hidden");
 
     // Reset All only applies to shortcuts tab
-    var resetBtn = document.getElementById("btn-shortcuts-reset-all");
+    const resetBtn = document.getElementById("btn-shortcuts-reset-all");
     if (resetBtn) resetBtn.classList.toggle("hidden", tabId !== "shortcuts");
   },
 
-  closeSettings: function () {
-    var overlay = document.getElementById("settings-overlay");
+  closeSettings(): void {
+    const overlay = document.getElementById("settings-overlay");
     if (overlay) overlay.classList.remove("show");
   },
 
   /** Bind tab buttons + language select — call once from init */
-  bindSettingsUI: function () {
-    var self = this;
-    document.querySelectorAll(".settings-tab").forEach(function (t) {
+  bindSettingsUI(): void {
+    document.querySelectorAll<HTMLElement>(".settings-tab").forEach((t) => {
       t.addEventListener("click", function () {
-        self._switchTab(this.dataset.tab);
+        shortcuts._switchTab(this.dataset.tab as string);
       });
     });
 
     // Language select mirrors current i18n lang
-    var sel = document.getElementById("settings-lang");
+    const sel = document.getElementById(
+      "settings-lang",
+    ) as HTMLSelectElement | null;
     if (sel) {
-      sel.value = L.i18n.lang();
+      sel.value = i18n.lang();
       sel.addEventListener("change", function () {
-        L.i18n.setLang(this.value);
-        L.sidebar.render();
-        if (L.canvas && L.canvas._updateStatus) L.canvas._updateStatus();
-        self._updateHeaderTitles();
-        self._renderShortcuts(); // refresh labels
+        i18n.setLang(this.value);
+        sidebar.render();
+        if (canvas && canvas._updateStatus) canvas._updateStatus();
+        shortcuts._updateHeaderTitles();
+        shortcuts._renderShortcuts(); // refresh labels
       });
     }
   },
 
-  _renderShortcuts: function () {
-    var self = this;
-    var list = document.getElementById("shortcut-list");
+  _renderShortcuts(): void {
+    const list = document.getElementById("shortcut-list");
     if (!list) return;
     list.innerHTML = "";
 
-    var labels = {
-      undo: L.i18n.t("shortcuts.undo"),
-      redo: L.i18n.t("shortcuts.redo"),
-      toolSelect: L.i18n.t("tools.select"),
-      toolLasso: L.i18n.t("tools.lasso"),
-      zoomIn: L.i18n.t("zoom.zoomIn"),
-      zoomOut: L.i18n.t("zoom.zoomOut"),
-      zoomFit: L.i18n.t("zoom.fit"),
+    const labels: Record<ActionId, string> = {
+      undo: i18n.t("shortcuts.undo"),
+      redo: i18n.t("shortcuts.redo"),
+      toolSelect: i18n.t("tools.select"),
+      toolLasso: i18n.t("tools.lasso"),
+      zoomIn: i18n.t("zoom.zoomIn"),
+      zoomOut: i18n.t("zoom.zoomOut"),
+      zoomFit: i18n.t("zoom.fit"),
     };
 
-    Object.keys(labels).forEach(function (action) {
-      var row = document.createElement("div");
+    (Object.keys(labels) as ActionId[]).forEach(function (action) {
+      const row = document.createElement("div");
       row.className = "shortcut-row";
 
-      var name = document.createElement("span");
+      const name = document.createElement("span");
       name.className = "shortcut-name";
       name.textContent = labels[action];
 
-      var btn = document.createElement("button");
+      const btn = document.createElement("button");
       btn.className = "shortcut-key";
-      btn.textContent = self.get(action);
+      btn.textContent = shortcuts.get(action);
       btn.dataset.action = action;
 
       btn.addEventListener("click", function () {
-        btn.textContent = L.i18n.t("shortcuts.pressKey");
+        btn.textContent = i18n.t("shortcuts.pressKey");
         btn.classList.add("listening");
 
-        function onKey(e) {
+        function onKey(e: KeyboardEvent): void {
           e.preventDefault();
           e.stopPropagation();
           document.removeEventListener("keydown", onKey, true);
 
           if (e.key === "Escape") {
-            btn.textContent = self.get(action);
+            btn.textContent = shortcuts.get(action);
             btn.classList.remove("listening");
             return;
           }
 
-          var combo = self.eventToCombo(e);
+          const combo = shortcuts.eventToCombo(e);
           if (!combo) return; // still holding modifiers
 
           // Conflict check
-          var conflict = self.findByCombo(combo);
+          const conflict = shortcuts.findByCombo(combo);
           if (conflict && conflict !== action) {
-            btn.textContent = self.get(action);
+            btn.textContent = shortcuts.get(action);
             btn.classList.remove("listening");
-            L.ui.toast(
-              L.i18n.t("shortcuts.conflict", { combo: combo }),
+            ui.toast(
+              i18n.t("shortcuts.conflict", { combo: combo }),
               "warn",
               3000,
             );
             return;
           }
 
-          self.set(action, combo);
+          shortcuts.set(action, combo);
           btn.textContent = combo;
           btn.classList.remove("listening");
         }
         document.addEventListener("keydown", onKey, true);
       });
 
-      var resetBtn = document.createElement("button");
+      const resetBtn = document.createElement("button");
       resetBtn.className = "shortcut-reset";
-      resetBtn.title = L.i18n.t("shortcuts.reset");
+      resetBtn.title = i18n.t("shortcuts.reset");
       resetBtn.innerHTML = '<i data-lucide="rotate-ccw"></i>';
       resetBtn.addEventListener("click", function () {
-        self.set(action, self.defaults[action]);
-        btn.textContent = self.get(action);
+        shortcuts.set(action, shortcuts.defaults[action]);
+        btn.textContent = shortcuts.get(action);
       });
 
       row.appendChild(name);
@@ -256,20 +270,20 @@ L.shortcuts = {
       list.appendChild(row);
     });
 
-    if (window.lucide) lucide.createIcons();
+    createIcons();
   },
 
   /** Sync header button tooltips with current bindings */
-  _updateHeaderTitles: function () {
-    var undoBtn = document.getElementById("btn-undo");
+  _updateHeaderTitles(): void {
+    const undoBtn = document.getElementById("btn-undo");
     if (undoBtn)
-      undoBtn.title = L.i18n
+      undoBtn.title = i18n
         .t("header.undo")
-        .replace("Ctrl+Z", this.get("undo"));
-    var redoBtn = document.getElementById("btn-redo");
+        .replace("Ctrl+Z", this.get("undo") as string);
+    const redoBtn = document.getElementById("btn-redo");
     if (redoBtn)
-      redoBtn.title = L.i18n
+      redoBtn.title = i18n
         .t("header.redo")
-        .replace("Ctrl+Shift+Z", this.get("redo"));
+        .replace("Ctrl+Shift+Z", this.get("redo") as string);
   },
 };
