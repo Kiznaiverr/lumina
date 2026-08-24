@@ -1,0 +1,20 @@
+{
+  "name": "lumina",
+  "version": "0.1.0",
+  "description": "Manga/Manhwa/Manhua Translation Automation Desktop App",
+  "main": "dist/electron/main/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && electron dist/electron/main/main.js",
+    "dev": "tsc && electron dist/electron/main/main.js"
+  },
+  "dependencies": {
+    "electron": "^35.0.0",
+    "i18next": "^24.0.0",
+    "konva": "^10.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  }
+}

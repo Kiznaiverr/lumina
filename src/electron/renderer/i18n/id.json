@@ -1,0 +1,57 @@
+{
+  "app.title": "Lumina",
+
+  "header.detect": "Deteksi",
+
+  "landing.title": "Editor Terjemahan Manga",
+  "landing.subtitle": "Impor halaman untuk mulai",
+  "landing.import": "Impor Gambar",
+
+  "view.original": "Asli",
+  "view.cleaned": "Bersih",
+
+  "progress.processing": "Memproses...",
+  "progress.preparing": "Menyiapkan model...",
+  "progress.checking": "Mengecek model...",
+  "progress.downloading": "Mengunduh model deteksi...",
+  "progress.downloadFailed": "Gagal mengunduh: {{error}}",
+
+  "status.noDetections": "Tidak ada deteksi",
+  "status.selected": "{{type}}#{{index}} dipilih",
+  "status.detections": "{{texts}} · {{bubbles}}",
+
+  "sidebar.image": "GAMBAR",
+  "sidebar.image.noImage": "Belum ada gambar",
+  "sidebar.image.width": "Lebar",
+  "sidebar.image.height": "Tinggi",
+  "sidebar.image.file": "File",
+
+  "sidebar.textDetections": "DETEKSI TEKS ({{count}})",
+  "sidebar.text.clickInspect": "Klik kotak teks untuk melihat",
+  "sidebar.text.type": "Tipe",
+  "sidebar.text.confidence": "Confidence",
+  "sidebar.text.bbox": "BBox",
+  "sidebar.text.status": "Status",
+
+  "sidebar.bubbleDetections": "DETEKSI BUBBLE ({{count}})",
+  "sidebar.bubble.clickInspect": "Klik kotak bubble untuk melihat",
+  "sidebar.bubble.confidence": "Confidence",
+  "sidebar.bubble.bbox": "BBox",
+  "sidebar.bubble.status": "Status",
+
+  "sidebar.allDetections": "SEMUA DETEKSI",
+  "sidebar.noDetections": "Tidak ada deteksi",
+
+  "toast.detectFirstRun": "Pertama kali — menyiapkan mesin deteksi, mohon tunggu...",
+  "toast.detectRunning": "Mendeteksi teks dan bubble...",
+  "toast.detectDone": "Selesai — {{texts}} teks, {{bubbles}} bubble terdeteksi",
+  "toast.detectFailed": "Deteksi gagal",
+
+  "tools.select": "Pilih (V)",
+  "tools.lasso": "Lasso (L)",
+  "tools.hand": "Genggam (H)",
+
+  "pages.remove": "Hapus halaman",
+
+  "error.prefix": "Error: {{message}}"
+}

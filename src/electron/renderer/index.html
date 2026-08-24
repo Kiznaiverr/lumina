@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self' https://unpkg.com https://cdn.jsdelivr.net; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; img-src 'self' file: data:; font-src 'self' data: file: https://unpkg.com; connect-src 'self';"
+    />
+    <title>Lumina</title>
+    <script src="https://unpkg.com/konva@9/konva.min.js"></script>
+    <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        /* ── Accent ── */
+        --color-lumina: #e94560;
+        --color-lumina-dark: #c73a52;
+
+        /* ── 3-Layer Depth (VS Code 2026 inspired) ── */
+        --color-surface-0: #0e0e10;   /* Workbench — canvas, deepest */
+        --color-surface-1: #1e1e1e;   /* Tools — sidebar, tool panel */
+        --color-surface-2: #252526;   /* Actions — header, status bar */
+        --color-surface-3: #333333;   /* Borders, dividers */
+        --color-surface-4: #3c3c3c;   /* Hover borders, active indicators */
+
+        /* ── Text Hierarchy ── */
+        --color-text-primary: #d4d4d4;   /* Main content */
+        --color-text-secondary: #969696; /* Body, descriptions */
+        --color-text-muted: #6a6a6a;     /* Labels, metadata */
+        --color-text-dim: #4a4a4a;       /* Disabled, very subtle */
+      }
+    </style>
+    <link rel="stylesheet" href="styles/app.css" />
+  </head>
+  <body class="bg-surface-0 text-text-secondary h-screen flex flex-col overflow-hidden text-xs font-sans select-none">
+
+    <!-- Header -->
+    <header class="flex items-center px-3 bg-surface-2 border-b border-surface-3 h-8 flex-shrink-0 gap-2">
+      <h1 class="text-[0.85rem] text-lumina font-bold tracking-tight">Lumina</h1>
+      <div class="flex gap-1.5 ml-auto items-center">
+        <div class="relative">
+          <button class="btn flex items-center gap-1" id="btn-lang" title="Language">
+            <i data-lucide="globe" class="w-3 h-3"></i>
+            <span id="lang-current">EN</span>
+            <i data-lucide="chevron-down" class="w-2.5 h-2.5 opacity-50"></i>
+          </button>
+          <div id="lang-dropdown" class="hidden absolute top-full right-0 mt-1 bg-surface-1 border border-surface-3 rounded shadow-lg z-50 overflow-hidden">
+            <button class="lang-opt" data-lang="en">English</button>
+            <button class="lang-opt" data-lang="id">Bahasa Indonesia</button>
+          </div>
+        </div>
+        <button class="btn primary" id="btn-detect" disabled>
+          <span class="flex items-center gap-1"><i data-lucide="scan" class="w-3 h-3"></i> <span data-i18n="header.detect">Detect</span></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Workspace -->
+    <div class="flex flex-1 overflow-hidden" id="workspace">
+
+      <!-- Left: Tools Panel -->
+      <div class="w-12 bg-surface-1 border-r border-surface-3 flex flex-col items-center py-1.5 gap-0.5 flex-shrink-0" id="tools-panel">
+        <!-- Populated by tools.js -->
+      </div>
+
+      <!-- Center: Single Canvas -->
+      <div class="flex-1 relative overflow-hidden bg-surface-0" id="canvas-area">
+        <!-- Landing -->
+        <div id="landing" class="absolute inset-0 flex flex-col items-center justify-center bg-surface-0 z-10">
+          <h2 class="text-text-primary text-sm mb-1" data-i18n="landing.title">Manga Translation Editor</h2>
+          <p class="text-text-muted text-xs mb-5" data-i18n="landing.subtitle">Import a page to begin</p>
+          <button class="btn primary" id="btn-import-landing" data-i18n="landing.import">Import Image</button>
+        </div>
+
+        <!-- Single Konva container -->
+        <div id="canvas-container" class="absolute inset-0"></div>
+
+        <!-- View toggle (before/after) -->
+        <div id="view-toggle" class="absolute top-2 left-2 z-20 hidden">
+          <div class="flex bg-surface-1 border border-surface-3 rounded overflow-hidden">
+            <button id="btn-view-original" class="view-toggle-btn active" data-i18n="view.original">Original</button>
+            <button id="btn-view-cleaned" class="view-toggle-btn" data-i18n="view.cleaned">Cleaned</button>
+          </div>
+        </div>
+
+        <!-- Page indicator -->
+        <div id="page-indicator" class="absolute top-2 right-2 z-20 text-[0.65rem] text-text-muted hidden"></div>
+
+        <!-- Progress overlay -->
+        <div id="progress-overlay" class="overlay">
+          <div class="text-text-secondary text-xs mb-2" id="progress-title" data-i18n="progress.processing">Processing...</div>
+          <div id="progress-steps"></div>
+        </div>
+      </div>
+
+      <!-- Right: Sidebar -->
+      <div class="w-[260px] bg-surface-1 border-l border-surface-3 flex flex-col flex-shrink-0 overflow-hidden relative" id="sidebar">
+        <div class="sidebar-resize" id="sidebar-resize"></div>
+        <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar" id="sidebar-scroll">
+          <!-- Populated by sidebar.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Page Strip -->
+    <div id="page-strip" class="h-[68px] bg-surface-2 border-t border-surface-3 flex-shrink-0 overflow-x-auto custom-scrollbar hidden">
+      <div id="page-strip-items" class="flex gap-1 p-1.5 h-full items-center"></div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="flex items-center px-3 h-6 bg-surface-2 border-t border-surface-3 flex-shrink-0 text-[0.65rem] text-text-muted gap-3">
+      <span id="status-zoom">100%</span>
+      <span class="w-px h-3 bg-surface-3"></span>
+      <span id="status-tool">Select</span>
+      <span class="w-px h-3 bg-surface-3"></span>
+      <span id="status-detections" data-i18n="status.noDetections">No detections</span>
+      <span class="ml-auto" id="status-page"></span>
+    </div>
+
+    <!-- Download overlay -->
+    <div id="download-overlay" class="download-overlay">
+      <div class="spinner"></div>
+      <h3 class="text-lumina text-sm font-semibold" id="download-title" data-i18n="progress.preparing">Preparing model...</h3>
+      <p class="text-text-muted text-xs" id="download-status"></p>
+    </div>
+
+    <!-- Module scripts (order matters) -->
+    <script src="./lib/state.js"></script>
+    <script src="./lib/i18n.js"></script>
+    <script src="./lib/font.js"></script>
+    <script src="./lib/ui.js"></script>
+    <script src="./lib/canvas/render.js"></script>
+    <script src="./lib/canvas/detections.js"></script>
+    <script src="./lib/canvas/pages.js"></script>
+    <script src="./lib/canvas/index.js"></script>
+    <script src="./lib/sidebar.js"></script>
+    <script src="./lib/tools.js"></script>
+    <script src="./lib/pipeline.js"></script>
+    <script src="./renderer.js"></script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+{
+  "app.title": "Lumina",
+
+  "header.detect": "Detect",
+
+  "landing.title": "Manga Translation Editor",
+  "landing.subtitle": "Import a page to begin",
+  "landing.import": "Import Image",
+
+  "view.original": "Original",
+  "view.cleaned": "Cleaned",
+
+  "progress.processing": "Processing...",
+  "progress.preparing": "Preparing model...",
+  "progress.checking": "Checking model...",
+  "progress.downloading": "Downloading detection model...",
+  "progress.downloadFailed": "Download failed: {{error}}",
+
+  "status.noDetections": "No detections",
+  "status.selected": "{{type}}#{{index}} selected",
+  "status.detections": "{{texts}} · {{bubbles}}",
+
+  "sidebar.image": "IMAGE",
+  "sidebar.image.noImage": "No image loaded",
+  "sidebar.image.width": "Width",
+  "sidebar.image.height": "Height",
+  "sidebar.image.file": "File",
+
+  "sidebar.textDetections": "TEXT DETECTIONS ({{count}})",
+  "sidebar.text.clickInspect": "Click a text box to inspect",
+  "sidebar.text.type": "Type",
+  "sidebar.text.confidence": "Confidence",
+  "sidebar.text.bbox": "BBox",
+  "sidebar.text.status": "Status",
+
+  "sidebar.bubbleDetections": "BUBBLE DETECTIONS ({{count}})",
+  "sidebar.bubble.clickInspect": "Click a bubble box to inspect",
+  "sidebar.bubble.confidence": "Confidence",
+  "sidebar.bubble.bbox": "BBox",
+  "sidebar.bubble.status": "Status",
+
+  "sidebar.allDetections": "ALL DETECTIONS",
+  "sidebar.noDetections": "No detections",
+
+  "toast.detectFirstRun": "First run — preparing the detection engine, please wait...",
+  "toast.detectRunning": "Detecting text and bubbles...",
+  "toast.detectDone": "Done — {{texts}} text, {{bubbles}} bubbles detected",
+  "toast.detectFailed": "Detection failed",
+
+  "tools.select": "Select (V)",
+  "tools.lasso": "Lasso (L)",
+  "tools.hand": "Hand (H)",
+
+  "pages.remove": "Remove page",
+
+  "error.prefix": "Error: {{message}}"
+}
