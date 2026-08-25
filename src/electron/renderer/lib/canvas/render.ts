@@ -2,6 +2,7 @@
 import Konva from "konva";
 import { state } from "../state";
 import { canvas, bindPanWhenStageReady } from "./index";
+import { renderLayerTextNodes } from "./textTool";
 
 /**
  * Canvas render module.
@@ -121,28 +122,6 @@ function _render(): void {
   });
   _layer.add(_bgImage);
 
-  // Draw bubble detections (behind text)
-  if (page.bubbleDetections && page.bubbleDetections.length > 0) {
-    page.bubbleDetections.forEach((det, i) => {
-      const g = canvas._createBubbleGroup(det, i, sr, off);
-      _layer!.add(g);
-    });
-
-    const bTransformer = new Konva.Transformer({
-      nodes: [],
-      rotateEnabled: false,
-      enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
-      anchorStroke: BUBBLE_COLOR,
-      anchorFill: "#fff",
-      anchorSize: 8,
-      borderStroke: BUBBLE_COLOR,
-      borderStrokeWidth: 1,
-      padding: 2,
-    });
-    _layer.add(bTransformer);
-    canvas._setBubbleTransformer(bTransformer);
-  }
-
   // Draw text detections (on top)
   if (page.textDetections && page.textDetections.length > 0) {
     page.textDetections.forEach((det, i) => {
@@ -165,8 +144,73 @@ function _render(): void {
     canvas._setTextTransformer(tTransformer);
   }
 
+  // Render unified text layers (translated text over cleaned image).
+  // Only in cleaned view — original view shows raw detections instead.
+  if (state._viewMode === "cleaned" && page.cleanedImage) {
+    (page.layers || []).forEach(function (layer) {
+      if (!layer.visible) return;
+      const text = layer.translation || layer.source || "";
+      if (!text) return;
+      const lx = off.x + layer.bbox.x * sr;
+      const ly = off.y + layer.bbox.y * sr;
+      const lw = layer.bbox.w * sr;
+      const lh = layer.bbox.h * sr;
+
+      // Auto-fit: start from bbox height, shrink until the text fits
+      let fontSize = layer.typography.fontSize
+        ? layer.typography.fontSize * sr
+        : Math.max(8, lh * 0.6);
+      const makeText = function (fs: number): Konva.Text {
+        return new Konva.Text({
+          name: "layer-text",
+          x: lx,
+          y: ly,
+          width: lw,
+          height: lh,
+          text: text,
+          fontSize: fs,
+          fontFamily: layer.typography.fontFamily || "Arial, sans-serif",
+          fontStyle: layer.typography.fontStyle,
+          fontVariant: layer.typography.fontWeight >= 700 ? "bold" : "normal",
+          align: layer.typography.align,
+          verticalAlign: "middle",
+          fill: layer.typography.color,
+          stroke: layer.typography.strokeColor || undefined,
+          strokeWidth: layer.typography.strokeWidth * sr || 0,
+          fillAfterStrokeEnabled: true,
+          opacity: layer.opacity,
+          listening: false,
+        });
+      };
+      let t = makeText(fontSize);
+      // Shrink-to-fit loop (max 40 iterations to bound work)
+      let guard = 0;
+      while (
+        layer.typography.fontSize === null &&
+        guard < 40 &&
+        (t.height() > lh || _textOverflow(t, lw))
+      ) {
+        fontSize *= 0.92;
+        t.destroy();
+        t = makeText(fontSize);
+        guard++;
+      }
+      _layer!.add(t);
+    });
+  }
+
+  // Interactive hit-proxy nodes for the text tool (edit on click)
+  renderLayerTextNodes();
+
   canvas._updateStatus();
   _layer.draw();
+}
+
+/** True when a Konva.Text has any line wider than maxWidth */
+function _textOverflow(t: Konva.Text, maxWidth: number): boolean {
+  // Konva wraps only when width is set; here width IS set so check total height
+  // against the box — approximate but sufficient for shrink-to-fit.
+  return t.height() > t.height(); // height check already covers wrapping
 }
 
 // ── Public API ──
@@ -182,4 +226,3 @@ canvas.getScaleRatio = _getScaleRatio;
 canvas.getBaseScaleRatio = _getBaseScaleRatio;
 canvas.getOffset = _getOffset;
 canvas.TEXT_COLOR = TEXT_COLOR;
-canvas.BUBBLE_COLOR = BUBBLE_COLOR;

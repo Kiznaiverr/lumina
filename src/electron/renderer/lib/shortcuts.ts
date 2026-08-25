@@ -9,6 +9,7 @@ type ActionId =
   | "redo"
   | "toolSelect"
   | "toolLasso"
+  | "toolText"
   | "zoomIn"
   | "zoomOut"
   | "zoomFit";
@@ -19,6 +20,7 @@ export const shortcuts = {
     redo: "Ctrl+Shift+Z",
     toolSelect: "V",
     toolLasso: "L",
+    toolText: "T",
     zoomIn: "Ctrl+=",
     zoomOut: "Ctrl+-",
     zoomFit: "Ctrl+0",
@@ -107,6 +109,9 @@ export const shortcuts = {
         },
         toolLasso: function () {
           tools.setActive("lasso");
+        },
+        toolText: function () {
+          tools.setActive("text");
         },
         zoomIn: function () {
           canvas.zoomIn();

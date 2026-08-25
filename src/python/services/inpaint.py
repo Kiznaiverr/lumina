@@ -23,6 +23,11 @@ _MODELS_DIR = Path(
 )
 MODEL_PATH = _MODELS_DIR / MODEL_FILENAME
 
+# Inpainted outputs live in <repo>/cache
+_CACHE_DIR = Path(
+    os.environ.get("LUMINA_CACHE_DIR", Path(__file__).resolve().parents[3] / "cache")
+)
+
 INPUT_SIZE = 512
 # Padding around the bbox so the model sees surrounding context (px)
 CONTEXT_PAD = 32
@@ -117,9 +122,14 @@ def _build_text_mask(crop: "np.ndarray") -> "np.ndarray":
     return mask
 
 
-def inpaint_boxes(image_path: str, boxes: list[dict], output_path: str) -> str:
-    """Inpaint all given bboxes in the image; write result to output_path."""
+def inpaint_boxes(image_path: str, boxes: list[dict], output_path: str | None = None) -> str:
+    """Inpaint all given bboxes in the image; write result to output_path.
+    If output_path is None, a cache path under <repo>/cache is used."""
     import cv2 as cv
+
+    if output_path is None:
+        src = Path(image_path)
+        output_path = str(_CACHE_DIR / f"{src.stem}_cleaned{src.suffix}")
 
     session = _load_session()
     img = cv.imread(image_path)  # BGR

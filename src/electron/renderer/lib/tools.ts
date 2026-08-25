@@ -5,7 +5,7 @@ import { canvas } from "./canvas/index";
 import { createIcons } from "./icons";
 
 interface ToolItem {
-  id: "select" | "lasso";
+  id: "select" | "lasso" | "text";
   icon: string;
   titleKey: string;
 }
@@ -14,6 +14,7 @@ export const tools = {
   _items: [
     { id: "select", icon: "mouse-pointer-2", titleKey: "tools.select" },
     { id: "lasso", icon: "lasso", titleKey: "tools.lasso" },
+    { id: "text", icon: "type", titleKey: "tools.text" },
   ] as ToolItem[],
 
   init(): void {
@@ -60,6 +61,7 @@ export const tools = {
     const cursors: Record<string, string> = {
       lasso: "crosshair",
       select: "default",
+      text: "text",
     };
     if (container) container.style.cursor = cursors[toolId] || "default";
 

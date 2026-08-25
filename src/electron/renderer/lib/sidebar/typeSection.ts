@@ -1,0 +1,417 @@
+/* ── Sidebar: TypeSection (koharu-style typography inspector) ──
+ * Fixed-height section at the top of the sidebar. Hidden entirely when no
+ * text layer is selected. Every change applies live to the selected layer.
+ */
+import { state } from "../state";
+import * as i18n from "../i18n";
+import { canvas } from "../canvas/index";
+import { history } from "../history";
+import type { Page, PageLayer, Typography } from "../../types";
+
+const FONT_SIZE_PRESETS = [
+  8, 9, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72, 96,
+];
+const WEIGHTS = [400, 500, 600, 700, 800, 900];
+
+function selectedTextLayer(page: Page | null): PageLayer | null {
+  if (!page || !page._selectedLayerId) return null;
+  const layer = page.layers.find(function (l) {
+    return l.id === page._selectedLayerId;
+  });
+  if (!layer) return null;
+  if (layer.type === "text-dialogue" || layer.type === "text-free")
+    return layer;
+  return null;
+}
+
+export const typeSection = {
+  /** Build DOM once; visibility toggled on each sidebar render */
+  build(host: HTMLElement): void {
+    host.className =
+      "type-section shrink-0 border-b border-surface-3 overflow-y-auto";
+    host.id = "type-section";
+
+    // Header
+    const header = document.createElement("div");
+    header.className = "layer-header";
+    header.innerHTML =
+      '<i data-lucide="type" class="layer-header-icon"></i>' +
+      "<span>" +
+      i18n.t("type.title") +
+      "</span>";
+    host.appendChild(header);
+
+    const body = document.createElement("div");
+    body.className = "p-2 flex flex-col gap-1.5";
+    body.id = "type-body";
+    host.appendChild(body);
+
+    // Row 1: Font + Color
+    const row1 = this._grid("1fr 40px");
+    row1.appendChild(this._field(i18n.t("type.font"), this._fontSelect()));
+    row1.appendChild(this._field(i18n.t("type.color"), this._colorInput()));
+    body.appendChild(row1);
+
+    // Row 2: Size + Weight + Style
+    const row2 = this._grid("1fr 64px 72px");
+    row2.appendChild(this._field(i18n.t("type.size"), this._sizeField()));
+    row2.appendChild(this._field(i18n.t("type.weight"), this._weightSelect()));
+    row2.appendChild(this._field(i18n.t("type.style"), this._styleSelect()));
+    body.appendChild(row2);
+
+    // Row 3: Alignment segmented + Direction
+    const row3 = this._grid("1fr 84px");
+    row3.appendChild(
+      this._field(i18n.t("type.alignment"), this._alignSegmented()),
+    );
+    row3.appendChild(
+      this._field(i18n.t("type.direction"), this._directionNote()),
+    );
+    body.appendChild(row3);
+
+    // Row 4: Stroke color + width
+    const row4 = this._grid("1fr 1fr");
+    row4.appendChild(
+      this._field(i18n.t("type.strokeColor"), this._strokeColorInput()),
+    );
+    row4.appendChild(
+      this._field(i18n.t("type.strokeWidth"), this._strokeWidth()),
+    );
+    body.appendChild(row4);
+  },
+
+  /** Refresh control values from the selected layer */
+  refresh(): void {
+    const host = document.getElementById("type-section");
+    if (!host) return;
+    const page: Page | null = state.getActivePage();
+    const layer = selectedTextLayer(page);
+    // Always visible (koharu-style); controls disabled without selection
+    host.classList.remove("hidden");
+    host.classList.toggle("type-disabled", !layer);
+    host
+      .querySelectorAll<
+        HTMLInputElement | HTMLSelectElement | HTMLButtonElement
+      >("input, select, button")
+      .forEach(function (el) {
+        el.disabled = !layer;
+      });
+    if (!layer) return;
+
+    const t = layer.typography;
+    const set = function (id: string, value: string): void {
+      const el = host.querySelector<HTMLInputElement | HTMLSelectElement>(
+        "#" + id,
+      );
+      if (el && document.activeElement !== el) el.value = value;
+    };
+    set("type-font", t.fontFamily || "");
+    set("type-color", t.color);
+    set("type-size", t.fontSize === null ? "" : String(t.fontSize));
+    set("type-weight", String(t.fontWeight));
+    set("type-style", t.fontStyle);
+    set("type-stroke-color", t.strokeColor || "#ffffff");
+    set("type-stroke-width", String(t.strokeWidth));
+
+    // Alignment segmented active state
+    host
+      .querySelectorAll<HTMLButtonElement>("[data-align]")
+      .forEach(function (btn) {
+        btn.classList.toggle("active", btn.dataset.align === t.align);
+      });
+    // Stroke toggle visual
+    const strokeToggle =
+      host.querySelector<HTMLButtonElement>("#type-stroke-on");
+    if (strokeToggle)
+      strokeToggle.classList.toggle(
+        "active",
+        !!t.strokeColor && t.strokeWidth > 0,
+      );
+  },
+
+  // ── Control factories ──
+
+  _grid(cols: string): HTMLElement {
+    const div = document.createElement("div");
+    div.style.display = "grid";
+    div.style.gridTemplateColumns = cols;
+    div.style.gap = "6px";
+    return div;
+  },
+
+  _field(labelText: string, control: HTMLElement): HTMLElement {
+    const wrap = document.createElement("div");
+    wrap.className = "flex flex-col gap-0.5 min-w-0";
+    const label = document.createElement("span");
+    label.className = "type-field-label";
+    label.textContent = labelText;
+    wrap.appendChild(label);
+    wrap.appendChild(control);
+    return wrap;
+  },
+
+  /** Font select with a search input on top (native select + filter) */
+  _fontSelect(): HTMLElement {
+    const wrap = document.createElement("div");
+    wrap.className = "font-picker";
+    const sel = document.createElement("select");
+    sel.id = "type-font";
+    sel.className = "field-select";
+    const def = document.createElement("option");
+    def.value = "";
+    def.textContent = i18n.t("type.defaultFont");
+    sel.appendChild(def);
+    (state.fontList || []).forEach(function (f) {
+      const opt = document.createElement("option");
+      opt.value = f;
+      opt.textContent = f;
+      opt.style.fontFamily = f;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener("change", function () {
+      typeSection._apply({ fontFamily: this.value || null });
+    });
+    wrap.appendChild(sel);
+
+    // Search box filters the select options live
+    const search = document.createElement("input");
+    search.type = "text";
+    search.className = "field-select mt-0.5";
+    search.placeholder = i18n.t("type.searchFont");
+    search.addEventListener("input", function () {
+      const q = this.value.toLowerCase();
+      Array.from(sel.options).forEach(function (opt) {
+        const name = (opt.textContent || "").toLowerCase();
+        opt.hidden = q !== "" && name.indexOf(q) === -1 && opt.value !== "";
+      });
+      // Auto-select first visible non-default match while searching
+      if (q) {
+        const first = Array.from(sel.options).find(
+          (o) => !o.hidden && o.value !== "",
+        );
+        if (first) sel.value = first.value;
+      }
+    });
+    search.addEventListener("change", function () {
+      typeSection._apply({ fontFamily: sel.value || null });
+    });
+    wrap.appendChild(search);
+    return wrap;
+  },
+  _colorInput(): HTMLElement {
+    const input = document.createElement("input");
+    input.type = "color";
+    input.id = "type-color";
+    input.className = "type-color-well";
+    input.value = "#111111";
+    input.addEventListener("input", function () {
+      typeSection._apply({ color: this.value });
+    });
+    return input;
+  },
+
+  _sizeField(): HTMLElement {
+    const wrap = document.createElement("div");
+    wrap.className = "flex";
+    const input = document.createElement("input");
+    input.type = "number";
+    input.id = "type-size";
+    input.className = "field-select w-full min-w-0";
+    input.placeholder = i18n.t("type.auto");
+    input.min = "4";
+    input.max = "300";
+    input.addEventListener("change", function () {
+      const v = parseFloat(this.value);
+      typeSection._apply({
+        fontSize: Number.isFinite(v) && v > 0 ? v : null,
+      });
+    });
+    wrap.appendChild(input);
+
+    const btn = document.createElement("button");
+    btn.className = "type-size-btn";
+    btn.innerHTML = "▾";
+    btn.title = i18n.t("type.presets");
+    btn.addEventListener("click", function () {
+      const existing = document.getElementById("type-size-presets");
+      if (existing) {
+        existing.remove();
+        return;
+      }
+      const menu = document.createElement("div");
+      menu.id = "type-size-presets";
+      menu.className = "type-size-menu";
+      FONT_SIZE_PRESETS.forEach(function (s) {
+        const item = document.createElement("button");
+        item.className = "type-size-item";
+        item.textContent = String(s);
+        item.addEventListener("click", function () {
+          input.value = String(s);
+          typeSection._apply({ fontSize: s });
+          menu.remove();
+        });
+        menu.appendChild(item);
+      });
+      wrap.appendChild(menu);
+    });
+    wrap.appendChild(btn);
+    return wrap;
+  },
+
+  _weightSelect(): HTMLElement {
+    const sel = document.createElement("select");
+    sel.id = "type-weight";
+    sel.className = "field-select";
+    WEIGHTS.forEach(function (w) {
+      const opt = document.createElement("option");
+      opt.value = String(w);
+      opt.textContent = String(w);
+      sel.appendChild(opt);
+    });
+    sel.addEventListener("change", function () {
+      typeSection._apply({ fontWeight: parseInt(this.value, 10) });
+    });
+    return sel;
+  },
+
+  _styleSelect(): HTMLElement {
+    const sel = document.createElement("select");
+    sel.id = "type-style";
+    sel.className = "field-select";
+    for (const [value, key] of [
+      ["normal", "type.styles.normal"],
+      ["italic", "type.styles.italic"],
+    ] as const) {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = i18n.t(key);
+      sel.appendChild(opt);
+    }
+    sel.addEventListener("change", function () {
+      typeSection._apply({
+        fontStyle: this.value as Typography["fontStyle"],
+      });
+    });
+    return sel;
+  },
+
+  _alignSegmented(): HTMLElement {
+    const wrap = document.createElement("div");
+    wrap.className = "type-align-seg";
+    for (const [value, icon] of [
+      ["left", "align-left"],
+      ["center", "align-center"],
+      ["right", "align-right"],
+    ] as const) {
+      const btn = document.createElement("button");
+      btn.dataset.align = value;
+      btn.className = "type-align-btn";
+      btn.innerHTML = '<i data-lucide="' + icon + '"></i>';
+      btn.addEventListener("click", function () {
+        typeSection._apply({ align: value });
+      });
+      wrap.appendChild(btn);
+    }
+    return wrap;
+  },
+
+  _directionNote(): HTMLElement {
+    const note = document.createElement("div");
+    note.className = "field-readonly text-[0.62rem]";
+    note.textContent = i18n.t("type.horizontalOnly");
+    return note;
+  },
+
+  _strokeColorInput(): HTMLElement {
+    const wrap = document.createElement("div");
+    wrap.className = "flex items-center gap-1";
+    const toggle = document.createElement("button");
+    toggle.id = "type-stroke-on";
+    toggle.className = "type-align-btn";
+    toggle.innerHTML = '<i data-lucide="square"></i>';
+    toggle.addEventListener("click", function () {
+      const page: Page | null = state.getActivePage();
+      const layer = selectedTextLayer(page);
+      if (!layer) return;
+      const on =
+        !!layer.typography.strokeColor && layer.typography.strokeWidth > 0;
+      if (on) {
+        typeSection._apply({ strokeColor: null, strokeWidth: 0 });
+      } else {
+        typeSection._apply({ strokeColor: "#ffffff", strokeWidth: 2 });
+      }
+    });
+    wrap.appendChild(toggle);
+
+    const input = document.createElement("input");
+    input.type = "color";
+    input.id = "type-stroke-color";
+    input.className = "type-color-well";
+    input.value = "#ffffff";
+    input.addEventListener("input", function () {
+      typeSection._apply({
+        strokeColor: this.value,
+        strokeWidth: Math.max(1, typeSection._currentStrokeWidth()),
+      });
+    });
+    wrap.appendChild(input);
+    return wrap;
+  },
+
+  _strokeWidth(): HTMLElement {
+    const wrap = document.createElement("div");
+    wrap.className = "flex items-center gap-1";
+    const minus = document.createElement("button");
+    minus.className = "type-step-btn";
+    minus.textContent = "−";
+    const num = document.createElement("input");
+    num.type = "number";
+    num.id = "type-stroke-width";
+    num.className = "field-select w-full min-w-0";
+    num.min = "0";
+    num.max = "20";
+    num.step = "0.5";
+    const plus = document.createElement("button");
+    plus.className = "type-step-btn";
+    plus.textContent = "+";
+    minus.addEventListener("click", function () {
+      num.value = String(Math.max(0, parseFloat(num.value || "0") - 0.5));
+      num.dispatchEvent(new Event("change"));
+    });
+    plus.addEventListener("click", function () {
+      num.value = String(parseFloat(num.value || "0") + 0.5);
+      num.dispatchEvent(new Event("change"));
+    });
+    num.addEventListener("change", function () {
+      const v = Math.max(0, parseFloat(this.value || "0"));
+      typeSection._apply({
+        strokeWidth: v,
+        strokeColor: v > 0 ? typeSection._currentStrokeColor() : null,
+      });
+    });
+    wrap.appendChild(minus);
+    wrap.appendChild(num);
+    wrap.appendChild(plus);
+    return wrap;
+  },
+
+  _currentStrokeWidth(): number {
+    const el = document.getElementById("type-stroke-width") as HTMLInputElement;
+    return el ? parseFloat(el.value || "0") : 2;
+  },
+
+  _currentStrokeColor(): string | null {
+    const el = document.getElementById("type-stroke-color") as HTMLInputElement;
+    return el ? el.value : "#ffffff";
+  },
+
+  /** Apply a partial typography update to the selected layer (live) */
+  _apply(patch: Partial<Typography>): void {
+    const page: Page | null = state.getActivePage();
+    const layer = selectedTextLayer(page);
+    if (!page || !layer) return;
+    Object.assign(layer.typography, patch);
+    canvas.render();
+    history.snapshot();
+  },
+};

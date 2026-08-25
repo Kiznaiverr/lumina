@@ -19,9 +19,7 @@ export const history = {
     return JSON.stringify(
       state.pages.map((p) => ({
         textDetections: p.textDetections,
-        bubbleDetections: p.bubbleDetections,
         _selectedTextIdx: p._selectedTextIdx,
-        _selectedBubbleIdx: p._selectedBubbleIdx,
       })),
     );
   },
@@ -70,17 +68,13 @@ export const history = {
   _apply(data: string): void {
     const snap = JSON.parse(data) as Array<{
       textDetections: unknown;
-      bubbleDetections: unknown;
       _selectedTextIdx: number | null;
-      _selectedBubbleIdx: number | null;
     }>;
     this._restoring = true;
     state.pages.forEach((page, i) => {
       if (!snap[i]) return;
       page.textDetections = snap[i].textDetections as never;
-      page.bubbleDetections = snap[i].bubbleDetections as never;
       page._selectedTextIdx = snap[i]._selectedTextIdx;
-      page._selectedBubbleIdx = snap[i]._selectedBubbleIdx;
     });
     canvas._clearGroups();
     canvas.render();

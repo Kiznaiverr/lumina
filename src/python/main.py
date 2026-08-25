@@ -120,10 +120,8 @@ def inpaint(req: InpaintRequest):
     try:
         from services.inpaint import inpaint_boxes
 
-        src = Path(req.imagePath)
-        out = src.parent / "cache" / f"{src.stem}_cleaned{src.suffix}"
         output_path = inpaint_boxes(
-            req.imagePath, [b.model_dump() for b in req.boxes], str(out)
+            req.imagePath, [b.model_dump() for b in req.boxes]
         )
         return InpaintResponse(outputPath=output_path)
     except Exception as e:

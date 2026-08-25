@@ -37,6 +37,9 @@ export const ocr = {
       (result.results || []).forEach(function (r) {
         const det = page.textDetections[r.index];
         if (det) det.text = r.text;
+        // Mirror into the unified layer model
+        const layer = page.layers[r.index];
+        if (layer && layer.type === "text-dialogue") layer.source = r.text;
       });
 
       canvas.render();

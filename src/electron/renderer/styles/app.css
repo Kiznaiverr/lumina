@@ -397,22 +397,255 @@
 .layer-editor {
   padding: 0 8px 6px 36px;
 }
-.layer-editor-textarea {
+.layer-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: #6a6a6a;
+}
+.layer-row.selected .layer-icon {
+  color: #e94560;
+}
+.layer-name-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.layer-name {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #d4d4d4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.layer-kind {
+  font-size: 0.6rem;
+  color: #6a6a6a;
+  text-transform: capitalize;
+}
+.layer-eye {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #969696;
+  background: transparent;
+  flex-shrink: 0;
+}
+.layer-eye:hover {
+  background: #3a3a3a;
+  color: #fff;
+}
+.layer-eye svg,
+.layer-icon svg {
+  width: 13px;
+  height: 13px;
+}
+.layer-editor-translation {
+  border-color: rgba(233, 69, 96, 0.35);
+}
+
+/* ── Type section (koharu-style typography inspector) ── */
+.type-section {
+  max-height: 240px;
+}
+.type-section.type-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.type-field-label {
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6a6a6a;
+}
+.type-color-well {
   width: 100%;
-  padding: 4px 6px;
+  height: 26px;
+  padding: 2px;
   background: #0e0e10;
   border: 1px solid #333;
-  border-radius: 3px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.type-size-btn,
+.type-step-btn {
+  width: 22px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0e0e10;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #969696;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.type-size-btn:hover,
+.type-step-btn:hover {
+  background: #2a2a2a;
+  color: #fff;
+}
+.type-size-menu {
+  position: absolute;
+  z-index: 30;
+  margin-top: 28px;
+  min-width: 64px;
+  max-height: 180px;
+  overflow-y: auto;
+  background: #1a1a1c;
+  border: 1px solid #333;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.type-size-item {
+  display: block;
+  width: 100%;
+  padding: 3px 10px;
+  text-align: left;
+  font-size: 0.7rem;
   color: #d4d4d4;
-  font-size: 0.75rem;
+}
+.type-size-item:hover {
+  background: #2a2a2a;
+}
+.type-align-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid #333;
+  border-radius: 5px;
+  overflow: hidden;
+  height: 26px;
+}
+.type-align-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #969696;
+  background: transparent;
+}
+.type-align-btn svg {
+  width: 12px;
+  height: 12px;
+}
+.type-align-btn:hover {
+  color: #fff;
+  background: #2a2a2a;
+}
+.type-align-btn.active {
+  background: #e94560;
+  color: #fff;
+}
+
+/* ── Layer editor (source/translation) ── */
+.layer-editor {
+  padding: 2px 8px 8px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.layer-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.layer-editor-label {
+  font-size: 0.58rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6a6a6a;
+}
+.layer-editor-label-translation {
+  color: #e94560;
+}
+.layer-editor-textarea {
+  width: 100%;
+  padding: 5px 7px;
+  background: #141416;
+  border: 1px solid #2e2e32;
+  border-radius: 6px;
+  color: #d4d4d4;
+  font-size: 0.74rem;
+  line-height: 1.45;
   outline: none;
   font-family: inherit;
   resize: vertical;
-  min-height: 48px;
-  transition: border-color 0.15s;
+  min-height: 40px;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.layer-editor-textarea::placeholder {
+  color: #555;
 }
 .layer-editor-textarea:focus {
   border-color: #e94560;
+  background: #18181b;
+}
+.layer-editor-translation {
+  border-color: rgba(233, 69, 96, 0.3);
+}
+.layer-editor-translation:focus {
+  border-color: #e94560;
+}
+
+/* ── Font picker with search ── */
+.font-picker {
+  position: relative;
+}
+.font-picker-menu {
+  position: absolute;
+  z-index: 40;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #1a1a1c;
+  border: 1px solid #333;
+  border-radius: 6px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+.font-picker-search {
+  width: 100%;
+  padding: 6px 8px;
+  background: #141416;
+  border: none;
+  border-bottom: 1px solid #2e2e32;
+  color: #d4d4d4;
+  font-size: 0.72rem;
+  outline: none;
+}
+.font-picker-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+.font-picker-item {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  text-align: left;
+  font-size: 0.78rem;
+  color: #d4d4d4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.font-picker-item:hover {
+  background: #2a2a2a;
+}
+.font-picker-item.selected {
+  background: rgba(233, 69, 96, 0.18);
+  color: #ff7b92;
 }
 
 /* ── Status dot ── */

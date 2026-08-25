@@ -108,6 +108,7 @@
 
   "tools.select": "Pilih (V)",
   "tools.lasso": "Lasso (L)",
+  "tools.text": "Teks (T)",
   "tools.selectName": "Pilih",
   "tools.lassoName": "Lasso",
 
@@ -116,6 +117,35 @@
 
   "sidebar.bubbleName": "bubble",
   "sidebar.editorPlaceholder": "Edit teks sumber…",
+
+  "layers.kindDialogue": "Dialog",
+  "layers.kindFree": "Teks bebas",
+  "layers.kindCleanup": "Cleanup",
+  "layers.kindImage": "Gambar",
+  "layers.untitled": "Tanpa judul",
+  "layers.source": "Sumber",
+  "layers.translation": "Terjemahan",
+  "layers.toggleVisible": "Tampilkan/sembunyikan",
+  "layers.sourcePlaceholder": "Teks sumber OCR…",
+  "layers.translationPlaceholder": "Teks terjemahan…",
+
+  "type.title": "Teks",
+  "type.font": "Font",
+  "type.color": "Warna",
+  "type.size": "Ukuran",
+  "type.weight": "Ketebalan",
+  "type.style": "Gaya",
+  "type.alignment": "Perataan",
+  "type.direction": "Arah",
+  "type.strokeColor": "Outline",
+  "type.strokeWidth": "Lebar",
+  "type.defaultFont": "Default",
+  "type.auto": "Auto",
+  "type.presets": "Preset ukuran",
+  "type.styles.normal": "Normal",
+  "type.styles.italic": "Miring",
+  "type.horizontalOnly": "Hanya horizontal",
+  "type.searchFont": "Cari font…",
 
   "shortcuts.title": "Shortcut Keyboard",
   "shortcuts.undo": "Undo",

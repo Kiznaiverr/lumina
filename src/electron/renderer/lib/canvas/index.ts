@@ -21,7 +21,6 @@ export interface CanvasAPI {
   getBaseScaleRatio(): number;
   getOffset(): { x: number; y: number };
   TEXT_COLOR: string;
-  BUBBLE_COLOR: string;
 
   _clearGroups(): void;
   _createTextGroup(
@@ -30,23 +29,17 @@ export interface CanvasAPI {
     sr: number,
     off: { x: number; y: number },
   ): Konva.Group;
-  _createBubbleGroup(
-    det: import("../../types").BubbleDetection,
-    idx: number,
-    sr: number,
-    off: { x: number; y: number },
-  ): Konva.Group;
   _setTextTransformer(t: Konva.Transformer): void;
-  _setBubbleTransformer(b: Konva.Transformer): void;
   selectTextDetection(idx: number | null): void;
-  selectBubbleDetection(idx: number | null): void;
   deleteTextDetection(idx: number): void;
-  deleteBubbleDetection(idx: number): void;
   moveTextDetection(idx: number, dir: number): void;
-  moveBubbleDetection(idx: number, dir: number): void;
   setTextDetectionText(idx: number, text: string): void;
+  selectLayer(id: string | null): void;
+  setLayerText(id: string, field: "source" | "translation", text: string): void;
+  toggleLayerVisible(id: string): void;
+  deleteLayer(id: string): void;
+  moveLayer(id: string, dir: number): void;
   _refreshTextGroup(idx: number): void;
-  _refreshBubbleGroup(idx: number): void;
   _updateStatus(): void;
   onToolChange(tool: string): void;
 
@@ -93,26 +86,22 @@ export const canvas: CanvasAPI = {
     return { x: 0, y: 0 };
   },
   TEXT_COLOR: "#00ff88",
-  BUBBLE_COLOR: "#00bfff",
 
   _clearGroups() {},
   _createTextGroup() {
     throw new Error("not implemented");
   },
-  _createBubbleGroup() {
-    throw new Error("not implemented");
-  },
   _setTextTransformer() {},
-  _setBubbleTransformer() {},
   selectTextDetection() {},
-  selectBubbleDetection() {},
   deleteTextDetection() {},
-  deleteBubbleDetection() {},
   moveTextDetection() {},
-  moveBubbleDetection() {},
   setTextDetectionText() {},
+  selectLayer() {},
+  setLayerText() {},
+  toggleLayerVisible() {},
+  deleteLayer() {},
+  moveLayer() {},
   _refreshTextGroup() {},
-  _refreshBubbleGroup() {},
   _updateStatus() {},
   onToolChange() {},
 
@@ -261,12 +250,18 @@ canvas._initPanDrag = function (): void {
     if (!s) return;
     s.on("mousedown touchstart", function (e) {
       const middleBtn = e.evt && e.evt.button === 1;
-      // Pan on: middle-mouse, or ANY tool dragging the empty canvas
-      // background. Background = stage itself, backdrop rect, or the
+      // Pan on: middle-mouse (any tool), or select-tool dragging the empty
+      // canvas background. Background = stage itself, backdrop rect, or the
       // page image (all named "bg"). Detection groups/badges never pan.
       const onBackground =
         e.target === s || (e.target.name && e.target.name() === "bg");
-      if (!middleBtn && !onBackground) return;
+      if (middleBtn) {
+        // middle-mouse pans regardless of tool
+      } else if (state.activeTool === "select" && onBackground) {
+        // select tool pans on background drag
+      } else {
+        return;
+      }
       panning = true;
       last = { x: e.evt.clientX, y: e.evt.clientY };
       const container = document.getElementById("canvas-container");
@@ -289,7 +284,11 @@ canvas._initPanDrag = function (): void {
       const container = document.getElementById("canvas-container");
       if (container)
         container.style.cursor =
-          state.activeTool === "lasso" ? "crosshair" : "default";
+          state.activeTool === "lasso"
+            ? "crosshair"
+            : state.activeTool === "text"
+              ? "text"
+              : "default";
     });
   }
 
@@ -352,9 +351,6 @@ canvas._initKeyboard = function (): void {
       if (page._selectedTextIdx !== null) {
         e.preventDefault();
         canvas.deleteTextDetection(page._selectedTextIdx);
-      } else if (page._selectedBubbleIdx !== null) {
-        e.preventDefault();
-        canvas.deleteBubbleDetection(page._selectedBubbleIdx);
       }
       return;
     }
@@ -396,7 +392,6 @@ canvas._initDeselectClick = function (): void {
   stage.on("click tap", function (e) {
     if (e.target === stage || e.target.getParent() === canvas.getLayer()) {
       canvas.selectTextDetection(null);
-      canvas.selectBubbleDetection(null);
     }
   });
   // Right-click on empty canvas → deselect-only context menu
@@ -411,7 +406,6 @@ canvas._initDeselectClick = function (): void {
         labelKey: "ctx.deselect",
         action: function () {
           canvas.selectTextDetection(null);
-          canvas.selectBubbleDetection(null);
         },
       },
     ]);

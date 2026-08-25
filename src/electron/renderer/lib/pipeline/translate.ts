@@ -151,7 +151,12 @@ export const translate = {
         const r = (result.results || []).find(function (x) {
           return x.index === i;
         });
-        if (r) det.translated = r.text;
+        if (!r) return;
+        det.translated = r.text;
+        // Mirror into the unified layer model
+        const detIdx = page.textDetections.indexOf(det);
+        const layer = page.layers[detIdx];
+        if (layer && layer.type === "text-dialogue") layer.translation = r.text;
       });
 
       canvas.render();

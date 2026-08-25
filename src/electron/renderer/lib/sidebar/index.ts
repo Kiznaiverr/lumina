@@ -1,9 +1,10 @@
-/* ── Lumina Sidebar (entry) — koharu-style layers panel ── */
+/* ── Lumina Sidebar (entry) — koharu-style Type + Layers panel ── */
 import { state } from "../state";
 import * as i18n from "../i18n";
 import { createIcons } from "../icons";
 import type { Page } from "../../types";
 import { layerListHTML, wireEvents } from "./layerList";
+import { typeSection } from "./typeSection";
 
 export const sidebar = {
   render(): void {
@@ -12,11 +13,15 @@ export const sidebar = {
     scroll.innerHTML = "";
 
     const page: Page | null = state.getActivePage();
-    const tCount = page ? (page.textDetections || []).length : 0;
-    const bCount = page ? (page.bubbleDetections || []).length : 0;
-    const total = tCount + bCount;
+    const total = page ? (page.layers || []).length : 0;
 
-    // Header: LAYERS + count
+    // Type section (hidden when no text layer selected)
+    const typeHost = document.createElement("div");
+    scroll.appendChild(typeHost);
+    typeSection.build(typeHost);
+    typeSection.refresh();
+
+    // Layers header
     const header = document.createElement("div");
     header.className = "layer-header";
     header.innerHTML =

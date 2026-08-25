@@ -1,139 +1,111 @@
-/* ── Sidebar: unified layer list (koharu-style) ──
- * One flat list per page: text layers (T) + bubble layers (B).
- * Click row → select on canvas. Selected text row expands into an
- * inline editor for the OCR/source text (commit on blur).
+/* ── Sidebar: LayersPanel (koharu-style) ──
+ * Rows from the unified PageLayer model:
+ *   [icon] name (preview text, truncated)   [move ↑↓ / delete on hover] [eye]
+ *          kind label (Dialogue / Free text)
+ *   selected row expands into source/translation editor.
  */
 import * as i18n from "../i18n";
 import { canvas } from "../canvas/index";
-import type { DetectionStatus, Page } from "../../types";
+import { state } from "../state";
+import type { Page, PageLayer } from "../../types";
 import { esc } from "./_esc";
 
-const TEXT_STATUS_COLORS: Record<DetectionStatus, string> = {
-  auto: "#00ff88",
-  adjusted: "#ffa500",
-  rejected: "#ff4444",
+const KIND_KEYS: Record<PageLayer["type"], string> = {
+  "text-dialogue": "layers.kindDialogue",
+  "text-free": "layers.kindFree",
+  cleanup: "layers.kindCleanup",
+  image: "layers.kindImage",
 };
-const BUBBLE_STATUS_COLORS: Record<DetectionStatus, string> = {
-  auto: "#00bfff",
-  adjusted: "#ffa500",
-  rejected: "#ff4444",
-};
+
+function layerName(layer: PageLayer): string {
+  const text = layer.translation || layer.source || "";
+  const trimmed = text.trim();
+  if (!trimmed) return i18n.t("layers.untitled");
+  return trimmed.length > 30 ? trimmed.slice(0, 30) + "…" : trimmed;
+}
 
 export function layerListHTML(page: Page | null): string {
-  if (!page)
-    return (
-      '<div class="field-readonly">' + i18n.t("sidebar.noDetections") + "</div>"
-    );
-  const texts = page.textDetections || [];
-  const bubbles = page.bubbleDetections || [];
-  if (!texts.length && !bubbles.length)
+  if (!page || !page.layers.length)
     return (
       '<div class="field-readonly">' + i18n.t("sidebar.noDetections") + "</div>"
     );
 
-  const tSel = page._selectedTextIdx;
-  const bSel = page._selectedBubbleIdx;
   let html = "";
-
-  // Text layers first (reading order), then bubbles
-  texts.forEach(function (d, i) {
-    const isSelected = i === tSel;
-    html += layerRowHTML({
-      kind: "text",
-      idx: i,
-      selected: isSelected,
-      expanded: isSelected,
-      statusColor: TEXT_STATUS_COLORS[d.status] || "#00ff88",
-      label:
-        "T" + (i + 1) + " · " + (d.type === "text_bubble" ? "bubble" : "free"),
-      conf: Math.round(d.confidence * 100),
-      preview: d.text || "",
-      editorText: d.text || "",
-    });
+  page.layers.forEach(function (layer) {
+    html += layerRowHTML(page, layer);
   });
-
-  bubbles.forEach(function (d, i) {
-    const isSelected = i === bSel;
-    html += layerRowHTML({
-      kind: "bubble",
-      idx: i,
-      selected: isSelected,
-      expanded: false,
-      statusColor: BUBBLE_STATUS_COLORS[d.status] || "#00bfff",
-      label: "B" + (i + 1) + " · " + i18n.t("sidebar.bubbleName"),
-      conf: Math.round(d.confidence * 100),
-      preview: "",
-      editorText: "",
-    });
-  });
-
   return html;
 }
 
-interface RowOpts {
-  kind: "text" | "bubble";
-  idx: number;
-  selected: boolean;
-  expanded: boolean;
-  statusColor: string;
-  label: string;
-  conf: number;
-  preview: string;
-  editorText: string;
-}
+function layerRowHTML(page: Page, layer: PageLayer): string {
+  const selected = page._selectedLayerId === layer.id;
+  const idx = page.layers.indexOf(layer);
+  const kindLabel = i18n.t(KIND_KEYS[layer.type]);
+  const name = esc(layerName(layer));
 
-function layerRowHTML(o: RowOpts): string {
   let html =
     '<div class="layer-row' +
-    (o.selected ? " selected" : "") +
-    '" data-type="' +
-    o.kind +
-    '" data-idx="' +
-    o.idx +
+    (selected ? " selected" : "") +
+    '" data-layer-id="' +
+    esc(layer.id) +
     '">' +
     '<div class="layer-row-main">' +
-    '<div class="detection-badge" style="background:' +
-    o.statusColor +
-    '">' +
-    (o.kind === "text" ? "T" : "B") +
+    '<i data-lucide="type" class="layer-icon"></i>' +
+    '<div class="layer-name-wrap">' +
+    '<span class="layer-name">' +
+    name +
+    "</span>" +
+    '<span class="layer-kind">' +
+    esc(kindLabel) +
+    "</span>" +
     "</div>" +
-    '<div class="detection-label">' +
-    esc(o.label) +
-    (o.preview
-      ? '<span class="layer-preview">' + esc(o.preview) + "</span>"
-      : "") +
-    "</div>" +
-    '<div class="detection-conf">' +
-    o.conf +
-    "%</div>" +
     '<div class="detection-actions">' +
     '<button class="det-btn" data-action="move-up" title="' +
     esc(i18n.t("sidebar.moveUp")) +
     '"' +
-    (o.idx === 0 ? " disabled" : "") +
+    (idx === 0 ? " disabled" : "") +
     ">↑</button>" +
     '<button class="det-btn" data-action="move-down" title="' +
     esc(i18n.t("sidebar.moveDown")) +
     '"' +
-    (o.selected ? "" : " disabled") +
+    (idx === page.layers.length - 1 ? " disabled" : "") +
     ">↓</button>" +
     '<button class="det-btn det-btn-danger" data-action="delete" title="' +
     esc(i18n.t("sidebar.delete")) +
     '">✕</button>' +
     "</div>" +
+    '<button class="layer-eye" data-action="toggle-visible" title="' +
+    esc(i18n.t("layers.toggleVisible")) +
+    '">' +
+    (layer.visible
+      ? '<i data-lucide="eye"></i>'
+      : '<i data-lucide="eye-off"></i>') +
+    "</button>" +
     "</div>";
 
-  // Inline source-text editor for the selected text layer
-  if (o.expanded && o.kind === "text") {
+  // Expanded editor for the selected text layer
+  if (
+    selected &&
+    (layer.type === "text-dialogue" || layer.type === "text-free")
+  ) {
     html +=
       '<div class="layer-editor">' +
-      '<textarea class="layer-editor-textarea" data-type="text" data-idx="' +
-      o.idx +
-      '" rows="3" placeholder="' +
-      esc(i18n.t("sidebar.editorPlaceholder")) +
-      '">' +
-      esc(o.editorText) +
-      "</textarea>" +
+      '<div class="layer-editor-field">' +
+      '<div class="layer-editor-label">' +
+      esc(i18n.t("layers.source")) +
+      "</div>" +
+      '<textarea class="layer-editor-textarea" data-field="source" rows="2" placeholder="' +
+      esc(i18n.t("layers.sourcePlaceholder")) +
+      '"></textarea>' +
+      "</div>" +
+      '<div class="layer-editor-field">' +
+      '<div class="layer-editor-label layer-editor-label-translation">' +
+      esc(i18n.t("layers.translation")) +
+      "</div>" +
+      '<textarea class="layer-editor-textarea layer-editor-translation" data-field="translation" rows="3" placeholder="' +
+      esc(i18n.t("layers.translationPlaceholder")) +
+      '"></textarea>' +
+      "</div>" +
       "</div>";
   }
 
@@ -146,45 +118,62 @@ export function wireEvents(): void {
   items.forEach(function (el) {
     el.addEventListener("click", function (e) {
       const target = e.target as HTMLElement;
-      // Ignore clicks inside the inline editor
       if (target.closest(".layer-editor")) return;
+
+      const id = el.getAttribute("data-layer-id") as string;
       const btn = target.closest(".det-btn") as HTMLButtonElement | null;
-      const type = el.getAttribute("data-type") as "text" | "bubble";
-      const idx = parseInt(el.getAttribute("data-idx") as string, 10);
+      const eye = target.closest(".layer-eye") as HTMLButtonElement | null;
+
+      if (eye) {
+        e.stopPropagation();
+        canvas.toggleLayerVisible(id);
+        return;
+      }
 
       if (btn && !btn.disabled) {
         e.stopPropagation();
         const action = btn.getAttribute("data-action");
-        if (type === "text") {
-          if (action === "delete") canvas.deleteTextDetection(idx);
-          else if (action === "move-up") canvas.moveTextDetection(idx, -1);
-          else if (action === "move-down") canvas.moveTextDetection(idx, 1);
-        } else {
-          if (action === "delete") canvas.deleteBubbleDetection(idx);
-          else if (action === "move-up") canvas.moveBubbleDetection(idx, -1);
-          else if (action === "move-down") canvas.moveBubbleDetection(idx, 1);
-        }
+        if (action === "delete") canvas.deleteLayer(id);
+        else if (action === "move-up") canvas.moveLayer(id, -1);
+        else if (action === "move-down") canvas.moveLayer(id, 1);
         return;
       }
 
-      if (type === "text") {
-        canvas.selectTextDetection(idx);
+      // Click row: select; click again: collapse
+      if (el.classList.contains("selected")) {
+        canvas.selectLayer(null);
       } else {
-        canvas.selectBubbleDetection(idx);
+        canvas.selectLayer(id);
       }
     });
   });
 
-  // Inline editor: commit on blur, snapshot only when changed
+  // Inline editors: set initial value + commit on blur
   document
     .querySelectorAll<HTMLTextAreaElement>(".layer-editor-textarea")
     .forEach(function (ta) {
+      // Restore current value (kept out of innerHTML to avoid esc issues)
+      const row = ta.closest(".layer-row") as HTMLElement | null;
+      if (row) {
+        const id = row.getAttribute("data-layer-id") as string;
+        const field = ta.getAttribute("data-field") as "source" | "translation";
+        const page = state.getActivePage();
+        const layer = page?.layers.find(function (l) {
+          return l.id === id;
+        });
+        if (layer)
+          ta.value =
+            field === "source" ? layer.source || "" : layer.translation || "";
+      }
       ta.addEventListener("click", function (e) {
         e.stopPropagation();
       });
       ta.addEventListener("blur", function () {
-        const idx = parseInt(ta.getAttribute("data-idx") as string, 10);
-        canvas.setTextDetectionText(idx, ta.value);
+        const r = ta.closest(".layer-row") as HTMLElement | null;
+        if (!r) return;
+        const id = r.getAttribute("data-layer-id") as string;
+        const field = ta.getAttribute("data-field") as "source" | "translation";
+        canvas.setLayerText(id, field, ta.value);
       });
       ta.addEventListener("keydown", function (e) {
         if (e.key === "Escape") ta.blur();

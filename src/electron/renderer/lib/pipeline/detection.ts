@@ -5,8 +5,9 @@ import { ui } from "../ui";
 import { history } from "../history";
 import { canvas } from "../canvas/index";
 import { sidebar } from "../sidebar";
-import type { BubbleDetection, DetectResult, TextDetection } from "../../types";
+import type { DetectResult, PageLayer, TextDetection } from "../../types";
 import { sortReadingOrder } from "../readingOrder";
+import { defaultTypography } from "../../types";
 
 export const detection = {
   /** Run detection on active page */
@@ -52,20 +53,27 @@ export const detection = {
       );
       page.textDetections = sortedTexts;
 
-      const sortedBubbles = sortReadingOrder(
-        (result.bubbleDetections || []).map(
-          (d, i): BubbleDetection => ({
-            id: "bubble-" + i,
-            bbox: Object.assign({}, d.bbox),
-            confidence: d.confidence || 0,
-            status: "auto",
-          }),
-        ),
-      );
-      page.bubbleDetections = sortedBubbles;
-
       page._selectedTextIdx = null;
-      page._selectedBubbleIdx = null;
+
+      // Sync text detections into the unified layer model (dialogue layers).
+      // Free-text layers created by the user are preserved.
+      const freeLayers = page.layers.filter(function (l) {
+        return l.type === "text-free";
+      });
+      const dialogueLayers: PageLayer[] = sortedTexts.map(function (d, i) {
+        return {
+          id: "layer-t" + i,
+          type: "text-dialogue" as const,
+          bbox: Object.assign({}, d.bbox),
+          source: d.text || "",
+          translation: d.translated || "",
+          typography: defaultTypography(),
+          visible: true,
+          opacity: 1,
+        };
+      });
+      page.layers = [...dialogueLayers, ...freeLayers];
+      page._selectedLayerId = null;
 
       canvas._clearGroups();
       canvas.render();
@@ -77,7 +85,7 @@ export const detection = {
       ui.toast(
         i18n.t("toast.detectDone", {
           texts: page.textDetections.length,
-          bubbles: page.bubbleDetections.length,
+          bubbles: 0,
         }),
         "success",
         3000,
@@ -115,14 +123,6 @@ export const detection = {
             id: "text-" + j,
             bbox: Object.assign({}, d.bbox),
             type: d.type,
-            confidence: d.confidence || 0,
-            status: "auto",
-          }),
-        );
-        page.bubbleDetections = (result.bubbleDetections || []).map(
-          (d, j): BubbleDetection => ({
-            id: "bubble-" + j,
-            bbox: Object.assign({}, d.bbox),
             confidence: d.confidence || 0,
             status: "auto",
           }),

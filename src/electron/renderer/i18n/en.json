@@ -108,6 +108,7 @@
 
   "tools.select": "Select (V)",
   "tools.lasso": "Lasso (L)",
+  "tools.text": "Text (T)",
   "tools.selectName": "Select",
   "tools.lassoName": "Lasso",
 
@@ -116,6 +117,35 @@
 
   "sidebar.bubbleName": "bubble",
   "sidebar.editorPlaceholder": "Edit source text…",
+
+  "layers.kindDialogue": "Dialogue",
+  "layers.kindFree": "Free text",
+  "layers.kindCleanup": "Cleanup",
+  "layers.kindImage": "Image",
+  "layers.untitled": "Untitled",
+  "layers.source": "Source",
+  "layers.translation": "Translation",
+  "layers.toggleVisible": "Toggle visibility",
+  "layers.sourcePlaceholder": "OCR source text…",
+  "layers.translationPlaceholder": "Translated text…",
+
+  "type.title": "Type",
+  "type.font": "Font",
+  "type.color": "Color",
+  "type.size": "Size",
+  "type.weight": "Weight",
+  "type.style": "Style",
+  "type.alignment": "Alignment",
+  "type.direction": "Direction",
+  "type.strokeColor": "Border",
+  "type.strokeWidth": "Width",
+  "type.defaultFont": "Default",
+  "type.auto": "Auto",
+  "type.presets": "Size presets",
+  "type.styles.normal": "Regular",
+  "type.styles.italic": "Italic",
+  "type.horizontalOnly": "Horizontal only",
+  "type.searchFont": "Search fonts…",
 
   "shortcuts.title": "Keyboard Shortcuts",
   "shortcuts.undo": "Undo",

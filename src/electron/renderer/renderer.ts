@@ -14,7 +14,11 @@ import { setRendererImport } from "./lib/canvas/pages";
 // object. Must come AFTER canvas/index so `canvas` is initialized
 // (importing them from inside canvas/index would hit a TDZ error).
 import "./lib/canvas/render";
-import "./lib/canvas/detections";
+import "./lib/canvas/groups";
+import "./lib/canvas/selection";
+import "./lib/canvas/mutations";
+import "./lib/canvas/layers";
+import { bindTextTool } from "./lib/canvas/textTool";
 import { createIcons } from "./lib/icons";
 import type { Page } from "./types";
 
@@ -91,10 +95,10 @@ function _loadImageAsPage(filePath: string): Promise<Page | null> {
         naturalWidth: img.naturalWidth,
         naturalHeight: img.naturalHeight,
         textDetections: [],
-        bubbleDetections: [],
+        layers: [],
         cleanedImage: null,
         _selectedTextIdx: null,
-        _selectedBubbleIdx: null,
+        _selectedLayerId: null,
       };
       resolve(page);
     };
@@ -203,6 +207,7 @@ i18n.init().then(function () {
   tools.init();
   ui.initResize();
   canvas.initBindings();
+  bindTextTool();
   sidebar.render();
 
   createIcons();

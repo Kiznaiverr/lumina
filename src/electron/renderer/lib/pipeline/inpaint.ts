@@ -45,7 +45,10 @@ export const inpaint = {
 
       page.cleanedImage = img;
 
-      canvas.render();
+      // Reveal the Original/Cleaned toggle and jump to cleaned view so the
+      // user immediately sees the inpaint result.
+      canvas.updateViewToggle();
+      canvas.setViewMode("cleaned");
       sidebar.render();
       history.snapshot();
       ui.dismissToast(loadingToast);

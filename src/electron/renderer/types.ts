@@ -28,6 +28,49 @@ export interface TextDetection extends BaseDetection {
 
 export interface BubbleDetection extends BaseDetection {}
 
+/* ── Unified layer model (koharu-style) ──
+ * Detection results become text-dialogue layers; the text tool creates
+ * text-free layers. Rendered over the cleaned image in cleaned view.
+ */
+export type LayerType = "text-dialogue" | "text-free" | "cleanup" | "image";
+
+export interface Typography {
+  fontFamily: string | null; // null = default
+  fontSize: number | null; // null = auto-fit to bbox
+  fontWeight: number; // 100-900
+  fontStyle: "normal" | "italic";
+  align: "left" | "center" | "right";
+  color: string; // hex
+  strokeColor: string | null; // outline, null = off
+  strokeWidth: number;
+}
+
+export function defaultTypography(): Typography {
+  return {
+    fontFamily: null,
+    fontSize: null,
+    fontWeight: 400,
+    fontStyle: "normal",
+    align: "center",
+    color: "#111111",
+    strokeColor: null,
+    strokeWidth: 0,
+  };
+}
+
+export interface PageLayer {
+  id: string;
+  type: LayerType;
+  bbox: BBox;
+  /** OCR source text (dialogue layers) */
+  source?: string;
+  /** Translated text — rendered on canvas when present */
+  translation?: string;
+  typography: Typography;
+  visible: boolean;
+  opacity: number; // 0-1
+}
+
 export interface Page {
   filePath: string;
   fileName: string;
@@ -35,10 +78,12 @@ export interface Page {
   naturalWidth: number;
   naturalHeight: number;
   textDetections: TextDetection[];
-  bubbleDetections: BubbleDetection[];
+  /** Unified editable layers (derived from detections + text tool) */
+  layers: PageLayer[];
   cleanedImage: HTMLImageElement | null;
   _selectedTextIdx: number | null;
-  _selectedBubbleIdx: number | null;
+  /** Selected layer id in the unified layer model */
+  _selectedLayerId: string | null;
   /** Per-page viewport — each page keeps its own zoom/pan */
   _zoomLevel?: number;
   _panX?: number;
@@ -46,7 +91,7 @@ export interface Page {
 }
 
 export type ViewMode = "original" | "cleaned";
-export type ToolId = "select" | "lasso";
+export type ToolId = "select" | "lasso" | "text";
 
 /** Response shape from POST /detect */
 export interface DetectResult {
@@ -55,10 +100,8 @@ export interface DetectResult {
     type?: TextType;
     confidence?: number;
   }>;
-  bubbleDetections?: Array<{
-    bbox: BBox;
-    confidence?: number;
-  }>;
+  /* bubbleDetections intentionally ignored by the FE — inpaint & OCR only
+   * need text boxes. Backend still returns them for future use. */
   error?: string;
   detail?: string;
 }

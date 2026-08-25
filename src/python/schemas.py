@@ -22,6 +22,12 @@ class BubbleDetection(BaseModel):
     confidence: float
 
 
+# NOTE: bubbleDetections are kept in the API response for future use, but the
+# Electron frontend currently IGNORES them — OCR, translation, and inpainting
+# all operate on textDetections only. Do not add FE features that depend on
+# bubbles without revisiting this decision.
+
+
 class DetectRequest(BaseModel):
     imagePath: str
 
