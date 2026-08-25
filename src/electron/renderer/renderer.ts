@@ -6,6 +6,7 @@ import { history } from "./lib/history";
 import { shortcuts } from "./lib/shortcuts";
 import { tools } from "./lib/tools";
 import { pipeline } from "./lib/pipeline";
+import { settings } from "./lib/settings";
 import { canvas } from "./lib/canvas/index";
 import { sidebar } from "./lib/sidebar";
 import { setRendererImport } from "./lib/canvas/pages";
@@ -59,7 +60,11 @@ if (window.lumina.onDownloadProgress) {
     const label = document.getElementById("dl-msg");
     if (label) {
       const key =
-        p.model === "ocr" ? "progress.downloadingOcr" : "progress.downloading";
+        p.model === "ocr"
+          ? "progress.downloadingOcr"
+          : p.model === "inpaint"
+            ? "progress.downloadingInpaint"
+            : "progress.downloading";
       label.textContent = i18n.t(key);
     }
   });
@@ -130,6 +135,10 @@ async function importImages(): Promise<void> {
   landing!.style.display = "none";
   (document.getElementById("btn-detect") as HTMLButtonElement).disabled = false;
   (document.getElementById("btn-ocr") as HTMLButtonElement).disabled = false;
+  (document.getElementById("btn-translate") as HTMLButtonElement).disabled =
+    false;
+  (document.getElementById("btn-inpaint") as HTMLButtonElement).disabled =
+    false;
 
   canvas._clearGroups();
   canvas.render();
@@ -161,6 +170,18 @@ i18n.init().then(function () {
     pipeline.runOcr();
   });
 
+  document
+    .getElementById("btn-translate")!
+    .addEventListener("click", function () {
+      pipeline.runTranslate();
+    });
+
+  document
+    .getElementById("btn-inpaint")!
+    .addEventListener("click", function () {
+      pipeline.runInpaint();
+    });
+
   // ── Undo / Redo buttons ──
   document.getElementById("btn-undo")!.addEventListener("click", function () {
     history.undo();
@@ -172,33 +193,11 @@ i18n.init().then(function () {
   // ── Settings modal ──
   shortcuts.init();
   shortcuts.bindGlobal();
-  shortcuts.bindSettingsUI();
+  settings.init();
   document
     .getElementById("btn-settings")!
     .addEventListener("click", function () {
-      shortcuts.openSettings();
-    });
-  document
-    .getElementById("btn-settings-close")!
-    .addEventListener("click", function () {
-      shortcuts.closeSettings();
-    });
-  document
-    .getElementById("btn-settings-done")!
-    .addEventListener("click", function () {
-      shortcuts.closeSettings();
-    });
-  document
-    .getElementById("btn-shortcuts-reset-all")!
-    .addEventListener("click", function () {
-      shortcuts.resetAll();
-      shortcuts.openSettings(); // re-render list with defaults
-    });
-  // Click outside modal closes it
-  document
-    .getElementById("settings-overlay")!
-    .addEventListener("click", function (e) {
-      if (e.target === this) shortcuts.closeSettings();
+      settings.open();
     });
 
   tools.init();
@@ -233,8 +232,8 @@ document.querySelectorAll<HTMLElement>(".lang-opt").forEach(function (opt) {
     i18n.setLang(this.dataset.lang as string);
     sidebar.render();
     canvas._updateStatus();
-    if (shortcuts && shortcuts._updateHeaderTitles)
-      shortcuts._updateHeaderTitles();
+    if (shortcuts && shortcuts.updateHeaderTitles)
+      shortcuts.updateHeaderTitles();
   });
 });
 document.addEventListener("click", function () {

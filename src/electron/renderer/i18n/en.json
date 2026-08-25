@@ -3,6 +3,8 @@
 
   "header.detect": "Detect",
   "header.ocr": "OCR",
+  "header.translate": "Translate",
+  "header.inpaint": "Inpaint",
   "header.import": "Import",
   "header.undo": "Undo (Ctrl+Z)",
   "header.redo": "Redo (Ctrl+Shift+Z)",
@@ -10,6 +12,19 @@
   "settings.title": "Settings",
   "settings.tabGeneral": "General",
   "settings.tabShortcuts": "Shortcuts",
+  "settings.tabTranslation": "Translation",
+  "settings.trProvider": "Provider",
+  "settings.trTargetLang": "Target language",
+  "settings.trDeeplKey": "DeepL API key (free tier)",
+  "settings.trLlmUrl": "Base URL (OpenAI-compatible)",
+  "settings.trLlmKey": "API key (optional)",
+  "settings.trLlmModel": "Model",
+  "settings.trLlmInstruction": "System instruction ({{target_language}} = target language)",
+  "settings.trInstructionPlaceholder": "Empty = use default from prompts/translate-default.md",
+  "settings.trLoadInstruction": "Load default",
+  "settings.trResetInstruction": "Clear (use default)",
+  "settings.trGeminiKey": "Gemini API key",
+  "settings.trGeminiModel": "Model",
   "settings.language": "Language",
   "settings.langHint": "Interface language. Applies immediately.",
 
@@ -29,6 +44,7 @@
   "progress.checking": "Checking model...",
   "progress.downloading": "Downloading ogkalu/comic-text-and-bubble-detector",
   "progress.downloadingOcr": "Downloading OCR model mayocream/manga-ocr-onnx",
+  "progress.downloadingInpaint": "Downloading inpainting model opencv/inpainting_lama",
   "progress.downloadFailed": "Download failed: {{error}}",
   "progress.downloaded": "Model ready",
 
@@ -58,6 +74,7 @@
   "sidebar.bubble.status": "Status",
 
   "sidebar.allDetections": "ALL DETECTIONS",
+  "sidebar.layers": "Layers",
   "sidebar.noDetections": "No detections",
   "sidebar.delete": "Delete detection (Del)",
   "sidebar.moveUp": "Move up in reading order",
@@ -77,6 +94,16 @@
   "toast.ocrDone": "OCR done — {{count}} text(s) recognized",
   "toast.ocrFailed": "OCR failed",
 
+  "toast.trNoText": "Run OCR first — no text to translate",
+  "toast.trRunning": "Translating {{count}} text(s)...",
+  "toast.trDone": "Translation done — {{count}} text(s) translated",
+  "toast.trFailed": "Translation failed",
+
+  "toast.inpaintNoText": "Run Detect first — no boxes to inpaint",
+  "toast.inpaintRunning": "Inpainting text regions...",
+  "toast.inpaintDone": "Inpaint complete — cleaned image ready",
+  "toast.inpaintFailed": "Inpaint failed",
+
   "sidebar.text.originalText": "Original text",
 
   "tools.select": "Select (V)",
@@ -88,6 +115,7 @@
   "pages.importMore": "Import more pages",
 
   "sidebar.bubbleName": "bubble",
+  "sidebar.editorPlaceholder": "Edit source text…",
 
   "shortcuts.title": "Keyboard Shortcuts",
   "shortcuts.undo": "Undo",

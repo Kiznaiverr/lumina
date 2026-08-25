@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu } from "electron";
 import * as path from "path";
 import { spawnPythonBackend, stopPythonBackend } from "./backend";
 import { registerIpcHandlers } from "./pipeline";
+import { registerSecretHandlers } from "./storage";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -25,6 +26,7 @@ function createWindow(): void {
   );
 
   registerIpcHandlers(mainWindow);
+  registerSecretHandlers();
 
   mainWindow.on("closed", () => {
     mainWindow = null;

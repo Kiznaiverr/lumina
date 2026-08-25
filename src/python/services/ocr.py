@@ -120,7 +120,12 @@ def _decode(hidden) -> str:
         if next_id in (SEP_ID, PAD_ID):
             break
         ids.append(next_id)
-    return "".join(_vocab[i] for i in ids[1:] if i < len(_vocab)).replace("##", "")
+    special = {"[CLS]", "[SEP]", "[PAD]", "[MASK]", "[UNK]"}
+    return "".join(
+        _vocab[i]
+        for i in ids[1:]
+        if i < len(_vocab) and _vocab[i] not in special
+    ).replace("##", "")
 
 
 def ocr_boxes(image_path: str, boxes: list[dict]) -> list[str]:

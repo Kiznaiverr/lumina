@@ -304,4 +304,17 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
     return Array.from(fonts).sort();
   });
+
+  // Load default LLM instruction from prompts/translate-default.md
+  ipcMain.handle("load-default-instruction", async () => {
+    try {
+      const p = path.join(
+        __dirname,
+        "../../../src/python/prompts/translate-default.md",
+      );
+      return fs.readFileSync(p, "utf-8");
+    } catch {
+      return "";
+    }
+  });
 }

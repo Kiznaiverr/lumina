@@ -45,5 +45,43 @@ class OcrResponse(BaseModel):
     results: list[OcrResult]
 
 
+class TranslateConfig(BaseModel):
+    provider: str  # "google" | "deepl" | "llm"
+    sourceLang: str = "ja"
+    targetLang: str = "en"
+    apiKey: str | None = None
+    llmBaseUrl: str | None = None
+    llmApiKey: str | None = None
+    llmModel: str | None = None
+    llmInstruction: str | None = None
+    geminiApiKey: str | None = None
+    geminiModel: str | None = None
+
+
+class TranslateRequest(BaseModel):
+    texts: list[str]
+    config: TranslateConfig
+    # Optional per-text continuity context, aligned with texts by index
+    previousLines: list[str] | None = None
+
+
+class TranslateResult(BaseModel):
+    index: int
+    text: str
+
+
+class TranslateResponse(BaseModel):
+    results: list[TranslateResult]
+
+
+class InpaintRequest(BaseModel):
+    imagePath: str
+    boxes: list[Bbox]
+
+
+class InpaintResponse(BaseModel):
+    outputPath: str
+
+
 class ModelStatus(BaseModel):
     cached: bool

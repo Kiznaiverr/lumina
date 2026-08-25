@@ -337,6 +337,84 @@
   color: #ff6666;
 }
 
+/* ── Layers panel (koharu-style) ── */
+.layer-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  border-bottom: 1px solid #2a2a2a;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #969696;
+}
+.layer-header-icon {
+  width: 12px;
+  height: 12px;
+  color: #e94560;
+}
+.layer-header-count {
+  margin-left: auto;
+  font-size: 0.65rem;
+  color: #6a6a6a;
+  font-variant-numeric: tabular-nums;
+}
+.layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 0;
+}
+.layer-row {
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.1s;
+}
+.layer-row:hover {
+  background: #2a2a2a;
+}
+.layer-row.selected {
+  background: #1a3a5c;
+  border-color: #264f78;
+}
+.layer-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+}
+.layer-preview {
+  color: #6a6a6a;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  margin-left: 4px;
+}
+.layer-editor {
+  padding: 0 8px 6px 36px;
+}
+.layer-editor-textarea {
+  width: 100%;
+  padding: 4px 6px;
+  background: #0e0e10;
+  border: 1px solid #333;
+  border-radius: 3px;
+  color: #d4d4d4;
+  font-size: 0.75rem;
+  outline: none;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 48px;
+  transition: border-color 0.15s;
+}
+.layer-editor-textarea:focus {
+  border-color: #e94560;
+}
+
 /* ── Status dot ── */
 .status-dot {
   display: inline-block;

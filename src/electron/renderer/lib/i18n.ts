@@ -41,6 +41,13 @@ function _renderAll(): void {
   document.querySelectorAll<HTMLElement>("[data-i18n-title]").forEach((el) => {
     el.title = t(el.getAttribute("data-i18n-title") as string);
   });
+  document
+    .querySelectorAll<
+      HTMLInputElement | HTMLTextAreaElement
+    >("[data-i18n-placeholder]")
+    .forEach((el) => {
+      el.placeholder = t(el.getAttribute("data-i18n-placeholder") as string);
+    });
   document.title = t("app.title");
 }
 

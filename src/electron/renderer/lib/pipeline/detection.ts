@@ -6,6 +6,7 @@ import { history } from "../history";
 import { canvas } from "../canvas/index";
 import { sidebar } from "../sidebar";
 import type { BubbleDetection, DetectResult, TextDetection } from "../../types";
+import { sortReadingOrder } from "../readingOrder";
 
 export const detection = {
   /** Run detection on active page */
@@ -36,24 +37,32 @@ export const detection = {
       if (!result || result.error)
         throw new Error(result?.detail || "Detection failed");
 
-      page.textDetections = (result.textDetections || []).map(
-        (d, i): TextDetection => ({
-          id: "text-" + i,
-          bbox: Object.assign({}, d.bbox),
-          type: d.type,
-          confidence: d.confidence || 0,
-          status: "auto",
-        }),
+      // Sort into manga reading order (right→left, top→bottom) so T1..Tn
+      // matches how a reader would encounter the text.
+      const sortedTexts = sortReadingOrder(
+        (result.textDetections || []).map(
+          (d, i): TextDetection => ({
+            id: "text-" + i,
+            bbox: Object.assign({}, d.bbox),
+            type: d.type,
+            confidence: d.confidence || 0,
+            status: "auto",
+          }),
+        ),
       );
+      page.textDetections = sortedTexts;
 
-      page.bubbleDetections = (result.bubbleDetections || []).map(
-        (d, i): BubbleDetection => ({
-          id: "bubble-" + i,
-          bbox: Object.assign({}, d.bbox),
-          confidence: d.confidence || 0,
-          status: "auto",
-        }),
+      const sortedBubbles = sortReadingOrder(
+        (result.bubbleDetections || []).map(
+          (d, i): BubbleDetection => ({
+            id: "bubble-" + i,
+            bbox: Object.assign({}, d.bbox),
+            confidence: d.confidence || 0,
+            status: "auto",
+          }),
+        ),
       );
+      page.bubbleDetections = sortedBubbles;
 
       page._selectedTextIdx = null;
       page._selectedBubbleIdx = null;

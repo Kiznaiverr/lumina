@@ -1,0 +1,174 @@
+/* ── Lumina Translation settings + pipeline ──
+ * Non-secret config persisted in localStorage; API keys stored encrypted
+ * via safeStorage vault (main/storage.ts) and injected per-request.
+ */
+import { state } from "../state";
+import * as i18n from "../i18n";
+import { ui } from "../ui";
+import { history } from "../history";
+import { canvas } from "../canvas/index";
+import { sidebar } from "../sidebar";
+import type { TextDetection } from "../../types";
+
+const STORAGE_KEY = "lumina-translate";
+
+/** localStorage holds everything EXCEPT the api keys (those live in the vault) */
+type StoredConfig = Omit<TranslateConfig, "llmApiKey" | "geminiApiKey">;
+
+export interface TranslateConfig {
+  provider: "llm" | "gemini";
+  sourceLang: string;
+  targetLang: string;
+  llmBaseUrl: string;
+  llmApiKey: string;
+  llmModel: string;
+  llmInstruction: string;
+  geminiApiKey: string;
+  geminiModel: string;
+}
+
+function defaultConfig(): TranslateConfig {
+  return {
+    provider: "gemini",
+    sourceLang: "ja",
+    targetLang: "en",
+    llmBaseUrl: "",
+    llmApiKey: "",
+    llmModel: "",
+    // Empty = use default from prompts/translate-default.md (backend side)
+    llmInstruction: "",
+    geminiApiKey: "",
+    geminiModel: "gemini-2.0-flash",
+  };
+}
+
+export const translateSettings = {
+  load(): TranslateConfig {
+    let cfg: TranslateConfig = defaultConfig();
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) cfg = { ...cfg, ...(JSON.parse(raw) as StoredConfig) };
+    } catch {
+      /* keep defaults */
+    }
+    // API keys are NOT in localStorage — they come from the encrypted vault
+    return cfg;
+  },
+
+  /**
+   * Persist non-secret fields to localStorage + keys to the vault.
+   * Empty key values do NOT overwrite existing vault entries — this guards
+   * against persisting a blank field (e.g. UI not yet hydrated from vault).
+   */
+  save(cfg: TranslateConfig): void {
+    const stored: StoredConfig = {
+      provider: cfg.provider,
+      sourceLang: cfg.sourceLang,
+      targetLang: cfg.targetLang,
+      llmBaseUrl: cfg.llmBaseUrl,
+      llmModel: cfg.llmModel,
+      llmInstruction: cfg.llmInstruction,
+      geminiModel: cfg.geminiModel,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    if (window.lumina.setSecret) {
+      if (cfg.llmApiKey) window.lumina.setSecret("llmApiKey", cfg.llmApiKey);
+      if (cfg.geminiApiKey)
+        window.lumina.setSecret("geminiApiKey", cfg.geminiApiKey);
+      console.log(
+        `[Lumina] secrets save: llmKey=${cfg.llmApiKey ? "set" : "empty"} geminiKey=${cfg.geminiApiKey ? "set" : "empty"}`,
+      );
+    } else {
+      console.warn(
+        "[Lumina] window.lumina.setSecret MISSING — preload not rebuilt? Keys NOT saved",
+      );
+    }
+  },
+
+  /** Explicitly clear a stored api key */
+  async clearKey(name: "llmApiKey" | "geminiApiKey"): Promise<void> {
+    if (window.lumina.deleteSecret) await window.lumina.deleteSecret(name);
+  },
+
+  /** Full config incl. api keys — call before POST /translate */
+  async loadWithSecrets(): Promise<TranslateConfig> {
+    const cfg = this.load();
+    if (window.lumina.getSecret) {
+      try {
+        cfg.llmApiKey = (await window.lumina.getSecret("llmApiKey")) || "";
+        cfg.geminiApiKey =
+          (await window.lumina.getSecret("geminiApiKey")) || "";
+        console.log(
+          `[Lumina] secrets load: llmKey=${cfg.llmApiKey ? "set" : "empty"} geminiKey=${cfg.geminiApiKey ? "set" : "empty"}`,
+        );
+      } catch {
+        /* vault unavailable — proceed with empty keys */
+      }
+    }
+    return cfg;
+  },
+};
+
+export const translate = {
+  /** Translate all text detections of the active page */
+  run: async function (): Promise<void> {
+    const page = state.getActivePage();
+    if (state.isRunning || !page) return;
+    const withText = page.textDetections.filter(function (d) {
+      return (d.text || "").trim().length > 0;
+    });
+    if (!withText.length) {
+      ui.toast(i18n.t("toast.trNoText"), "warn");
+      return;
+    }
+    state.isRunning = true;
+
+    const loadingToast = ui.toast(i18n.t("toast.trRunning"), "running", 0);
+
+    try {
+      // Full config incl. api keys from the encrypted vault
+      const config = await translateSettings.loadWithSecrets();
+      const result = await window.lumina.apiPost<{
+        results?: Array<{ index: number; text: string }>;
+        detail?: string;
+      }>("/translate", {
+        texts: withText.map(function (d) {
+          return d.text;
+        }),
+        // Continuity context: previous detection's text in reading order
+        previousLines: withText.map(function (_, i) {
+          if (i === 0) return "";
+          const prev = withText[i - 1];
+          return prev.translated || prev.text || "";
+        }),
+        config: config,
+      });
+      if (!result || !result.results)
+        throw new Error(result?.detail || "Translation failed");
+
+      // Map back via identity of filtered items
+      withText.forEach(function (det: TextDetection, i: number) {
+        const r = (result.results || []).find(function (x) {
+          return x.index === i;
+        });
+        if (r) det.translated = r.text;
+      });
+
+      canvas.render();
+      sidebar.render();
+      history.snapshot();
+      ui.dismissToast(loadingToast);
+      ui.toast(
+        i18n.t("toast.trDone", { count: (result.results || []).length }),
+        "success",
+        3000,
+      );
+    } catch (err) {
+      console.error("Translate error:", err);
+      ui.dismissToast(loadingToast);
+      ui.toast((err as Error).message || i18n.t("toast.trFailed"), "error");
+    } finally {
+      state.isRunning = false;
+    }
+  },
+};

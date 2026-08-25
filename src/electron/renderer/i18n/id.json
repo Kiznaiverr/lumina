@@ -3,6 +3,8 @@
 
   "header.detect": "Deteksi",
   "header.ocr": "OCR",
+  "header.translate": "Terjemahkan",
+  "header.inpaint": "Inpaint",
   "header.import": "Impor",
   "header.undo": "Undo (Ctrl+Z)",
   "header.redo": "Redo (Ctrl+Shift+Z)",
@@ -10,6 +12,19 @@
   "settings.title": "Pengaturan",
   "settings.tabGeneral": "Umum",
   "settings.tabShortcuts": "Shortcut",
+  "settings.tabTranslation": "Terjemahan",
+  "settings.trProvider": "Penyedia",
+  "settings.trTargetLang": "Bahasa tujuan",
+  "settings.trDeeplKey": "API key DeepL (gratis)",
+  "settings.trLlmUrl": "Base URL (kompatibel OpenAI)",
+  "settings.trLlmKey": "API key (opsional)",
+  "settings.trLlmModel": "Model",
+  "settings.trLlmInstruction": "Instruksi sistem ({{target_language}} = bahasa tujuan)",
+  "settings.trInstructionPlaceholder": "Kosong = pakai default dari prompts/translate-default.md",
+  "settings.trLoadInstruction": "Muat default",
+  "settings.trResetInstruction": "Kosongkan (pakai default)",
+  "settings.trGeminiKey": "API key Gemini",
+  "settings.trGeminiModel": "Model",
   "settings.language": "Bahasa",
   "settings.langHint": "Bahasa antarmuka. Langsung berlaku.",
 
@@ -29,6 +44,7 @@
   "progress.checking": "Mengecek model...",
   "progress.downloading": "Mengunduh model ogkalu/comic-text-and-bubble-detector",
   "progress.downloadingOcr": "Mengunduh model mayocream/manga-ocr-onnx",
+  "progress.downloadingInpaint": "Mengunduh model inpainting opencv/inpainting_lama",
   "progress.downloadFailed": "Gagal mengunduh: {{error}}",
   "progress.downloaded": "Model siap",
 
@@ -58,6 +74,7 @@
   "sidebar.bubble.status": "Status",
 
   "sidebar.allDetections": "SEMUA DETEKSI",
+  "sidebar.layers": "Layer",
   "sidebar.noDetections": "Tidak ada deteksi",
   "sidebar.delete": "Hapus deteksi (Del)",
   "sidebar.moveUp": "Naikkan urutan baca",
@@ -77,6 +94,16 @@
   "toast.ocrDone": "OCR selesai — {{count}} teks dikenali",
   "toast.ocrFailed": "OCR gagal",
 
+  "toast.trNoText": "Jalankan OCR dulu — belum ada teks untuk diterjemahkan",
+  "toast.trRunning": "Menerjemahkan {{count}} teks...",
+  "toast.trDone": "Terjemahan selesai — {{count}} teks diterjemahkan",
+  "toast.trFailed": "Terjemahan gagal",
+
+  "toast.inpaintNoText": "Jalankan Deteksi dulu — belum ada area untuk di-inpaint",
+  "toast.inpaintRunning": "Membersihkan area teks...",
+  "toast.inpaintDone": "Inpaint selesai — gambar bersih siap",
+  "toast.inpaintFailed": "Inpaint gagal",
+
   "sidebar.text.originalText": "Teks asli",
 
   "tools.select": "Pilih (V)",
@@ -88,6 +115,7 @@
   "pages.importMore": "Impor halaman lagi",
 
   "sidebar.bubbleName": "bubble",
+  "sidebar.editorPlaceholder": "Edit teks sumber…",
 
   "shortcuts.title": "Shortcut Keyboard",
   "shortcuts.undo": "Undo",

@@ -44,6 +44,7 @@ export interface CanvasAPI {
   deleteBubbleDetection(idx: number): void;
   moveTextDetection(idx: number, dir: number): void;
   moveBubbleDetection(idx: number, dir: number): void;
+  setTextDetectionText(idx: number, text: string): void;
   _refreshTextGroup(idx: number): void;
   _refreshBubbleGroup(idx: number): void;
   _updateStatus(): void;
@@ -109,6 +110,7 @@ export const canvas: CanvasAPI = {
   deleteBubbleDetection() {},
   moveTextDetection() {},
   moveBubbleDetection() {},
+  setTextDetectionText() {},
   _refreshTextGroup() {},
   _refreshBubbleGroup() {},
   _updateStatus() {},

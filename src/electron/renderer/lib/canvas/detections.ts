@@ -442,6 +442,18 @@ canvas.moveBubbleDetection = function (idx: number, dir: number): void {
   history.snapshot();
 };
 
+/** Set OCR/source text on a text detection (from sidebar inline editor) */
+canvas.setTextDetectionText = function (idx: number, text: string): void {
+  const page = state.getActivePage();
+  if (!page || idx < 0 || idx >= page.textDetections.length) return;
+  const det = page.textDetections[idx];
+  if (det.text === text) return;
+  det.text = text;
+  if (det.status === "auto") det.status = "adjusted";
+  canvas._refreshTextGroup(idx);
+  history.snapshot();
+};
+
 // ── Clear groups (called before re-render) ──
 
 canvas._clearGroups = function (): void {

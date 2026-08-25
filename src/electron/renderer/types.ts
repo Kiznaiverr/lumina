@@ -22,6 +22,8 @@ export interface TextDetection extends BaseDetection {
   type?: TextType;
   /** OCR result (Japanese) — empty until OCR runs */
   text?: string;
+  /** Translation result — empty until translate runs */
+  translated?: string;
 }
 
 export interface BubbleDetection extends BaseDetection {}
@@ -94,6 +96,10 @@ export interface LuminaAPI {
   onDownloadProgress(cb: (msg: DownloadProgress) => void): void;
   getFonts(): Promise<string[]>;
   loadTranslations(): Promise<Record<string, Record<string, string>>>;
+  loadDefaultInstruction(): Promise<string>;
+  setSecret(key: string, value: string): Promise<void>;
+  getSecret(key: string): Promise<string | null>;
+  deleteSecret(key: string): Promise<void>;
 }
 
 declare global {

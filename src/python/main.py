@@ -16,6 +16,11 @@ from schemas import (
     OcrRequest,
     OcrResponse,
     OcrResult,
+    TranslateRequest,
+    TranslateResponse,
+    TranslateResult,
+    InpaintRequest,
+    InpaintResponse,
 )
 
 app = FastAPI(title="Lumina Backend", version="0.1.0")
@@ -77,12 +82,63 @@ def ocr(req: OcrRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/translate", response_model=TranslateResponse)
+def translate(req: TranslateRequest):
+    if not req.texts:
+        return TranslateResponse(results=[])
+
+    try:
+        from services.translate import translate_texts, TranslateError
+
+        cfg = req.config.model_dump()
+        prev_lines = req.previousLines or []
+        # Per-text continuity context (used by single-text LLM calls)
+        if prev_lines:
+            cfg["previousLines"] = prev_lines
+        try:
+            translated = translate_texts(req.texts, cfg)
+        except TranslateError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Translation failed: {e}")
+        return TranslateResponse(
+            results=[TranslateResult(index=i, text=t) for i, t in enumerate(translated)]
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/inpaint", response_model=InpaintResponse)
+def inpaint(req: InpaintRequest):
+    if not Path(req.imagePath).is_file():
+        raise HTTPException(status_code=400, detail="Image file not found")
+
+    try:
+        from services.inpaint import inpaint_boxes
+
+        src = Path(req.imagePath)
+        out = src.parent / "cache" / f"{src.stem}_cleaned{src.suffix}"
+        output_path = inpaint_boxes(
+            req.imagePath, [b.model_dump() for b in req.boxes], str(out)
+        )
+        return InpaintResponse(outputPath=output_path)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/model/check", response_model=ModelStatus)
 def model_check():
     from services.detect import is_model_ready as detect_ready
     from services.ocr import is_model_ready as ocr_ready
+    from services.inpaint import is_model_ready as inpaint_ready
 
-    return ModelStatus(cached=detect_ready() and ocr_ready())
+    return ModelStatus(cached=detect_ready() and ocr_ready() and inpaint_ready())
 
 
 @app.post("/model/download")
@@ -91,8 +147,13 @@ def model_download():
     Poll /model/progress for status."""
     from services import detect as detect_service
     from services import ocr as ocr_service
+    from services import inpaint as inpaint_service
 
-    if detect_service.is_model_ready() and ocr_service.is_model_ready():
+    if (
+        detect_service.is_model_ready()
+        and ocr_service.is_model_ready()
+        and inpaint_service.is_model_ready()
+    ):
         return {"status": "ok", "alreadyPresent": True}
 
     if _download_state["running"]:
@@ -117,6 +178,11 @@ def model_download():
             if not ocr_service.is_model_ready():
                 _download_state["model"] = "ocr"
                 ocr_service.download_model(progress_callback=_cb)
+            if not inpaint_service.is_model_ready():
+                _download_state["model"] = "inpaint"
+                inpaint_service.progress_callback = _cb
+                inpaint_service.download_model()
+                inpaint_service.progress_callback = None
             _download_state["done"] = True
             _download_state["progress"] = 100
         except Exception as e:

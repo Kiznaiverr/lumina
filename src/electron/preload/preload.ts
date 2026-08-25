@@ -26,4 +26,9 @@ contextBridge.exposeInMainWorld("lumina", {
   },
   getFonts: () => ipcRenderer.invoke("get-fonts"),
   loadTranslations: () => ipcRenderer.invoke("load-translations"),
+  loadDefaultInstruction: () => ipcRenderer.invoke("load-default-instruction"),
+  setSecret: (key: string, value: string) =>
+    ipcRenderer.invoke("secrets-set", key, value),
+  getSecret: (key: string) => ipcRenderer.invoke("secrets-get", key),
+  deleteSecret: (key: string) => ipcRenderer.invoke("secrets-delete", key),
 });
