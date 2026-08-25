@@ -31,5 +31,19 @@ class DetectResponse(BaseModel):
     bubbleDetections: list[BubbleDetection]
 
 
+class OcrRequest(BaseModel):
+    imagePath: str
+    boxes: list[Bbox]
+
+
+class OcrResult(BaseModel):
+    index: int
+    text: str
+
+
+class OcrResponse(BaseModel):
+    results: list[OcrResult]
+
+
 class ModelStatus(BaseModel):
     cached: bool

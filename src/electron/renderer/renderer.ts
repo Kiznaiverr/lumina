@@ -56,6 +56,12 @@ async function ensureModel(): Promise<void> {
 if (window.lumina.onDownloadProgress) {
   window.lumina.onDownloadProgress(function (p) {
     ui.updateDownloadToast(p.progress, p.downloaded, p.total);
+    const label = document.getElementById("dl-msg");
+    if (label) {
+      const key =
+        p.model === "ocr" ? "progress.downloadingOcr" : "progress.downloading";
+      label.textContent = i18n.t(key);
+    }
   });
 }
 
@@ -123,6 +129,7 @@ async function importImages(): Promise<void> {
 
   landing!.style.display = "none";
   (document.getElementById("btn-detect") as HTMLButtonElement).disabled = false;
+  (document.getElementById("btn-ocr") as HTMLButtonElement).disabled = false;
 
   canvas._clearGroups();
   canvas.render();
@@ -148,6 +155,10 @@ i18n.init().then(function () {
 
   document.getElementById("btn-detect")!.addEventListener("click", function () {
     pipeline.runDetection();
+  });
+
+  document.getElementById("btn-ocr")!.addEventListener("click", function () {
+    pipeline.runOcr();
   });
 
   // ── Undo / Redo buttons ──

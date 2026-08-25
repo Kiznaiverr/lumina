@@ -111,6 +111,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
             total: number;
             done: boolean;
             error: string | null;
+            model?: string | null;
           };
           send(p);
           if (p.done || p.error || !p.running) {

@@ -7,7 +7,16 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 import uvicorn
 
-from schemas import DetectRequest, DetectResponse, TextDetection, BubbleDetection, ModelStatus
+from schemas import (
+    DetectRequest,
+    DetectResponse,
+    TextDetection,
+    BubbleDetection,
+    ModelStatus,
+    OcrRequest,
+    OcrResponse,
+    OcrResult,
+)
 
 app = FastAPI(title="Lumina Backend", version="0.1.0")
 
@@ -46,25 +55,51 @@ def detect(req: DetectRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/ocr", response_model=OcrResponse)
+def ocr(req: OcrRequest):
+    if not Path(req.imagePath).is_file():
+        raise HTTPException(status_code=400, detail="Image file not found")
+    if not req.boxes:
+        return OcrResponse(results=[])
+
+    try:
+        from services.ocr import ocr_boxes
+
+        texts = ocr_boxes(
+            req.imagePath, [b.model_dump() for b in req.boxes]
+        )
+        return OcrResponse(
+            results=[OcrResult(index=i, text=t) for i, t in enumerate(texts)]
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/model/check", response_model=ModelStatus)
 def model_check():
-    from services.detect import is_model_ready
-    return ModelStatus(cached=is_model_ready())
+    from services.detect import is_model_ready as detect_ready
+    from services.ocr import is_model_ready as ocr_ready
+
+    return ModelStatus(cached=detect_ready() and ocr_ready())
 
 
 @app.post("/model/download")
 def model_download():
-    """Start model download in background thread. Poll /model/progress for status."""
+    """Start missing-model downloads in background thread.
+    Poll /model/progress for status."""
     from services import detect as detect_service
+    from services import ocr as ocr_service
 
-    if detect_service.is_model_ready():
+    if detect_service.is_model_ready() and ocr_service.is_model_ready():
         return {"status": "ok", "alreadyPresent": True}
 
     if _download_state["running"]:
         return {"status": "started"}
 
     _download_state.update(
-        {"running": True, "progress": 0, "downloaded": 0, "total": 0, "done": False, "error": None}
+        {"running": True, "progress": 0, "downloaded": 0, "total": 0, "done": False, "error": None, "model": None}
     )
 
     def _cb(pct: int, downloaded: int, total: int) -> None:
@@ -74,8 +109,14 @@ def model_download():
 
     def _worker() -> None:
         try:
-            detect_service.progress_callback = _cb
-            detect_service.download_model()
+            if not detect_service.is_model_ready():
+                _download_state["model"] = "detect"
+                detect_service.progress_callback = _cb
+                detect_service.download_model()
+                detect_service.progress_callback = None
+            if not ocr_service.is_model_ready():
+                _download_state["model"] = "ocr"
+                ocr_service.download_model(progress_callback=_cb)
             _download_state["done"] = True
             _download_state["progress"] = 100
         except Exception as e:

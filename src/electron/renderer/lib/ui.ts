@@ -19,6 +19,9 @@ function _fmtSize(bytes: number): string {
   return Math.round(bytes / 1024) + " KB";
 }
 
+/** Rolling window of samples for download speed estimate */
+let _dlSamples: Array<{ t: number; b: number }> = [];
+
 export const ui = {
   showProgress(show: boolean): void {
     const el = document.getElementById("progress-overlay");
@@ -206,21 +209,22 @@ export const ui = {
     el.id = "dl-toast";
     el.style.cssText =
       "pointer-events:auto;background:#1a2332;border:1px solid #264f78;color:#d4d4d4;" +
-      "padding:10px 14px;border-radius:8px;font-size:0.78rem;width:280px;" +
+      "padding:10px 14px;border-radius:8px;font-size:0.78rem;width:340px;max-width:calc(100vw - 32px);" +
       "box-shadow:0 4px 12px rgba(0,0,0,0.4);opacity:0;transform:translateY(8px);" +
       "transition:opacity 0.2s,transform 0.2s;";
     el.innerHTML =
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-      '<i data-lucide="loader-2" style="width:15px;height:15px;color:#569cd6;flex-shrink:0;animation:spin 1s linear infinite;"></i>' +
-      '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+      '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">' +
+      '<i data-lucide="loader-2" style="width:15px;height:15px;color:#569cd6;flex-shrink:0;margin-top:1px;animation:spin 1s linear infinite;"></i>' +
+      '<span id="dl-msg" style="flex:1;min-width:0;word-break:break-all;line-height:1.35;">' +
       msg +
       "</span>" +
-      '<span id="dl-pct" style="color:#569cd6;font-variant-numeric:tabular-nums;">0%</span>' +
+      '<span id="dl-pct" style="color:#569cd6;font-variant-numeric:tabular-nums;flex-shrink:0;">0%</span>' +
       "</div>" +
       '<div style="height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">' +
       '<div id="dl-bar" style="height:100%;width:0%;background:#569cd6;border-radius:3px;transition:width 0.3s ease;"></div>' +
       "</div>" +
-      '<div id="dl-size" style="margin-top:5px;font-size:0.68rem;color:#888;"></div>';
+      '<div id="dl-size" style="margin-top:5px;font-size:0.68rem;color:#888;display:flex;justify-content:space-between;">' +
+      '<span id="dl-progress-size"></span><span id="dl-speed"></span></div>';
     container.appendChild(el);
     createIcons({ nameAttr: "data-lucide", attrs: {}, root: el });
     requestAnimationFrame(() => {
@@ -240,11 +244,25 @@ export const ui = {
     if (!el) return;
     const pctEl = document.getElementById("dl-pct");
     const barEl = document.getElementById("dl-bar");
-    const sizeEl = document.getElementById("dl-size");
+    const sizeEl = document.getElementById("dl-progress-size");
+    const speedEl = document.getElementById("dl-speed");
     if (pctEl) pctEl.textContent = Math.round(progress || 0) + "%";
     if (barEl) barEl.style.width = Math.min(100, progress || 0) + "%";
     if (sizeEl && total > 0) {
       sizeEl.textContent = _fmtSize(downloaded) + " / " + _fmtSize(total);
+    }
+    if (speedEl) {
+      const now = Date.now();
+      _dlSamples.push({ t: now, b: downloaded });
+      // keep ~5s window
+      while (_dlSamples.length > 1 && now - _dlSamples[0].t > 5000) {
+        _dlSamples.shift();
+      }
+      const first = _dlSamples[0];
+      const dt = (now - first.t) / 1000;
+      if (dt >= 1 && downloaded >= first.b) {
+        speedEl.textContent = _fmtSize((downloaded - first.b) / dt) + "/s";
+      }
     }
   },
 

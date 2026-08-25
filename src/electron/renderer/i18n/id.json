@@ -2,6 +2,7 @@
   "app.title": "Lumina",
 
   "header.detect": "Deteksi",
+  "header.ocr": "OCR",
   "header.import": "Impor",
   "header.undo": "Undo (Ctrl+Z)",
   "header.redo": "Redo (Ctrl+Shift+Z)",
@@ -26,7 +27,8 @@
   "progress.processing": "Memproses...",
   "progress.preparing": "Menyiapkan model...",
   "progress.checking": "Mengecek model...",
-  "progress.downloading": "Mengunduh model deteksi...",
+  "progress.downloading": "Mengunduh model ogkalu/comic-text-and-bubble-detector",
+  "progress.downloadingOcr": "Mengunduh model mayocream/manga-ocr-onnx",
   "progress.downloadFailed": "Gagal mengunduh: {{error}}",
   "progress.downloaded": "Model siap",
 
@@ -57,11 +59,25 @@
 
   "sidebar.allDetections": "SEMUA DETEKSI",
   "sidebar.noDetections": "Tidak ada deteksi",
+  "sidebar.delete": "Hapus deteksi (Del)",
+  "sidebar.moveUp": "Naikkan urutan baca",
+  "sidebar.moveDown": "Turunkan urutan baca",
 
-  "toast.detectFirstRun": "Pertama kali — menyiapkan mesin deteksi, mohon tunggu...",
+  "ctx.delete": "Hapus",
+  "ctx.cycleStatus": "Ganti status",
+  "ctx.deselect": "Batalkan pilihan",
+
+  "toast.detectFirstRun": "menyiapkan mesin deteksi, mohon tunggu...",
   "toast.detectRunning": "Mendeteksi teks dan bubble...",
   "toast.detectDone": "Selesai — {{texts}} teks, {{bubbles}} bubble terdeteksi",
   "toast.detectFailed": "Deteksi gagal",
+
+  "toast.ocrNoText": "Jalankan Deteksi dulu — belum ada kotak teks untuk OCR",
+  "toast.ocrRunning": "Menjalankan OCR pada {{count}} kotak teks...",
+  "toast.ocrDone": "OCR selesai — {{count}} teks dikenali",
+  "toast.ocrFailed": "OCR gagal",
+
+  "sidebar.text.originalText": "Teks asli",
 
   "tools.select": "Pilih (V)",
   "tools.lasso": "Lasso (L)",

@@ -1,15 +1,15 @@
-/* ── Lumina Pipeline — Detection Only ── */
-import { state } from "./state";
-import * as i18n from "./i18n";
-import { ui } from "./ui";
-import { history } from "./history";
-import { canvas } from "./canvas/index";
-import { sidebar } from "./sidebar";
-import type { BubbleDetection, DetectResult, TextDetection } from "../types";
+/* ── Lumina Pipeline — Detection ── */
+import { state } from "../state";
+import * as i18n from "../i18n";
+import { ui } from "../ui";
+import { history } from "../history";
+import { canvas } from "../canvas/index";
+import { sidebar } from "../sidebar";
+import type { BubbleDetection, DetectResult, TextDetection } from "../../types";
 
-export const pipeline = {
+export const detection = {
   /** Run detection on active page */
-  runDetection: async function (): Promise<void> {
+  run: async function (): Promise<void> {
     const page = state.getActivePage();
     if (state.isRunning || !page) return;
     state.isRunning = true;
@@ -88,7 +88,7 @@ export const pipeline = {
   },
 
   /** Run detection on ALL pages */
-  runDetectionAll: async function (): Promise<void> {
+  runAll: async function (): Promise<void> {
     if (state.isRunning || state.pages.length === 0) return;
     state.isRunning = true;
 

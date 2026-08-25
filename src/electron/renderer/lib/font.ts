@@ -1,4 +1,4 @@
-/* ── Lumina Font Auto-Fit (Section 4.2) ── */
+/* ── Lumina Font Auto-Fit ── */
 import { CONST } from "./state";
 
 // Hidden canvas for text measurement

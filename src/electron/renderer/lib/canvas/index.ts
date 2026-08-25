@@ -2,6 +2,7 @@
 import Konva from "konva";
 import { state } from "../state";
 import { ui } from "../ui";
+import { contextMenu } from "../contextMenu";
 
 /**
  * Canvas modules:
@@ -39,6 +40,10 @@ export interface CanvasAPI {
   _setBubbleTransformer(b: Konva.Transformer): void;
   selectTextDetection(idx: number | null): void;
   selectBubbleDetection(idx: number | null): void;
+  deleteTextDetection(idx: number): void;
+  deleteBubbleDetection(idx: number): void;
+  moveTextDetection(idx: number, dir: number): void;
+  moveBubbleDetection(idx: number, dir: number): void;
   _refreshTextGroup(idx: number): void;
   _refreshBubbleGroup(idx: number): void;
   _updateStatus(): void;
@@ -100,6 +105,10 @@ export const canvas: CanvasAPI = {
   _setBubbleTransformer() {},
   selectTextDetection() {},
   selectBubbleDetection() {},
+  deleteTextDetection() {},
+  deleteBubbleDetection() {},
+  moveTextDetection() {},
+  moveBubbleDetection() {},
   _refreshTextGroup() {},
   _refreshBubbleGroup() {},
   _updateStatus() {},
@@ -334,6 +343,19 @@ canvas._initKeyboard = function (): void {
       e.target instanceof HTMLTextAreaElement
     )
       return;
+    // Delete selected detection
+    if (e.key === "Delete" || e.key === "Backspace") {
+      const page = state.getActivePage();
+      if (!page) return;
+      if (page._selectedTextIdx !== null) {
+        e.preventDefault();
+        canvas.deleteTextDetection(page._selectedTextIdx);
+      } else if (page._selectedBubbleIdx !== null) {
+        e.preventDefault();
+        canvas.deleteBubbleDetection(page._selectedBubbleIdx);
+      }
+      return;
+    }
     if (e.key === " " || e.code === "Space") {
       e.preventDefault();
       const page = state.getActivePage();
@@ -374,6 +396,23 @@ canvas._initDeselectClick = function (): void {
       canvas.selectTextDetection(null);
       canvas.selectBubbleDetection(null);
     }
+  });
+  // Right-click on empty canvas → deselect-only context menu
+  stage.on("contextmenu", function (e) {
+    if (e.target !== stage && e.target.getParent() !== canvas.getLayer())
+      return;
+    e.evt.preventDefault();
+    // Detection groups fire their own contextmenu with cancelBubble —
+    // reaching here means empty area.
+    contextMenu.show(e.evt.clientX, e.evt.clientY, [
+      {
+        labelKey: "ctx.deselect",
+        action: function () {
+          canvas.selectTextDetection(null);
+          canvas.selectBubbleDetection(null);
+        },
+      },
+    ]);
   });
 };
 

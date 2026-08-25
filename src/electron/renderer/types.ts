@@ -20,6 +20,8 @@ export interface BaseDetection {
 
 export interface TextDetection extends BaseDetection {
   type?: TextType;
+  /** OCR result (Japanese) — empty until OCR runs */
+  text?: string;
 }
 
 export interface BubbleDetection extends BaseDetection {}
@@ -66,10 +68,18 @@ export interface DownloadProgress {
   total: number;
   done: boolean;
   error?: string | null;
+  /** Which model is downloading: "detect" | "ocr" */
+  model?: string;
 }
 
 export interface ModelCheck {
   cached: boolean;
+}
+
+/** One entry of POST /ocr response */
+export interface OcrResult {
+  index: number;
+  text: string;
 }
 
 /** window.lumina API exposed by preload.ts */

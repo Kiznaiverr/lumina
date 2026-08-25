@@ -301,6 +301,41 @@
   color: #6a6a6a;
   flex-shrink: 0;
 }
+.detection-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.detection-item:hover .detection-actions,
+.detection-item.selected .detection-actions {
+  opacity: 1;
+}
+.det-btn {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 1;
+  color: #969696;
+  background: transparent;
+}
+.det-btn:hover:not(:disabled) {
+  background: #3a3a3a;
+  color: #fff;
+}
+.det-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+.det-btn-danger:hover:not(:disabled) {
+  background: #5c1a1a;
+  color: #ff6666;
+}
 
 /* ── Status dot ── */
 .status-dot {
@@ -309,6 +344,47 @@
   height: 6px;
   border-radius: 50%;
   margin-right: 4px;
+}
+
+/* ── Context menu ── */
+#context-menu {
+  position: fixed;
+  z-index: 200;
+  min-width: 160px;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  display: none;
+  flex-direction: column;
+}
+#context-menu.show {
+  display: flex;
+}
+.ctx-item {
+  text-align: left;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  color: #d4d4d4;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.ctx-item:hover {
+  background: #2f2f2f;
+  color: #fff;
+}
+.ctx-danger {
+  color: #ff6666;
+}
+.ctx-danger:hover {
+  background: #3d1a1a;
+  color: #ff8888;
+}
+.ctx-sep {
+  height: 1px;
+  background: #3a3a3a;
+  margin: 4px 0;
 }
 
 /* ── Progress / download overlay ── */

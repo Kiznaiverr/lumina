@@ -2,6 +2,7 @@
   "app.title": "Lumina",
 
   "header.detect": "Detect",
+  "header.ocr": "OCR",
   "header.import": "Import",
   "header.undo": "Undo (Ctrl+Z)",
   "header.redo": "Redo (Ctrl+Shift+Z)",
@@ -26,7 +27,8 @@
   "progress.processing": "Processing...",
   "progress.preparing": "Preparing model...",
   "progress.checking": "Checking model...",
-  "progress.downloading": "Downloading detection model...",
+  "progress.downloading": "Downloading ogkalu/comic-text-and-bubble-detector",
+  "progress.downloadingOcr": "Downloading OCR model mayocream/manga-ocr-onnx",
   "progress.downloadFailed": "Download failed: {{error}}",
   "progress.downloaded": "Model ready",
 
@@ -57,11 +59,25 @@
 
   "sidebar.allDetections": "ALL DETECTIONS",
   "sidebar.noDetections": "No detections",
+  "sidebar.delete": "Delete detection (Del)",
+  "sidebar.moveUp": "Move up in reading order",
+  "sidebar.moveDown": "Move down in reading order",
+
+  "ctx.delete": "Delete",
+  "ctx.cycleStatus": "Cycle status",
+  "ctx.deselect": "Deselect",
 
   "toast.detectFirstRun": "First run — preparing the detection engine, please wait...",
   "toast.detectRunning": "Detecting text and bubbles...",
   "toast.detectDone": "Done — {{texts}} text, {{bubbles}} bubbles detected",
   "toast.detectFailed": "Detection failed",
+
+  "toast.ocrNoText": "Run Detect first — no text boxes to OCR",
+  "toast.ocrRunning": "Running OCR on {{count}} text box(es)...",
+  "toast.ocrDone": "OCR done — {{count}} text(s) recognized",
+  "toast.ocrFailed": "OCR failed",
+
+  "sidebar.text.originalText": "Original text",
 
   "tools.select": "Select (V)",
   "tools.lasso": "Lasso (L)",
