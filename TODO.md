@@ -5,4 +5,4 @@
 - [] fix sidebar and re-design
 - [] change original/cleaned canvas to background/mask layer
 - [] improve resizing 
-- [] fix stale tools
+- [x] fix stale tools

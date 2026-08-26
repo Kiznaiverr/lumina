@@ -295,6 +295,55 @@ canvas._initPanDrag = function (): void {
   bind(canvas.getStage());
 };
 
+/** Global hover-cursor handler — keeps the cursor in sync with what's under
+ * the mouse. Konva.Transformer sets an inline resize cursor on its anchors
+ * but never restores it afterwards, leaving a stale cursor behind. This
+ * handler re-asserts the correct cursor on every mousemove, EXCEPT while
+ * directly over a transformer anchor (Konva owns the cursor there). */
+let _cursorBound = false;
+function _bindHoverCursor(): void {
+  if (_cursorBound) return;
+  _cursorBound = true;
+
+  const toolCursor = function (): string {
+    if (state.activeTool === "lasso") return "crosshair";
+    if (state.activeTool === "text") return "text";
+    return "default";
+  };
+
+  const bind = function (): void {
+    const stage = canvas.getStage();
+    const container = document.getElementById("canvas-container");
+    if (!stage || !container) {
+      setTimeout(bind, 500);
+      return;
+    }
+    stage.on("mousemove", function (e) {
+      // Panning owns the cursor
+      if (container.style.cursor === "grabbing") return;
+      // Over a transformer anchor? Konva manages the cursor there.
+      const target = e.target;
+      if (
+        target &&
+        (target.name() === "back" ||
+          (target.getParent && target.getParent()?.className === "Transformer"))
+      ) {
+        return;
+      }
+      let cursor = toolCursor();
+      // Hovering interactive content → move affordance
+      if (target && target !== stage && target.name() !== "bg") {
+        const name = target.name();
+        if (name !== "" && name !== "bg" && state.activeTool === "select") {
+          cursor = "move";
+        }
+      }
+      container.style.cursor = cursor;
+    });
+  };
+  bind();
+}
+
 /** Wire zoom control buttons in the overlay */
 canvas._initZoomControls = function (): void {
   const btnIn = document.getElementById("btn-zoom-in");
@@ -447,4 +496,5 @@ canvas.initBindings = function (): void {
   canvas._initWheelZoom();
   canvas._initPanDrag();
   canvas._initZoomControls();
+  _bindHoverCursor();
 };
