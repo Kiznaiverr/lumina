@@ -146,6 +146,8 @@
   "type.styles.italic": "Italic",
   "type.horizontalOnly": "Horizontal only",
   "type.searchFont": "Search fonts…",
+  "type.autoFit": "Auto-fit",
+  "type.bgPatch": "White backing",
 
   "shortcuts.title": "Keyboard Shortcuts",
   "shortcuts.undo": "Undo",

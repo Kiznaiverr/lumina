@@ -7,7 +7,7 @@ import { canvas } from "../canvas/index";
 import { sidebar } from "../sidebar";
 import type { DetectResult, PageLayer, TextDetection } from "../../types";
 import { sortReadingOrder } from "../readingOrder";
-import { defaultTypography } from "../../types";
+import { defaultTypography, loadGlobalTypography } from "../../types";
 
 export const detection = {
   /** Run detection on active page */
@@ -67,7 +67,11 @@ export const detection = {
           bbox: Object.assign({}, d.bbox),
           source: d.text || "",
           translation: d.translated || "",
-          typography: defaultTypography(),
+          // New dialogue layers inherit the global type defaults
+          typography: Object.assign(
+            defaultTypography(),
+            loadGlobalTypography(),
+          ),
           visible: true,
           opacity: 1,
         };

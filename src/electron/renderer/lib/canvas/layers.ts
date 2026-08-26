@@ -18,6 +18,7 @@ canvas.selectLayer = function (id): void {
   const page = state.getActivePage();
   if (!page) return;
   page._selectedLayerId = id;
+  canvas.render(); // re-syncs transformer selection on the text nodes
   sidebar.render();
 };
 

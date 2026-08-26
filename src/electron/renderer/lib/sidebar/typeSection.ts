@@ -6,12 +6,17 @@ import { state } from "../state";
 import * as i18n from "../i18n";
 import { canvas } from "../canvas/index";
 import { history } from "../history";
+import { internalFontName } from "../fontLoader";
+import { loadGlobalTypography, saveGlobalTypography } from "../../types";
 import type { Page, PageLayer, Typography } from "../../types";
 
 const FONT_SIZE_PRESETS = [
   8, 9, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72, 96,
 ];
 const WEIGHTS = [400, 500, 600, 700, 800, 900];
+
+/** Global type defaults — new layers inherit these (Photoshop-style) */
+let _globalType: Typography = loadGlobalTypography();
 
 function selectedTextLayer(page: Page | null): PageLayer | null {
   if (!page || !page._selectedLayerId) return null;
@@ -78,6 +83,39 @@ export const typeSection = {
       this._field(i18n.t("type.strokeWidth"), this._strokeWidth()),
     );
     body.appendChild(row4);
+
+    // Row 5: Auto-fit + Background patch
+    const row5 = this._grid("1fr 1fr");
+    const autofitBtn = document.createElement("button");
+    autofitBtn.id = "type-autofit";
+    autofitBtn.className = "field-select type-align-btn";
+    autofitBtn.textContent = i18n.t("type.autoFit");
+    autofitBtn.addEventListener("click", function () {
+      const page: Page | null = state.getActivePage();
+      const layer = selectedTextLayer(page);
+      if (!layer) return;
+      layer.typography.fontSize = null; // re-arm auto-fit
+      canvas.render();
+      history.snapshot();
+      typeSection.refresh();
+    });
+    row5.appendChild(this._field(i18n.t("type.autoFit"), autofitBtn));
+
+    const bgToggle = document.createElement("button");
+    bgToggle.id = "type-bg-patch";
+    bgToggle.className = "type-align-btn";
+    bgToggle.innerHTML = '<i data-lucide="square"></i>';
+    bgToggle.addEventListener("click", function () {
+      const page: Page | null = state.getActivePage();
+      const layer = selectedTextLayer(page);
+      if (!layer) return;
+      layer.backgroundPatch = !layer.backgroundPatch;
+      canvas.render();
+      history.snapshot();
+      typeSection.refresh();
+    });
+    row5.appendChild(this._field(i18n.t("type.bgPatch"), bgToggle));
+    body.appendChild(row5);
   },
 
   /** Refresh control values from the selected layer */
@@ -86,19 +124,18 @@ export const typeSection = {
     if (!host) return;
     const page: Page | null = state.getActivePage();
     const layer = selectedTextLayer(page);
-    // Always visible (koharu-style); controls disabled without selection
+    // Always visible AND always enabled: no selection edits the global
+    // defaults (which new layers inherit); selection edits the layer.
     host.classList.remove("hidden");
-    host.classList.toggle("type-disabled", !layer);
+    host.classList.toggle("type-disabled", false);
     host
       .querySelectorAll<
         HTMLInputElement | HTMLSelectElement | HTMLButtonElement
       >("input, select, button")
       .forEach(function (el) {
-        el.disabled = !layer;
+        el.disabled = false;
       });
-    if (!layer) return;
-
-    const t = layer.typography;
+    const t = layer ? layer.typography : _globalType;
     const set = function (id: string, value: string): void {
       const el = host.querySelector<HTMLInputElement | HTMLSelectElement>(
         "#" + id,
@@ -127,6 +164,9 @@ export const typeSection = {
         "active",
         !!t.strokeColor && t.strokeWidth > 0,
       );
+    // Background patch toggle visual (layer-only feature)
+    const bgToggle = host.querySelector<HTMLButtonElement>("#type-bg-patch");
+    if (bgToggle) bgToggle.classList.toggle("active", !!layer?.backgroundPatch);
   },
 
   // ── Control factories ──
@@ -163,9 +203,9 @@ export const typeSection = {
     sel.appendChild(def);
     (state.fontList || []).forEach(function (f) {
       const opt = document.createElement("option");
-      opt.value = f;
-      opt.textContent = f;
-      opt.style.fontFamily = f;
+      opt.value = internalFontName(f.family);
+      opt.textContent = f.family;
+      opt.style.fontFamily = f.family;
       sel.appendChild(opt);
     });
     sel.addEventListener("change", function () {
@@ -405,11 +445,16 @@ export const typeSection = {
     return el ? el.value : "#ffffff";
   },
 
-  /** Apply a partial typography update to the selected layer (live) */
+  /** Apply a partial typography update. With a text layer selected it goes
+   * to that layer; without one it updates the global defaults (persisted). */
   _apply(patch: Partial<Typography>): void {
     const page: Page | null = state.getActivePage();
     const layer = selectedTextLayer(page);
-    if (!page || !layer) return;
+    if (!layer) {
+      Object.assign(_globalType, patch);
+      saveGlobalTypography(_globalType);
+      return;
+    }
     Object.assign(layer.typography, patch);
     canvas.render();
     history.snapshot();

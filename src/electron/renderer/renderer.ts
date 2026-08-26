@@ -18,7 +18,8 @@ import "./lib/canvas/groups";
 import "./lib/canvas/selection";
 import "./lib/canvas/mutations";
 import "./lib/canvas/layers";
-import { bindTextTool } from "./lib/canvas/textTool";
+import { bindTextTool } from "./lib/canvas/textool";
+import { loadSystemFonts } from "./lib/fontLoader";
 import { createIcons } from "./lib/icons";
 import type { Page } from "./types";
 
@@ -212,15 +213,14 @@ i18n.init().then(function () {
 
   createIcons();
 
-  // ── Load system fonts via IPC ──
-  if (window.lumina.getFonts) {
-    window.lumina
-      .getFonts()
-      .then(function (fonts) {
-        L.state.fontList = fonts || [];
-      })
-      .catch(function () {});
-  }
+  // ── Load system fonts via IPC + register as FontFaces ──
+  // Rebuild the sidebar afterwards so the font dropdown gets populated
+  // (it renders before fonts arrive on first paint).
+  loadSystemFonts()
+    .then(function () {
+      sidebar.render();
+    })
+    .catch(function () {});
 
   // ── Model check on startup ──
   setTimeout(ensureModel, 1500);

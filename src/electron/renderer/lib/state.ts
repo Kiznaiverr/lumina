@@ -24,7 +24,13 @@ export interface AppState {
 
   // ── Tools ──
   activeTool: ToolId;
-  fontList: string[];
+  /** System fonts: family + file + style metadata (for FontFace registry) */
+  fontList: Array<{
+    family: string;
+    path: string;
+    weight: number;
+    italic: boolean;
+  }>;
   sidebarCollapsed: boolean;
   sidebarWidth: number;
 
@@ -50,7 +56,12 @@ export const state: AppState = new (class implements AppState {
   _viewMode: ViewMode = "original";
 
   activeTool: ToolId = "select";
-  fontList: string[] = [];
+  fontList: Array<{
+    family: string;
+    path: string;
+    weight: number;
+    italic: boolean;
+  }> = [];
   sidebarCollapsed = false;
   sidebarWidth = 260;
 

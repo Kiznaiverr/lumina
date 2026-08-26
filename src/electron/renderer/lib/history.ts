@@ -14,12 +14,17 @@ export const history = {
   _max: 50,
   _restoring: false,
 
-  /** Serialize current pages' detection state */
+  /** Serialize current pages' full editable state.
+   * Includes the unified layer model (bbox/text/typography/visibility) and
+   * both selections. Pipeline results (detect/inpaint) are NOT tracked —
+   * cleanedImage is an HTMLImageElement and cannot be serialized. */
   _serialize(): string {
     return JSON.stringify(
       state.pages.map((p) => ({
         textDetections: p.textDetections,
         _selectedTextIdx: p._selectedTextIdx,
+        layers: p.layers,
+        _selectedLayerId: p._selectedLayerId,
       })),
     );
   },
@@ -69,12 +74,16 @@ export const history = {
     const snap = JSON.parse(data) as Array<{
       textDetections: unknown;
       _selectedTextIdx: number | null;
+      layers: unknown;
+      _selectedLayerId: string | null;
     }>;
     this._restoring = true;
     state.pages.forEach((page, i) => {
       if (!snap[i]) return;
       page.textDetections = snap[i].textDetections as never;
       page._selectedTextIdx = snap[i]._selectedTextIdx;
+      page.layers = snap[i].layers as never;
+      page._selectedLayerId = snap[i]._selectedLayerId;
     });
     canvas._clearGroups();
     canvas.render();

@@ -267,8 +267,79 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       if (home) fontDirs.push(pathMod.join(home, ".fonts"));
     }
 
-    const fonts: Set<string> = new Set();
-    const validExts = new Set([".ttf", ".otf", ".woff", ".woff2"]);
+    const fonts: Array<{
+      family: string;
+      path: string;
+      weight: number;
+      italic: boolean;
+    }> = [];
+    const seen = new Set<string>();
+    const validExts = new Set([".ttf", ".otf"]);
+
+    /** Read weight (OS/2 usWeightClass) + italic flag (fsSelection bit 0).
+     * Style variants share one family — the renderer registers each file
+     * as a separate FontFace under the same family so bold/italic work. */
+    const readMeta = (
+      buf: Buffer,
+      numTables: number,
+      dirOffset: number,
+    ): { weight: number; italic: boolean } => {
+      let weight = 400;
+      let italic = false;
+      for (let i = 0; i < numTables; i++) {
+        const off = dirOffset + i * 16;
+        if (buf.slice(off, off + 4).toString() === "OS/2") {
+          const tableOff = buf.readUInt32BE(off + 8);
+          weight = buf.readUInt16BE(tableOff + 4);
+          italic = (buf.readUInt16BE(tableOff + 62) & 1) === 1;
+          break;
+        }
+      }
+      return { weight, italic };
+    };
+
+    /** Read the real family name from a font file's `name` table.
+     * Filenames like "CC Wild Words Roman.ttf" are NOT family names — the
+     * actual family ("CC Wild Words") lives inside the file. This also
+     * groups style variants (Bold/Italic files) under one family entry.
+     * Supports TTF/OTF and TTC collections (first font). */
+    const readFamily = (filePath: string): string | null => {
+      try {
+        const buf = fs.readFileSync(filePath);
+        // Plain TTF/OTF: sfnt header at 0, table directory at byte 12.
+        // TTC collection: each font's sfnt header sits at the offset from
+        // the TTC header — its table directory is that offset + 12.
+        let dirOffset = 12;
+        if (buf.slice(0, 4).toString() === "ttcf") {
+          dirOffset = buf.readUInt32BE(12) + 12;
+        }
+        const numTables = buf.readUInt16BE(dirOffset - 8);
+        for (let i = 0; i < numTables; i++) {
+          const off = dirOffset + i * 16;
+          if (buf.slice(off, off + 4).toString() !== "name") continue;
+          const nameOff = buf.readUInt32BE(off + 8);
+          const count = buf.readUInt16BE(nameOff + 2);
+          const strOff = nameOff + buf.readUInt16BE(nameOff + 4);
+          for (let j = 0; j < count; j++) {
+            const rec = nameOff + 6 + j * 12;
+            if (buf.readUInt16BE(rec + 6) !== 1) continue; // family name ID
+            const len = buf.readUInt16BE(rec + 8);
+            const o = buf.readUInt16BE(rec + 10);
+            const platform = buf.readUInt16BE(rec);
+            return platform === 3 || platform === 0
+              ? buf
+                  .slice(strOff + o, strOff + o + len)
+                  .swap16()
+                  .toString("utf16le")
+              : buf.slice(strOff + o, strOff + o + len).toString("latin1");
+          }
+          break;
+        }
+      } catch {
+        /* unreadable — fall back to filename */
+      }
+      return null;
+    };
 
     for (const dir of fontDirs) {
       try {
@@ -277,7 +348,26 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
           if (entry.isFile()) {
             const ext = pathMod.extname(entry.name).toLowerCase();
             if (validExts.has(ext)) {
-              fonts.add(entry.name.replace(/\.[^.]+$/, ""));
+              const filePath = pathMod.join(dir, entry.name);
+              try {
+                const buf = fs.readFileSync(filePath);
+                const family =
+                  readFamily(filePath) || entry.name.replace(/\.[^.]+$/, "");
+                const meta = readMeta(buf, buf.readUInt16BE(4), 12);
+                // Key includes variant so Bold/Italic files are ALL kept
+                const key = family + "|" + meta.weight + "|" + meta.italic;
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  fonts.push({ family, path: filePath, ...meta });
+                }
+              } catch {
+                fonts.push({
+                  family: entry.name.replace(/\.[^.]+$/, ""),
+                  path: filePath,
+                  weight: 400,
+                  italic: false,
+                });
+              }
             }
           } else if (entry.isDirectory()) {
             try {
@@ -288,7 +378,26 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
                 if (s.isFile()) {
                   const ext = pathMod.extname(s.name).toLowerCase();
                   if (validExts.has(ext)) {
-                    fonts.add(s.name.replace(/\.[^.]+$/, ""));
+                    const filePath = pathMod.join(dir, entry.name, s.name);
+                    try {
+                      const buf = fs.readFileSync(filePath);
+                      const family =
+                        readFamily(filePath) || s.name.replace(/\.[^.]+$/, "");
+                      const subDirOffset = 12;
+                      const meta = readMeta(
+                        buf,
+                        buf.readUInt16BE(4),
+                        subDirOffset,
+                      );
+                      const key =
+                        family + "|" + meta.weight + "|" + meta.italic;
+                      if (!seen.has(key)) {
+                        seen.add(key);
+                        fonts.push({ family, path: filePath, ...meta });
+                      }
+                    } catch {
+                      /* skip unreadable */
+                    }
                   }
                 }
               }
@@ -302,7 +411,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       }
     }
 
-    return Array.from(fonts).sort();
+    fonts.sort((a, b) => a.family.localeCompare(b.family));
+    return fonts;
   });
 
   // Load default LLM instruction from prompts/translate-default.md

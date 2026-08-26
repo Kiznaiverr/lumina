@@ -1,0 +1,8 @@
+- [] change inpaint model
+- [] fix auto-fit button to type section
+- [] plugable model
+- [] model management in settings
+- [] fix sidebar and re-design
+- [] change original/cleaned canvas to background/mask layer
+- [] improve resizing 
+- [] fix stale tools

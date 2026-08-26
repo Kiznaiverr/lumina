@@ -125,6 +125,6 @@ canvas.onToolChange = function (tool: string): void {
   });
   const tTransformer = groupRegistry.textTransformer();
   if (tTransformer && tool !== "select") tTransformer.nodes([]);
-  const layer = canvas.getLayer();
-  if (layer) layer.draw();
+  // Re-render so layer text nodes pick up the right interactivity mode
+  canvas.render();
 };

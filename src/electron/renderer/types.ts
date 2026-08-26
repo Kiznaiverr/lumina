@@ -58,6 +58,31 @@ export function defaultTypography(): Typography {
   };
 }
 
+/* ── Global type defaults (Photoshop-style) ──
+ * The TypeSection is always active: with no layer selected it edits these
+ * global defaults, which new text layers inherit. Persisted to localStorage.
+ * Selecting a layer switches the panel back to per-layer editing (override).
+ */
+const GLOBAL_TYPE_KEY = "lumina-global-type";
+
+export function loadGlobalTypography(): Typography {
+  try {
+    const raw = localStorage.getItem(GLOBAL_TYPE_KEY);
+    if (raw) return Object.assign(defaultTypography(), JSON.parse(raw));
+  } catch {
+    /* corrupted — fall through */
+  }
+  return defaultTypography();
+}
+
+export function saveGlobalTypography(t: Typography): void {
+  try {
+    localStorage.setItem(GLOBAL_TYPE_KEY, JSON.stringify(t));
+  } catch {
+    /* storage full/blocked — non-fatal */
+  }
+}
+
 export interface PageLayer {
   id: string;
   type: LayerType;
@@ -69,6 +94,10 @@ export interface PageLayer {
   typography: Typography;
   visible: boolean;
   opacity: number; // 0-1
+  /** Result of the last auto-fit — drives the "needs review" badge */
+  fitStatus?: "ok" | "overflow-tolerated" | "forced-minimum";
+  /** White rounded-rect backing behind text (for flat caption boxes) */
+  backgroundPatch?: boolean;
 }
 
 export interface Page {
@@ -137,7 +166,9 @@ export interface LuminaAPI {
   checkModel(): Promise<ModelCheck>;
   downloadModel(): Promise<void>;
   onDownloadProgress(cb: (msg: DownloadProgress) => void): void;
-  getFonts(): Promise<string[]>;
+  getFonts(): Promise<
+    Array<{ family: string; path: string; weight: number; italic: boolean }>
+  >;
   loadTranslations(): Promise<Record<string, Record<string, string>>>;
   loadDefaultInstruction(): Promise<string>;
   setSecret(key: string, value: string): Promise<void>;
