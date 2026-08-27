@@ -39,6 +39,11 @@ export interface CanvasAPI {
   toggleLayerVisible(id: string): void;
   deleteLayer(id: string): void;
   moveLayer(id: string, dir: number): void;
+  toggleMaskVisible(id: string): void;
+  deleteMask(id: string): void;
+  setMaskOpacity(id: string, opacity: number): void;
+  /** Sync the header "show detection boxes" toggle with page state */
+  updateBoxToggle(): void;
   _refreshTextGroup(idx: number): void;
   _updateStatus(): void;
   onToolChange(tool: string): void;
@@ -56,14 +61,11 @@ export interface CanvasAPI {
   zoomIn(): void;
   zoomOut(): void;
   zoomReset(): void;
-  setViewMode(mode: "original" | "cleaned"): void;
-  updateViewToggle(): void;
   initBindings(): void;
   _initWheelZoom(): void;
   _initPanDrag(): void;
   _initZoomControls(): void;
   _initKeyboard(): void;
-  _initViewToggle(): void;
   _initSidebarResize(): void;
   _initDeselectClick(): void;
 }
@@ -101,6 +103,10 @@ export const canvas: CanvasAPI = {
   toggleLayerVisible() {},
   deleteLayer() {},
   moveLayer() {},
+  toggleMaskVisible() {},
+  deleteMask() {},
+  setMaskOpacity() {},
+  updateBoxToggle() {},
   _refreshTextGroup() {},
   _updateStatus() {},
   onToolChange() {},
@@ -116,14 +122,11 @@ export const canvas: CanvasAPI = {
   zoomIn() {},
   zoomOut() {},
   zoomReset() {},
-  setViewMode() {},
-  updateViewToggle() {},
   initBindings() {},
   _initWheelZoom() {},
   _initPanDrag() {},
   _initZoomControls() {},
   _initKeyboard() {},
-  _initViewToggle() {},
   _initSidebarResize() {},
   _initDeselectClick() {},
 };
@@ -363,28 +366,6 @@ canvas._initZoomControls = function (): void {
     });
 };
 
-/** Toggle before/after view */
-canvas.setViewMode = function (mode): void {
-  state._viewMode = mode;
-  const btnOriginal = document.getElementById("btn-view-original");
-  const btnCleaned = document.getElementById("btn-view-cleaned");
-  if (btnOriginal) btnOriginal.classList.toggle("active", mode === "original");
-  if (btnCleaned) btnCleaned.classList.toggle("active", mode === "cleaned");
-  canvas.render();
-};
-
-/** Toggle view buttons visibility */
-canvas.updateViewToggle = function (): void {
-  const toggle = document.getElementById("view-toggle");
-  if (!toggle) return;
-  const page = state.getActivePage();
-  if (page && page.cleanedImage) {
-    toggle.classList.remove("hidden");
-  } else {
-    toggle.classList.add("hidden");
-  }
-};
-
 /** Keyboard shortcuts for canvas */
 canvas._initKeyboard = function (): void {
   document.addEventListener("keydown", function (e) {
@@ -403,32 +384,7 @@ canvas._initKeyboard = function (): void {
       }
       return;
     }
-    if (e.key === " " || e.code === "Space") {
-      e.preventDefault();
-      const page = state.getActivePage();
-      if (page && page.cleanedImage) {
-        canvas.setViewMode(
-          state._viewMode === "original" ? "cleaned" : "original",
-        );
-      }
-    }
   });
-};
-
-/** Wire view toggle buttons */
-canvas._initViewToggle = function (): void {
-  const btnOriginal = document.getElementById("btn-view-original");
-  const btnCleaned = document.getElementById("btn-view-cleaned");
-  if (btnOriginal) {
-    btnOriginal.addEventListener("click", function () {
-      canvas.setViewMode("original");
-    });
-  }
-  if (btnCleaned) {
-    btnCleaned.addEventListener("click", function () {
-      canvas.setViewMode("cleaned");
-    });
-  }
 };
 
 /** Wire deselect-on-empty-click once */
@@ -461,6 +417,22 @@ canvas._initDeselectClick = function (): void {
   });
 };
 
+/** Sync the header "show detection boxes" toggle with page state */
+canvas.updateBoxToggle = function (): void {
+  const btn = document.getElementById(
+    "btn-toggle-boxes",
+  ) as HTMLButtonElement | null;
+  if (!btn) return;
+  const page = state.getActivePage();
+  const hasDet =
+    !!page && !!page.textDetections && page.textDetections.length > 0;
+  const hasMask = !!page && !!page.inpaintMasks && page.inpaintMasks.length > 0;
+  // Disabled once inpaint produced masks (boxes are replaced by the masks)
+  // or when there is nothing to show yet.
+  btn.disabled = !hasDet || hasMask;
+  btn.classList.toggle("active", !!state.showDetBoxes);
+};
+
 /** Sidebar resize */
 canvas._initSidebarResize = function (): void {
   const sidebarEl = document.getElementById("sidebar");
@@ -491,7 +463,6 @@ canvas._initSidebarResize = function (): void {
 /** Init all canvas-related keyboard/UI bindings */
 canvas.initBindings = function (): void {
   canvas._initKeyboard();
-  canvas._initViewToggle();
   canvas._initSidebarResize();
   canvas._initWheelZoom();
   canvas._initPanDrag();

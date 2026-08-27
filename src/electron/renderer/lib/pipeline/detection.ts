@@ -79,6 +79,8 @@ export const detection = {
       page.layers = [...dialogueLayers, ...freeLayers];
       page._selectedLayerId = null;
 
+      // Fresh boxes — make sure the overlay is visible.
+      state.showDetBoxes = true;
       canvas._clearGroups();
       canvas.render();
       sidebar.render();

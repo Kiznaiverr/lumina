@@ -5,6 +5,7 @@
   "header.ocr": "OCR",
   "header.translate": "Terjemahkan",
   "header.inpaint": "Inpaint",
+  "header.toggleBoxes": "Tampilkan kotak deteksi",
   "header.import": "Impor",
   "header.undo": "Undo (Ctrl+Z)",
   "header.redo": "Redo (Ctrl+Shift+Z)",
@@ -31,9 +32,6 @@
   "landing.title": "Editor Terjemahan Manga",
   "landing.subtitle": "Impor halaman untuk mulai",
   "landing.import": "Impor Gambar",
-
-  "view.original": "Asli",
-  "view.cleaned": "Bersih",
 
   "zoom.zoomIn": "Perbesar (Ctrl+=)",
   "zoom.zoomOut": "Perkecil (Ctrl+-)",
@@ -74,7 +72,13 @@
   "sidebar.bubble.status": "Status",
 
   "sidebar.allDetections": "SEMUA DETEKSI",
-  "sidebar.layers": "Layer",
+  "sidebar.tabLayers": "Layer",
+  "sidebar.tabMasks": "Mask",
+  "sidebar.noMasks": "Belum ada mask — jalankan Inpaint",
+  "masks.name": "Mask {{index}}",
+  "masks.opacity": "Opacity",
+  "masks.delete": "Hapus mask",
+  "sidebar.resizeType": "Seret untuk mengubah tinggi bagian Type",
   "sidebar.noDetections": "Tidak ada deteksi",
   "sidebar.delete": "Hapus deteksi (Del)",
   "sidebar.moveUp": "Naikkan urutan baca",
@@ -101,7 +105,7 @@
 
   "toast.inpaintNoText": "Jalankan Deteksi dulu — belum ada area untuk di-inpaint",
   "toast.inpaintRunning": "Membersihkan area teks...",
-  "toast.inpaintDone": "Inpaint selesai — gambar bersih siap",
+  "toast.inpaintDone": "Inpaint selesai — {{count}} mask dibuat",
   "toast.inpaintFailed": "Inpaint gagal",
 
   "sidebar.text.originalText": "Teks asli",

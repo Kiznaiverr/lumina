@@ -114,7 +114,9 @@ function layerRowHTML(page: Page, layer: PageLayer): string {
 }
 
 export function wireEvents(): void {
-  const items = document.querySelectorAll<HTMLElement>(".layer-row");
+  const items = document.querySelectorAll<HTMLElement>(
+    ".layer-row[data-layer-id]",
+  );
   items.forEach(function (el) {
     el.addEventListener("click", function (e) {
       const target = e.target as HTMLElement;

@@ -109,6 +109,14 @@
             <span data-i18n="header.inpaint">Inpaint</span></span
           >
         </button>
+        <button
+          class="btn"
+          id="btn-toggle-boxes"
+          disabled
+          data-i18n-title="header.toggleBoxes"
+        >
+          <i data-lucide="eye" class="w-3 h-3"></i>
+        </button>
       </div>
     </header>
 
@@ -149,28 +157,6 @@
 
         <!-- Single Konva container -->
         <div id="canvas-container" class="absolute inset-0"></div>
-
-        <!-- View toggle (before/after) -->
-        <div id="view-toggle" class="absolute top-2 left-2 z-20 hidden">
-          <div
-            class="flex bg-surface-1 border border-surface-3 rounded overflow-hidden"
-          >
-            <button
-              id="btn-view-original"
-              class="view-toggle-btn active"
-              data-i18n="view.original"
-            >
-              Original
-            </button>
-            <button
-              id="btn-view-cleaned"
-              class="view-toggle-btn"
-              data-i18n="view.cleaned"
-            >
-              Cleaned
-            </button>
-          </div>
-        </div>
 
         <!-- Page indicator -->
         <div
@@ -232,7 +218,7 @@
       >
         <div class="sidebar-resize" id="sidebar-resize"></div>
         <div
-          class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar"
+          class="flex-1 min-h-0 flex flex-col overflow-hidden custom-scrollbar"
           id="sidebar-scroll"
         >
           <!-- Populated by sidebar.js -->

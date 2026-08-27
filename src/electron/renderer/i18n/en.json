@@ -5,6 +5,7 @@
   "header.ocr": "OCR",
   "header.translate": "Translate",
   "header.inpaint": "Inpaint",
+  "header.toggleBoxes": "Show detection boxes",
   "header.import": "Import",
   "header.undo": "Undo (Ctrl+Z)",
   "header.redo": "Redo (Ctrl+Shift+Z)",
@@ -31,9 +32,6 @@
   "landing.title": "Manga Translation Editor",
   "landing.subtitle": "Import a page to begin",
   "landing.import": "Import Image",
-
-  "view.original": "Original",
-  "view.cleaned": "Cleaned",
 
   "zoom.zoomIn": "Zoom In (Ctrl+=)",
   "zoom.zoomOut": "Zoom Out (Ctrl+-)",
@@ -74,7 +72,13 @@
   "sidebar.bubble.status": "Status",
 
   "sidebar.allDetections": "ALL DETECTIONS",
-  "sidebar.layers": "Layers",
+  "sidebar.tabLayers": "Layers",
+  "sidebar.tabMasks": "Masks",
+  "sidebar.noMasks": "No masks yet — run Inpaint",
+  "masks.name": "Mask {{index}}",
+  "masks.opacity": "Opacity",
+  "masks.delete": "Delete mask",
+  "sidebar.resizeType": "Drag to resize Type section height",
   "sidebar.noDetections": "No detections",
   "sidebar.delete": "Delete detection (Del)",
   "sidebar.moveUp": "Move up in reading order",
@@ -101,7 +105,7 @@
 
   "toast.inpaintNoText": "Run Detect first — no boxes to inpaint",
   "toast.inpaintRunning": "Inpainting text regions...",
-  "toast.inpaintDone": "Inpaint complete — cleaned image ready",
+  "toast.inpaintDone": "Inpaint complete — {{count}} mask(s) created",
   "toast.inpaintFailed": "Inpaint failed",
 
   "sidebar.text.originalText": "Original text",

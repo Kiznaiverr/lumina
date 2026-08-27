@@ -83,10 +83,16 @@ class TranslateResponse(BaseModel):
 class InpaintRequest(BaseModel):
     imagePath: str
     boxes: list[Bbox]
+    model: str = "lama"
+
+
+class InpaintPatch(BaseModel):
+    bbox: Bbox
+    imagePath: str
 
 
 class InpaintResponse(BaseModel):
-    outputPath: str
+    patches: list[InpaintPatch]
 
 
 class ModelStatus(BaseModel):

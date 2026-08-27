@@ -18,6 +18,7 @@ import "./lib/canvas/groups";
 import "./lib/canvas/selection";
 import "./lib/canvas/mutations";
 import "./lib/canvas/layers";
+import "./lib/canvas/masks";
 import { bindTextTool } from "./lib/canvas/textool";
 import { loadSystemFonts } from "./lib/fontLoader";
 import { createIcons } from "./lib/icons";
@@ -97,7 +98,7 @@ function _loadImageAsPage(filePath: string): Promise<Page | null> {
         naturalHeight: img.naturalHeight,
         textDetections: [],
         layers: [],
-        cleanedImage: null,
+        inpaintMasks: [],
         _selectedTextIdx: null,
         _selectedLayerId: null,
       };
@@ -149,7 +150,6 @@ async function importImages(): Promise<void> {
   canvas.render();
   canvas.renderPageStrip();
   ui.updatePageIndicator();
-  canvas.updateViewToggle();
   sidebar.render();
   history.reset();
 }
@@ -185,6 +185,14 @@ i18n.init().then(function () {
     .getElementById("btn-inpaint")!
     .addEventListener("click", function () {
       pipeline.runInpaint();
+    });
+
+  document
+    .getElementById("btn-toggle-boxes")!
+    .addEventListener("click", function () {
+      L.state.showDetBoxes = !L.state.showDetBoxes;
+      canvas.updateBoxToggle();
+      canvas.render();
     });
 
   // ── Undo / Redo buttons ──

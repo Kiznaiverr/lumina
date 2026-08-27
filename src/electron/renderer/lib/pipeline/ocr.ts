@@ -42,6 +42,8 @@ export const ocr = {
         if (layer && layer.type === "text-dialogue") layer.source = r.text;
       });
 
+      // Boxes stay visible after OCR (toggle in the header) — they only
+      // disappear once inpainting produces masks.
       canvas.render();
       sidebar.render();
       history.snapshot();

@@ -99,6 +99,12 @@
 .field-select:focus {
   border-color: #e94560;
 }
+/* Type section controls: fill their grid track and may shrink below
+   intrinsic width (native selects default ~170px and overflow). */
+.type-section .field-select {
+  width: 100%;
+  min-width: 0;
+}
 
 /* ── Shortcut settings ── */
 .shortcut-row {
@@ -343,6 +349,7 @@
   align-items: center;
   gap: 6px;
   height: 32px;
+  flex-shrink: 0;
   padding: 0 8px;
   border-bottom: 1px solid #2a2a2a;
   font-size: 0.7rem;
@@ -362,11 +369,19 @@
   color: #6a6a6a;
   font-variant-numeric: tabular-nums;
 }
+#sidebar-scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 .layer-list {
   display: flex;
   flex-direction: column;
   gap: 1px;
   padding: 4px 0;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
 }
 .layer-row {
   border-radius: 4px;
@@ -453,6 +468,40 @@
 /* ── Type section (koharu-style typography inspector) ── */
 .type-section {
   max-height: 240px;
+}
+/* Cap the controls' width so they stay compact when the sidebar is
+   resized wider (the layer/mask list still uses the full width). */
+#type-body {
+  max-width: 248px;
+}
+
+/* ── Sidebar vertical splitter (Type / Layers, Photoshop-style) ── */
+.sidebar-splitter {
+  height: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: row-resize;
+  background: transparent;
+  transition: background 0.15s;
+}
+.sidebar-splitter:hover {
+  background: rgba(233, 69, 96, 0.3);
+}
+.sidebar-splitter-grip {
+  width: 32px;
+  height: 3px;
+  border-radius: 2px;
+  background: #2f2f2f;
+  transition: background 0.15s;
+}
+.sidebar-splitter:hover .sidebar-splitter-grip {
+  background: #e94560;
+}
+body.resizing-row {
+  cursor: row-resize !important;
+  user-select: none;
 }
 .type-section.type-disabled {
   opacity: 0.45;
@@ -779,17 +828,75 @@
   border-radius: 2px;
 }
 
-/* ── View toggle ── */
-.view-toggle-btn {
-  padding: 3px 10px;
-  font-size: 0.65rem;
-  transition:
-    background 0.1s,
-    color 0.1s;
+/* ── Sidebar tabs (Layers | Masks) ── */
+.sidebar-tabs {
+  display: flex;
+  align-items: stretch;
+  height: 32px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #2a2a2a;
+  background: rgba(0, 0, 0, 0.12);
 }
-.view-toggle-btn.active {
-  background: #e94560;
-  color: #fff;
+.sidebar-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  height: 100%;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #969696;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.sidebar-tab:hover {
+  color: #d4d4d4;
+  background: rgba(255, 255, 255, 0.04);
+}
+.sidebar-tab.active {
+  color: #e94560;
+  border-bottom-color: #e94560;
+}
+.sidebar-tab svg {
+  width: 12px;
+  height: 12px;
+}
+.sidebar-tab-count {
+  font-size: 0.6rem;
+  color: #6a6a6a;
+  font-variant-numeric: tabular-nums;
+}
+.sidebar-tab.active .sidebar-tab-count {
+  color: #e94560;
+}
+
+/* ── Mask rows (inpaint patches) ── */
+.mask-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 3px;
+  border: 1px solid #333;
+  background: repeating-conic-gradient(#1a1a1c 0% 25%, #26262a 0% 50%) 50% / 8px
+    8px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.mask-opacity-row {
+  padding: 0 10px 6px 44px;
+}
+.mask-opacity {
+  width: 100%;
+  height: 14px;
+  accent-color: #e94560;
+  cursor: pointer;
 }
 
 /* ── Zoom controls ── */

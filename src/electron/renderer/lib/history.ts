@@ -3,6 +3,13 @@ import { state } from "./state";
 import { canvas } from "./canvas/index";
 import { sidebar } from "./sidebar";
 
+/** Convert a Windows path to a loadable file:// URL */
+function _fileUrl(p: string): string {
+  let norm = p.replace(/\\/g, "/");
+  if (!norm.startsWith("/")) norm = "/" + norm;
+  return "file://" + encodeURI(norm).replace(/#/g, "%23").replace(/\?/g, "%3F");
+}
+
 /**
  * Tracks detection state (bboxes, statuses, selection) per snapshot.
  * Stack-based with moving index: mutations truncate redo tail.
@@ -15,9 +22,10 @@ export const history = {
   _restoring: false,
 
   /** Serialize current pages' full editable state.
-   * Includes the unified layer model (bbox/text/typography/visibility) and
-   * both selections. Pipeline results (detect/inpaint) are NOT tracked —
-   * cleanedImage is an HTMLImageElement and cannot be serialized. */
+   * Includes the unified layer model (bbox/text/typography/visibility), the
+   * inpaint mask layers, and both selections. Page images stay in memory
+   * (not serialized) — masks are re-hydrated from their PNG paths on apply.
+   */
   _serialize(): string {
     return JSON.stringify(
       state.pages.map((p) => ({
@@ -25,6 +33,13 @@ export const history = {
         _selectedTextIdx: p._selectedTextIdx,
         layers: p.layers,
         _selectedLayerId: p._selectedLayerId,
+        inpaintMasks: p.inpaintMasks.map((m) => ({
+          id: m.id,
+          bbox: m.bbox,
+          imagePath: m.imagePath,
+          visible: m.visible,
+          opacity: m.opacity,
+        })),
       })),
     );
   },
@@ -76,6 +91,13 @@ export const history = {
       _selectedTextIdx: number | null;
       layers: unknown;
       _selectedLayerId: string | null;
+      inpaintMasks?: Array<{
+        id: string;
+        bbox: { x: number; y: number; w: number; h: number };
+        imagePath: string;
+        visible: boolean;
+        opacity: number;
+      }>;
     }>;
     this._restoring = true;
     state.pages.forEach((page, i) => {
@@ -84,6 +106,24 @@ export const history = {
       page._selectedTextIdx = snap[i]._selectedTextIdx;
       page.layers = snap[i].layers as never;
       page._selectedLayerId = snap[i]._selectedLayerId;
+      const masks = (snap[i].inpaintMasks || []).map((m) => ({
+        ...m,
+        image: undefined,
+      }));
+      page.inpaintMasks = masks as never;
+      // Re-hydrate mask images asynchronously; render again once loaded.
+      masks.forEach((m) => {
+        const img = new Image();
+        img.onload = function () {
+          const live = page.inpaintMasks.find((lm) => lm.id === m.id);
+          if (live) live.image = img;
+          if (state.getActivePage() === page) canvas.render();
+        };
+        img.onerror = function () {
+          /* patch file missing — mask stays hidden */
+        };
+        img.src = _fileUrl(m.imagePath);
+      });
     });
     canvas._clearGroups();
     canvas.render();

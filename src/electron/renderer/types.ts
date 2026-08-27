@@ -30,7 +30,8 @@ export interface BubbleDetection extends BaseDetection {}
 
 /* ── Unified layer model (koharu-style) ──
  * Detection results become text-dialogue layers; the text tool creates
- * text-free layers. Rendered over the cleaned image in cleaned view.
+ * text-free layers. Rendered over the original page image (mask layers sit
+ * between background and text).
  */
 export type LayerType = "text-dialogue" | "text-free" | "cleanup" | "image";
 
@@ -100,6 +101,18 @@ export interface PageLayer {
   backgroundPatch?: boolean;
 }
 
+export interface InpaintMask {
+  id: string;
+  /** Patch bbox in original-image pixel coords */
+  bbox: BBox;
+  /** Absolute path to the RGBA patch PNG (RGB=result, A=feathered mask) */
+  imagePath: string;
+  visible: boolean;
+  opacity: number; // 0-1
+  /** Loaded patch image (runtime only — not serialized in history) */
+  image?: HTMLImageElement;
+}
+
 export interface Page {
   filePath: string;
   fileName: string;
@@ -109,7 +122,8 @@ export interface Page {
   textDetections: TextDetection[];
   /** Unified editable layers (derived from detections + text tool) */
   layers: PageLayer[];
-  cleanedImage: HTMLImageElement | null;
+  /** Inpaint patches — composited over the original image, one per mask layer */
+  inpaintMasks: InpaintMask[];
   _selectedTextIdx: number | null;
   /** Selected layer id in the unified layer model */
   _selectedLayerId: string | null;
@@ -119,7 +133,6 @@ export interface Page {
   _panY?: number;
 }
 
-export type ViewMode = "original" | "cleaned";
 export type ToolId = "select" | "lasso" | "text";
 
 /** Response shape from POST /detect */

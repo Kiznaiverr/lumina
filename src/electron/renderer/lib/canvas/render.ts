@@ -7,7 +7,8 @@ import { renderLayerTextNodes } from "./textool";
 /**
  * Canvas render module.
  * Single Konva stage inside #canvas-container.
- * Shows either originalImage or cleanedImage based on _viewMode.
+ * Composite order: original page image → inpaint mask images (one per
+ * visible patch, alpha = feathered mask) → text layers.
  */
 let _stage: Konva.Stage | null = null;
 let _layer: Konva.Layer | null = null;
@@ -106,15 +107,11 @@ function _render(): void {
   const sr = _getScaleRatio();
   const off = _getOffset();
 
-  // Choose image based on viewMode
-  let img = page.image;
-  if (state._viewMode === "cleaned" && page.cleanedImage) {
-    img = page.cleanedImage;
-  }
-
+  // Background is always the original page image — inpaint patches are
+  // composited on top as layered masks (Photoshop-style).
   _bgImage = new Konva.Image({
     name: "bg",
-    image: img,
+    image: page.image,
     x: off.x,
     y: off.y,
     width: page.naturalWidth * sr,
@@ -122,10 +119,35 @@ function _render(): void {
   });
   _layer.add(_bgImage);
 
-  // Draw text detection overlays (original view only — cleaned view shows
-  // the rendered translation layers instead).
+  // Inpaint masks: one Konva.Image per patch. The patch PNG's alpha channel
+  // is the feathered mask, so Konva's normal alpha compositing reproduces
+  // the old cleaned result exactly — while each region stays independently
+  // toggleable / deletable / opacity-adjustable.
+  if (page.inpaintMasks) {
+    page.inpaintMasks.forEach(function (m) {
+      if (!m.visible || !m.image) return;
+      const mi = new Konva.Image({
+        name: "inpaint-mask",
+        image: m.image,
+        x: off.x + m.bbox.x * sr,
+        y: off.y + m.bbox.y * sr,
+        width: m.bbox.w * sr,
+        height: m.bbox.h * sr,
+        opacity: m.opacity,
+        listening: false,
+      });
+      _layer!.add(mi);
+    });
+  }
+
+  // Detection overlays — shown only while boxes are toggled on, BEFORE the
+  // first inpaint run; once mask layers exist the patches themselves are the
+  // visual representation of the boxes. After OCR the boxes auto-hide (the
+  // OCR text lives in the sidebar layers) but the user can re-show them to
+  // verify/adjust a box and re-run OCR.
   if (
-    state._viewMode !== "cleaned" &&
+    state.showDetBoxes &&
+    page.inpaintMasks.length === 0 &&
     page.textDetections &&
     page.textDetections.length > 0
   ) {
@@ -155,6 +177,7 @@ function _render(): void {
   renderLayerTextNodes();
 
   canvas._updateStatus();
+  canvas.updateBoxToggle();
   _layer.draw();
 }
 

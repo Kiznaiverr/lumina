@@ -47,5 +47,7 @@ export function stageToImg(sx: number, sy: number): { x: number; y: number } {
 }
 
 export function cleanedViewReady(): boolean {
-  return state._viewMode === "cleaned" && !!state.getActivePage()?.cleanedImage;
+  // The text tool is available whenever a page is open — no separate
+  // "cleaned view" exists anymore; masks composite over the original image.
+  return !!state.getActivePage();
 }

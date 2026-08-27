@@ -23,11 +23,13 @@ export function renderLayerTextNodes(): void {
   });
   layerTextNodes.length = 0;
   resetTransformer();
-  if (!konvaLayer || !page || !page.cleanedImage) return;
-  if (state._viewMode !== "cleaned") return;
+  if (!konvaLayer || !page) return;
 
   (page.layers || []).forEach(function (lay) {
     if (!lay.visible) return;
+    // OCR/translation of dialogue layers only appears after inpainting —
+    // before that the canvas shows the untouched original + boxes.
+    if (lay.type === "text-dialogue" && page.inpaintMasks.length === 0) return;
     const text = lay.translation || lay.source || "";
     if (!text) return;
     const node = makeNode(lay, text);

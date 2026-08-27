@@ -1,5 +1,5 @@
 /* ── Lumina State & Constants ── */
-import type { Page, ToolId, ViewMode } from "../types";
+import type { Page, ToolId } from "../types";
 
 export const CONST = {
   DEFAULT_FONT_SIZE: 18,
@@ -20,7 +20,6 @@ export interface AppState {
 
   // ── Canvas state ──
   _resizeTimer: ReturnType<typeof setTimeout> | null;
-  _viewMode: ViewMode;
 
   // ── Tools ──
   activeTool: ToolId;
@@ -33,6 +32,8 @@ export interface AppState {
   }>;
   sidebarCollapsed: boolean;
   sidebarWidth: number;
+  /** Detection box overlays — auto-hidden after OCR; user can re-show */
+  showDetBoxes: boolean;
 
   // ── Per-page viewport accessors ──
   _zoomLevel: number;
@@ -53,7 +54,6 @@ export const state: AppState = new (class implements AppState {
   _modelLoaded = false;
 
   _resizeTimer: ReturnType<typeof setTimeout> | null = null;
-  _viewMode: ViewMode = "original";
 
   activeTool: ToolId = "select";
   fontList: Array<{
@@ -64,6 +64,7 @@ export const state: AppState = new (class implements AppState {
   }> = [];
   sidebarCollapsed = false;
   sidebarWidth = 260;
+  showDetBoxes = true;
 
   _zoomLevel = 1;
   _panX = 0;
@@ -94,7 +95,6 @@ export const state: AppState = new (class implements AppState {
   setActivePage(idx: number): Page | null {
     if (idx < 0 || idx >= this.pages.length) return null;
     this.activePageIdx = idx;
-    this._viewMode = "original";
     return this.pages[idx];
   }
 })();

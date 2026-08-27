@@ -206,14 +206,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       send("inpaint", "Cleaning background...");
       const inpaintResult = (await apiPost("/inpaint", {
         imagePath,
-        bboxes: bubbles.map((b) => b.bbox),
-      })) as { outputPath: string };
+        boxes: bubbles.map((b) => b.bbox),
+      })) as { patches: Array<{ imagePath: string }> };
       send("inpaint", "Inpaint complete");
 
       return {
         success: true,
         originalImagePath: imagePath,
-        cleanedImagePath: inpaintResult.outputPath,
+        cleanedImagePath: inpaintResult.patches?.[0]?.imagePath ?? null,
         bubbles,
       };
     } catch (err) {

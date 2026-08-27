@@ -52,20 +52,20 @@ export const typeSection = {
     host.appendChild(body);
 
     // Row 1: Font + Color
-    const row1 = this._grid("1fr 40px");
+    const row1 = this._grid("minmax(0,1fr) minmax(0,40px)");
     row1.appendChild(this._field(i18n.t("type.font"), this._fontSelect()));
     row1.appendChild(this._field(i18n.t("type.color"), this._colorInput()));
     body.appendChild(row1);
 
     // Row 2: Size + Weight + Style
-    const row2 = this._grid("1fr 64px 72px");
+    const row2 = this._grid("minmax(0,1fr) minmax(0,64px) minmax(0,72px)");
     row2.appendChild(this._field(i18n.t("type.size"), this._sizeField()));
     row2.appendChild(this._field(i18n.t("type.weight"), this._weightSelect()));
     row2.appendChild(this._field(i18n.t("type.style"), this._styleSelect()));
     body.appendChild(row2);
 
     // Row 3: Alignment segmented + Direction
-    const row3 = this._grid("1fr 84px");
+    const row3 = this._grid("minmax(0,1fr) minmax(0,84px)");
     row3.appendChild(
       this._field(i18n.t("type.alignment"), this._alignSegmented()),
     );
@@ -75,7 +75,7 @@ export const typeSection = {
     body.appendChild(row3);
 
     // Row 4: Stroke color + width
-    const row4 = this._grid("1fr 1fr");
+    const row4 = this._grid("minmax(0,1fr) minmax(0,1fr)");
     row4.appendChild(
       this._field(i18n.t("type.strokeColor"), this._strokeColorInput()),
     );
@@ -85,7 +85,7 @@ export const typeSection = {
     body.appendChild(row4);
 
     // Row 5: Auto-fit + Background patch
-    const row5 = this._grid("1fr 1fr");
+    const row5 = this._grid("minmax(0,1fr) minmax(0,1fr)");
     const autofitBtn = document.createElement("button");
     autofitBtn.id = "type-autofit";
     autofitBtn.className = "field-select type-align-btn";

@@ -1,13 +1,38 @@
-/* ── Lumina Pipeline — Inpainting (LaMa via Python backend) ── */
+/* ── Lumina Pipeline — Inpainting (LaMa via Python backend) ──
+ * The backend returns one RGBA patch per detection box; each patch becomes
+ * an independent mask layer (Photoshop-style) composited over the original
+ * image. The renderer no longer swaps to a single cleaned image.
+ */
 import { state } from "../state";
 import * as i18n from "../i18n";
 import { ui } from "../ui";
 import { history } from "../history";
 import { canvas } from "../canvas/index";
 import { sidebar } from "../sidebar";
+import type { BBox, InpaintMask } from "../../types";
+
+/** Convert a Windows path to a loadable file:// URL */
+function fileUrl(p: string): string {
+  let norm = p.replace(/\\/g, "/");
+  if (!norm.startsWith("/")) norm = "/" + norm;
+  return "file://" + encodeURI(norm).replace(/#/g, "%23").replace(/\?/g, "%3F");
+}
+
+function loadImage(p: string): Promise<HTMLImageElement> {
+  return new Promise(function (resolve, reject) {
+    const img = new Image();
+    img.onload = function () {
+      resolve(img);
+    };
+    img.onerror = function () {
+      reject(new Error("Failed to load patch image: " + p));
+    };
+    img.src = fileUrl(p);
+  });
+}
 
 export const inpaint = {
-  /** Inpaint all text detection boxes of the active page */
+  /** Inpaint all text detection boxes of the active page → mask layers */
   run: async function (): Promise<void> {
     const page = state.getActivePage();
     if (state.isRunning || !page) return;
@@ -21,38 +46,45 @@ export const inpaint = {
 
     try {
       const result = await window.lumina.apiPost<{
-        outputPath?: string;
+        patches?: Array<{ bbox: BBox; imagePath: string }>;
         detail?: string;
       }>("/inpaint", {
         imagePath: page.filePath,
         boxes: page.textDetections.map((d) => d.bbox),
+        model: "lama",
       });
-      if (!result || !result.outputPath)
+      if (!result || !Array.isArray(result.patches))
         throw new Error(result?.detail || "Inpaint failed");
 
-      // Load the cleaned image and attach to the page
-      const outPath = result.outputPath;
-      const img = new Image();
-      await new Promise<void>(function (resolve, reject) {
-        img.onload = function () {
-          resolve();
-        };
-        img.onerror = function () {
-          reject(new Error("Failed to load cleaned image"));
-        };
-        img.src = "file://" + (outPath as string).replace(/\\/g, "/");
-      });
+      const ts = Date.now();
+      const masks: InpaintMask[] = [];
+      for (let i = 0; i < result.patches.length; i++) {
+        const p = result.patches[i];
+        const image = await loadImage(p.imagePath);
+        masks.push({
+          id: "mask-" + ts + "-" + i,
+          bbox: p.bbox,
+          imagePath: p.imagePath,
+          visible: true,
+          opacity: 1,
+          image,
+        });
+      }
 
-      page.cleanedImage = img;
+      // Replace previous masks (re-run = fresh set of patches).
+      // Detection boxes stay in the page model but are no longer drawn —
+      // see render.ts (overlays only while masks.length === 0).
+      page.inpaintMasks = masks;
 
-      // Reveal the Original/Cleaned toggle and jump to cleaned view so the
-      // user immediately sees the inpaint result.
-      canvas.updateViewToggle();
-      canvas.setViewMode("cleaned");
+      canvas.render();
       sidebar.render();
       history.snapshot();
       ui.dismissToast(loadingToast);
-      ui.toast(i18n.t("toast.inpaintDone"), "success", 3000);
+      ui.toast(
+        i18n.t("toast.inpaintDone", { count: masks.length }),
+        "success",
+        3000,
+      );
     } catch (err) {
       console.error("Inpaint error:", err);
       ui.dismissToast(loadingToast);

@@ -19,6 +19,7 @@ from schemas import (
     TranslateRequest,
     TranslateResponse,
     TranslateResult,
+    InpaintPatch,
     InpaintRequest,
     InpaintResponse,
 )
@@ -120,10 +121,12 @@ def inpaint(req: InpaintRequest):
     try:
         from services.inpaint import inpaint_boxes
 
-        output_path = inpaint_boxes(
-            req.imagePath, [b.model_dump() for b in req.boxes]
+        patches = inpaint_boxes(
+            req.imagePath, [b.model_dump() for b in req.boxes], model=req.model
         )
-        return InpaintResponse(outputPath=output_path)
+        return InpaintResponse(
+            patches=[InpaintPatch(**p) for p in patches]
+        )
     except Exception as e:
         import traceback
         traceback.print_exc()
