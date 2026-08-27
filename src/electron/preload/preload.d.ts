@@ -17,8 +17,19 @@ interface LuminaBridge {
   }>;
   onProgress: (cb: (msg: { step: string; detail?: string }) => void) => void;
   apiPost: (endpoint: string, body: unknown) => Promise<unknown>;
-  checkModel: () => Promise<{ cached: boolean }>;
-  downloadModel: () => Promise<{ status?: string; error?: string }>;
+  checkModel: () => Promise<{
+    cached: boolean;
+    models?: Array<{
+      id: string;
+      name: string;
+      kind: string;
+      ready: boolean;
+      size: number | null;
+    }>;
+  }>;
+  downloadModel: (
+    models?: string[],
+  ) => Promise<{ status?: string; error?: string }>;
   getFonts: () => Promise<string[]>;
   loadTranslations: () => Promise<Record<string, Record<string, string>>>;
 }

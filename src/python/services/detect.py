@@ -23,6 +23,8 @@ from pathlib import Path
 
 import numpy as np
 
+from utils.logger import log
+
 MODEL_ID = "ogkalu/comic-text-and-bubble-detector"
 MODEL_FILENAME = "detector.onnx"
 MODEL_URL = (
@@ -56,23 +58,39 @@ def is_model_ready() -> bool:
     return MODEL_PATH.is_file()
 
 
+def get_model_info() -> dict:
+    """Model metadata for the settings → Models manager."""
+    ready = is_model_ready()
+    return {
+        "id": "detect",
+        "name": "RT-DETR Text & Bubble Detector",
+        "kind": "detect",
+        "ready": ready,
+        "size": MODEL_PATH.stat().st_size if ready else None,
+        "description": (
+            "RT-DETR v2 r50vd fine-tuned for comics — finds text boxes "
+            "and speech bubbles on manga pages."
+        ),
+    }
+
+
 def download_model() -> None:
     """Download the ONNX model from HuggingFace. Blocks until done."""
     import urllib.request
 
     if is_model_ready():
-        print(f"[Lumina] Model already present: {MODEL_PATH}")
+        log.info(f"Detect model already present: {MODEL_PATH}")
         return
 
     _MODELS_DIR.mkdir(parents=True, exist_ok=True)
     tmp_path = MODEL_PATH.with_suffix(".onnx.part")
 
-    print(f"[Lumina] Downloading model {MODEL_URL} ...")
+    log.info(f"Downloading detect model {MODEL_URL} ...")
     last_pct = -1
 
     def _report(pct: int, downloaded: int, total: int) -> None:
         if pct != last_pct:
-            print(f"[Lumina] Download progress: {pct}%")
+            log.debug(f"Detect download progress: {pct}%")
             if progress_callback:
                 try:
                     progress_callback(pct, downloaded, total)
@@ -98,7 +116,7 @@ def download_model() -> None:
         raise
 
     tmp_path.rename(MODEL_PATH)
-    print(f"[Lumina] Model download complete: {MODEL_PATH}")
+    log.info(f"Detect model download complete: {MODEL_PATH}")
 
 
 def _load_session():
@@ -109,14 +127,14 @@ def _load_session():
         if not is_model_ready():
             download_model()
 
-        print(f"[Lumina] Loading ONNX model: {MODEL_PATH}")
+        log.info(f"Loading detect ONNX model: {MODEL_PATH}")
         opts = ort.SessionOptions()
         opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         _session = ort.InferenceSession(
             str(MODEL_PATH), sess_options=opts, providers=["CPUExecutionProvider"]
         )
         inputs = {i.name for i in _session.get_inputs()}
-        print(f"[Lumina] ONNX session ready (inputs: {inputs})")
+        log.info(f"Detect ONNX session ready (inputs: {inputs})")
     return _session
 
 
@@ -226,8 +244,8 @@ def detect(image_path: str) -> dict:
 
     labels, boxes, scores = _split_outputs(outputs)
     result = _postprocess(labels, boxes, scores, w, h)
-    print(
-        f"[Lumina] Detected {len(result['textDetections'])} text, "
+    log.info(
+        f"Detected {len(result['textDetections'])} text, "
         f"{len(result['bubbleDetections'])} bubbles"
     )
     return result

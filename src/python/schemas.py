@@ -95,5 +95,21 @@ class InpaintResponse(BaseModel):
     patches: list[InpaintPatch]
 
 
+class ModelInfo(BaseModel):
+    id: str  # "detect" | "ocr" | inpaint registry key ("lama")
+    name: str  # display name
+    kind: str  # "detect" | "ocr" | "inpaint"
+    ready: bool
+    size: int | None = None  # bytes of installed weights; None if not installed
+    description: str = ""  # short blurb shown in the Settings → Models tab
+
+
 class ModelStatus(BaseModel):
     cached: bool
+    models: list[ModelInfo] = []
+
+
+class ModelDownloadRequest(BaseModel):
+    # Empty = download every missing model. Otherwise only these ids
+    # ("detect", "ocr", or inpaint registry keys like "lama").
+    models: list[str] = []

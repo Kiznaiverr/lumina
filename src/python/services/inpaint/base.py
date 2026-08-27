@@ -37,6 +37,10 @@ class BaseInpaintModel(ABC):
     def download(self, progress_callback: ProgressCallback = None) -> None:
         """Fetch missing model weights. Blocks until done."""
 
+    def size(self) -> Optional[int]:
+        """Total bytes of installed weight files; None if not installed."""
+        return None
+
     @abstractmethod
     def inpaint(
         self,

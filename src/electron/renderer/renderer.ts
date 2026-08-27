@@ -7,6 +7,7 @@ import { shortcuts } from "./lib/shortcuts";
 import { tools } from "./lib/tools";
 import { pipeline } from "./lib/pipeline";
 import { settings } from "./lib/settings";
+import { models } from "./lib/models";
 import { canvas } from "./lib/canvas/index";
 import { sidebar } from "./lib/sidebar";
 import { setRendererImport } from "./lib/canvas/pages";
@@ -26,52 +27,11 @@ import type { Page } from "./types";
 
 const landing = document.getElementById("landing");
 
-// ── Model check on startup ──
-async function ensureModel(): Promise<void> {
-  const toast = ui.toast(i18n.t("progress.checking"), "running", 0);
-  try {
-    const res = await window.lumina.checkModel();
-    if (res && res.cached) {
-      ui.dismissToast(toast);
-      return;
-    }
-  } catch (e) {
-    /* backend still starting */
-  }
-
-  ui.dismissToast(toast);
-
-  // Download toast with progress bar (bottom-right notification)
-  const dlToast = ui.downloadToast(i18n.t("progress.downloading"));
-  try {
-    await window.lumina.downloadModel();
-    ui.dismissToast(dlToast as never);
-    ui.toast(i18n.t("progress.downloaded"), "success", 3000);
-  } catch (e) {
-    ui.dismissToast(dlToast as never);
-    ui.toast(
-      i18n.t("progress.downloadFailed", {
-        error: (e as Error).message,
-      }),
-      "error",
-      5000,
-    );
-  }
-}
-
-// Live progress updates from main process polling
-if (window.lumina.onDownloadProgress) {
-  window.lumina.onDownloadProgress(function (p) {
-    ui.updateDownloadToast(p.progress, p.downloaded, p.total);
-    const label = document.getElementById("dl-msg");
-    if (label) {
-      const key =
-        p.model === "ocr"
-          ? "progress.downloadingOcr"
-          : p.model === "inpaint"
-            ? "progress.downloadingInpaint"
-            : "progress.downloading";
-      label.textContent = i18n.t(key);
+// ── Model check on startup (CHECK ONLY — downloads are manual) ──
+function checkModels(): void {
+  models.check().then(function (list) {
+    if (list.length && list.some((m) => !m.ready)) {
+      ui.toast(i18n.t("models.warning"), "warn", 6000);
     }
   });
 }
@@ -101,6 +61,7 @@ function _loadImageAsPage(filePath: string): Promise<Page | null> {
         inpaintMasks: [],
         _selectedTextIdx: null,
         _selectedLayerId: null,
+        _selectedMaskId: null,
       };
       resolve(page);
     };
@@ -139,12 +100,7 @@ async function importImages(): Promise<void> {
   }
 
   landing!.style.display = "none";
-  (document.getElementById("btn-detect") as HTMLButtonElement).disabled = false;
-  (document.getElementById("btn-ocr") as HTMLButtonElement).disabled = false;
-  (document.getElementById("btn-translate") as HTMLButtonElement).disabled =
-    false;
-  (document.getElementById("btn-inpaint") as HTMLButtonElement).disabled =
-    false;
+  models.setHasImage(true);
 
   canvas._clearGroups();
   canvas.render();
@@ -212,6 +168,10 @@ i18n.init().then(function () {
     .addEventListener("click", function () {
       settings.open();
     });
+  // Warning shortcut → open Settings on the Models tab
+  document.getElementById("btn-models")!.addEventListener("click", function () {
+    settings.open("models");
+  });
 
   tools.init();
   ui.initResize();
@@ -231,7 +191,7 @@ i18n.init().then(function () {
     .catch(function () {});
 
   // ── Model check on startup ──
-  setTimeout(ensureModel, 1500);
+  setTimeout(checkModels, 1500);
 });
 
 // ── Language picker (globe + dropdown) ──

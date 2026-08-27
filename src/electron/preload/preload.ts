@@ -11,7 +11,8 @@ contextBridge.exposeInMainWorld("lumina", {
   apiPost: (endpoint: string, body: unknown) =>
     ipcRenderer.invoke("api-post", endpoint, body),
   checkModel: () => ipcRenderer.invoke("check-model"),
-  downloadModel: () => ipcRenderer.invoke("download-model"),
+  downloadModel: (models?: string[]) =>
+    ipcRenderer.invoke("download-model", models ?? []),
   onDownloadProgress: (
     cb: (msg: {
       running: boolean;
@@ -20,6 +21,7 @@ contextBridge.exposeInMainWorld("lumina", {
       total: number;
       done: boolean;
       error?: string | null;
+      model?: string | null;
     }) => void,
   ) => {
     ipcRenderer.on("model-download-progress", (_e, msg) => cb(msg));

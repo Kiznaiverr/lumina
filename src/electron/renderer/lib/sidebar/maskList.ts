@@ -8,6 +8,8 @@
 import * as i18n from "../i18n";
 import { canvas } from "../canvas/index";
 import { history } from "../history";
+import { state } from "../state";
+import { sidebar } from "../sidebar";
 import type { Page, InpaintMask } from "../../types";
 import { esc } from "./_esc";
 
@@ -26,15 +28,18 @@ export function maskListHTML(page: Page | null): string {
 
   let html = "";
   page.inpaintMasks.forEach(function (m, i) {
-    html += maskRowHTML(m, i);
+    html += maskRowHTML(page, m, i);
   });
   return html;
 }
 
-function maskRowHTML(mask: InpaintMask, idx: number): string {
+function maskRowHTML(page: Page, mask: InpaintMask, idx: number): string {
   const pct = Math.round(mask.opacity * 100);
+  const selected = page._selectedMaskId === mask.id;
   return (
-    '<div class="layer-row" data-mask-id="' +
+    '<div class="layer-row' +
+    (selected ? " selected" : "") +
+    '" data-mask-id="' +
     esc(mask.id) +
     '">' +
     '<div class="layer-row-main">' +
@@ -45,14 +50,24 @@ function maskRowHTML(mask: InpaintMask, idx: number): string {
     '<span class="layer-name">' +
     esc(i18n.t("masks.name", { index: idx + 1 })) +
     "</span>" +
-    '<span class="layer-kind">' +
-    esc(i18n.t("masks.opacity") + " " + pct + "%") +
-    "</span>" +
+    (selected
+      ? '<div class="mask-opacity-line">' +
+        '<span class="mask-opacity-label">' +
+        esc(i18n.t("masks.opacity")) +
+        "</span>" +
+        '<input type="range" class="mask-opacity" min="0" max="100" value="' +
+        pct +
+        '">' +
+        '<span class="mask-opacity-value">' +
+        pct +
+        "%</span>" +
+        "</div>"
+      : "") +
     "</div>" +
     '<div class="detection-actions">' +
     '<button class="det-btn det-btn-danger" data-action="delete" title="' +
     esc(i18n.t("masks.delete")) +
-    '">✕</button>' +
+    '"><i data-lucide="trash-2"></i></button>' +
     "</div>" +
     '<button class="layer-eye" data-action="toggle-visible" title="' +
     esc(i18n.t("layers.toggleVisible")) +
@@ -62,16 +77,12 @@ function maskRowHTML(mask: InpaintMask, idx: number): string {
       : '<i data-lucide="eye-off"></i>') +
     "</button>" +
     "</div>" +
-    '<div class="mask-opacity-row">' +
-    '<input type="range" class="mask-opacity" min="0" max="100" value="' +
-    pct +
-    '">' +
-    "</div>" +
     "</div>"
   );
 }
 
 export function wireMaskEvents(): void {
+  const page = state.getActivePage();
   const items = document.querySelectorAll<HTMLElement>(
     ".layer-row[data-mask-id]",
   );
@@ -92,6 +103,12 @@ export function wireMaskEvents(): void {
         canvas.deleteMask(id);
         return;
       }
+      // Click on the row toggles the expanded options (opacity + delete)
+      if (target.closest(".mask-opacity")) return; // slider handles itself
+      if (page) {
+        page._selectedMaskId = page._selectedMaskId === id ? null : id;
+        sidebar.render();
+      }
     });
   });
 
@@ -99,17 +116,17 @@ export function wireMaskEvents(): void {
   document
     .querySelectorAll<HTMLInputElement>(".mask-opacity")
     .forEach(function (r) {
-      r.addEventListener("input", function () {
+      const sync = function (): void {
         const row = r.closest(".layer-row") as HTMLElement | null;
         if (!row) return;
         const id = row.getAttribute("data-mask-id") as string;
         canvas.setMaskOpacity(id, parseInt(r.value, 10) / 100);
-      });
+        const val = row.querySelector<HTMLElement>(".mask-opacity-value");
+        if (val) val.textContent = r.value + "%";
+      };
+      r.addEventListener("input", sync);
       r.addEventListener("change", function () {
-        const row = r.closest(".layer-row") as HTMLElement | null;
-        if (!row) return;
-        const id = row.getAttribute("data-mask-id") as string;
-        canvas.setMaskOpacity(id, parseInt(r.value, 10) / 100);
+        sync();
         history.snapshot();
       });
     });

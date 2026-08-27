@@ -89,10 +89,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
   });
 
-  ipcMain.handle("download-model", async () => {
+  ipcMain.handle("download-model", async (_event, models: string[] = []) => {
     try {
-      // Kick off background download in Python backend
-      await apiPost("/model/download", {});
+      // Kick off background download in Python backend (empty = all missing)
+      await apiPost("/model/download", { models });
     } catch (err) {
       return { error: String(err) };
     }

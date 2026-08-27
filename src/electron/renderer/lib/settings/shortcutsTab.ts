@@ -8,10 +8,13 @@ type ActionId = Parameters<typeof shortcuts.get>[0] extends infer A ? A : never;
 
 export const shortcutsTab = {
   build(pane: HTMLElement): void {
+    pane.innerHTML = "";
+    const section = document.createElement("div");
+    section.className = "settings-section";
     const list = document.createElement("div");
     list.id = "shortcut-list";
-    pane.innerHTML = "";
-    pane.appendChild(list);
+    section.appendChild(list);
+    pane.appendChild(section);
   },
 
   refresh(): void {

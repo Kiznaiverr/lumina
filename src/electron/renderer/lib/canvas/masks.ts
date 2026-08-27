@@ -32,6 +32,7 @@ canvas.deleteMask = function (id: string): void {
   const i = _findMaskIndex(page?.inpaintMasks, id);
   if (!page || i < 0) return;
   page.inpaintMasks.splice(i, 1);
+  if (page._selectedMaskId === id) page._selectedMaskId = null;
   canvas.render();
   sidebar.render();
   history.snapshot();

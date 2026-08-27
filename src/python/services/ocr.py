@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from utils.logger import log
+
 if TYPE_CHECKING:
     from onnxruntime import InferenceSession
 
@@ -42,13 +44,38 @@ def is_model_ready() -> bool:
     return all((MODEL_DIR / f).is_file() for f in REQUIRED_FILES)
 
 
+def get_model_info() -> dict:
+    """Model metadata for the settings → Models manager."""
+    ready = is_model_ready()
+    size = (
+        sum(
+            (MODEL_DIR / f).stat().st_size
+            for f in REQUIRED_FILES
+            if (MODEL_DIR / f).is_file()
+        )
+        if ready
+        else None
+    )
+    return {
+        "id": "ocr",
+        "name": "manga-ocr (ONNX)",
+        "kind": "ocr",
+        "ready": ready,
+        "size": size,
+        "description": (
+            "manga-ocr — Japanese text recognition trained on manga, "
+            "handles vertical, horizontal, and stylized typesetting."
+        ),
+    }
+
+
 def download_model(progress_callback=None) -> None:
     import urllib.request
 
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     base_url = f"https://huggingface.co/{MODEL_ID}/resolve/main/"
 
-    print(f"[Lumina] Downloading OCR model {MODEL_ID} ...")
+    log.info(f"Downloading OCR model {MODEL_ID} ...")
     for i, f in enumerate(DOWNLOAD_FILES):
         dest = MODEL_DIR / f
         if dest.is_file():
@@ -75,7 +102,7 @@ def download_model(progress_callback=None) -> None:
                     ) + downloaded
                     progress_callback(int(done * 100 / total), int(done), int(total))
         dest.with_suffix(dest.suffix + ".part").rename(dest)
-    print("[Lumina] OCR model ready")
+    log.info("OCR model ready")
 
 
 def _load():
@@ -84,11 +111,11 @@ def _load():
         return
     import onnxruntime as ort
 
-    print("[Lumina] Loading manga-ocr ONNX...")
+    log.info("Loading manga-ocr ONNX...")
     _enc = ort.InferenceSession(str(MODEL_DIR / "encoder_model.onnx"))
     _dec = ort.InferenceSession(str(MODEL_DIR / "decoder_model.onnx"))
     _vocab = (MODEL_DIR / "vocab.txt").read_text(encoding="utf-8").splitlines()
-    print("[Lumina] manga-ocr ready")
+    log.info("manga-ocr ready")
 
 
 def _preprocess(crop):
@@ -147,6 +174,8 @@ def ocr_boxes(image_path: str, boxes: list[dict]) -> list[str]:
         hidden = np.asarray(enc.run(None, {"pixel_values": pixel_values})[0])
         text = _decode(hidden)
         texts.append(text)
-        print(f"[Lumina] OCR box {i + 1}/{len(boxes)}: {text!r}".encode("ascii", "replace").decode("ascii"))
+        log.debug(
+            f"OCR box {i + 1}/{len(boxes)}: {text!r}".encode("ascii", "replace").decode("ascii")
+        )
 
     return texts

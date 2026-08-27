@@ -6,10 +6,14 @@ import { createIcons } from "../icons";
 import { generalTab } from "./general";
 import { shortcutsTab } from "./shortcutsTab";
 import { translationTab } from "./translation";
+import { modelsTab } from "./models";
+import { applySettingsWindow, initSettingsWindow } from "./window";
 
 interface TabDef {
   id: string;
   labelKey: string;
+  /** lucide icon name for the nav sidebar */
+  icon: string;
   build(pane: HTMLElement): void;
   refresh(): void;
   /** Commit pending edits — called before modal closes */
@@ -17,9 +21,30 @@ interface TabDef {
 }
 
 const TABS: TabDef[] = [
-  { id: "general", labelKey: "settings.tabGeneral", ...generalTab },
-  { id: "shortcuts", labelKey: "settings.tabShortcuts", ...shortcutsTab },
-  { id: "translation", labelKey: "settings.tabTranslation", ...translationTab },
+  {
+    id: "general",
+    labelKey: "settings.tabGeneral",
+    icon: "sliders-horizontal",
+    ...generalTab,
+  },
+  {
+    id: "shortcuts",
+    labelKey: "settings.tabShortcuts",
+    icon: "keyboard",
+    ...shortcutsTab,
+  },
+  {
+    id: "translation",
+    labelKey: "settings.tabTranslation",
+    icon: "languages",
+    ...translationTab,
+  },
+  {
+    id: "models",
+    labelKey: "settings.tabModels",
+    icon: "package",
+    ...modelsTab,
+  },
 ];
 
 let _activeTab = "general";
@@ -37,14 +62,19 @@ export const settings = {
       const btn = document.createElement("button");
       btn.className = "settings-tab";
       btn.dataset.tab = tab.id;
-      btn.textContent = i18n.t(tab.labelKey);
+      const icon = document.createElement("i");
+      icon.dataset.lucide = tab.icon;
+      const label = document.createElement("span");
+      label.textContent = i18n.t(tab.labelKey);
+      btn.appendChild(icon);
+      btn.appendChild(label);
       btn.addEventListener("click", function () {
         settings.switchTab(this.dataset.tab as string);
       });
       tabBar.appendChild(btn);
 
       const pane = document.createElement("div");
-      pane.className = "flex-1 overflow-y-auto p-4 settings-pane hidden";
+      pane.className = "settings-pane hidden";
       pane.id = "tab-" + tab.id;
       tab.build(pane);
       paneHost.appendChild(pane);
@@ -52,6 +82,7 @@ export const settings = {
 
     this.bindOverlay();
     this.switchTab(_activeTab);
+    initSettingsWindow();
     createIcons();
   },
 
@@ -75,10 +106,12 @@ export const settings = {
     if (resetBtn) resetBtn.classList.toggle("hidden", tabId !== "shortcuts");
   },
 
-  open(): void {
+  open(tabId?: string): void {
+    if (tabId) _activeTab = tabId;
     const overlay = document.getElementById("settings-overlay");
     if (!overlay) return;
     overlay.classList.add("show");
+    applySettingsWindow();
     this.switchTab(_activeTab);
   },
 

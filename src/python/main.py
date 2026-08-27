@@ -13,6 +13,8 @@ from schemas import (
     TextDetection,
     BubbleDetection,
     ModelStatus,
+    ModelInfo,
+    ModelDownloadRequest,
     OcrRequest,
     OcrResponse,
     OcrResult,
@@ -23,6 +25,8 @@ from schemas import (
     InpaintRequest,
     InpaintResponse,
 )
+
+from utils.logger import log
 
 app = FastAPI(title="Lumina Backend", version="0.1.0")
 
@@ -56,8 +60,10 @@ def detect(req: DetectRequest):
             bubbleDetections=[BubbleDetection(**d) for d in result["bubbleDetections"]],
         )
     except Exception as e:
+        log.error(f"Detect failed: {e}")
         import traceback
-        traceback.print_exc()
+
+        log.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -78,8 +84,10 @@ def ocr(req: OcrRequest):
             results=[OcrResult(index=i, text=t) for i, t in enumerate(texts)]
         )
     except Exception as e:
+        log.error(f"OCR failed: {e}")
         import traceback
-        traceback.print_exc()
+
+        log.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -108,8 +116,10 @@ def translate(req: TranslateRequest):
     except HTTPException:
         raise
     except Exception as e:
+        log.error(f"Translate failed: {e}")
         import traceback
-        traceback.print_exc()
+
+        log.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -128,71 +138,106 @@ def inpaint(req: InpaintRequest):
             patches=[InpaintPatch(**p) for p in patches]
         )
     except Exception as e:
+        log.error(f"Inpaint failed: {e}")
         import traceback
-        traceback.print_exc()
+
+        log.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def _all_model_infos() -> list[dict]:
+    from services.detect import get_model_info as detect_info
+    from services.ocr import get_model_info as ocr_info
+    from services.inpaint import get_models_info as inpaint_infos
+
+    return [detect_info(), ocr_info()] + inpaint_infos()
+
+
+@app.get("/models", response_model=ModelStatus)
+def models_list():
+    """Full model registry: per-model ready state + sizes for the settings UI."""
+    infos = _all_model_infos()
+    return ModelStatus(
+        cached=all(i["ready"] for i in infos),
+        models=[ModelInfo(**i) for i in infos],
+    )
 
 
 @app.get("/model/check", response_model=ModelStatus)
 def model_check():
-    from services.detect import is_model_ready as detect_ready
-    from services.ocr import is_model_ready as ocr_ready
-    from services.inpaint import is_model_ready as inpaint_ready
-
-    return ModelStatus(cached=detect_ready() and ocr_ready() and inpaint_ready())
+    return models_list()
 
 
 @app.post("/model/download")
-def model_download():
-    """Start missing-model downloads in background thread.
-    Poll /model/progress for status."""
+def model_download(req: ModelDownloadRequest):
+    """Start background downloads for the requested models only.
+    Empty `models` = every missing model. Poll /model/progress for status."""
     from services import detect as detect_service
     from services import ocr as ocr_service
     from services import inpaint as inpaint_service
 
-    if (
-        detect_service.is_model_ready()
-        and ocr_service.is_model_ready()
-        and inpaint_service.is_model_ready()
-    ):
-        return {"status": "ok", "alreadyPresent": True}
-
     if _download_state["running"]:
         return {"status": "started"}
-
-    _download_state.update(
-        {"running": True, "progress": 0, "downloaded": 0, "total": 0, "done": False, "error": None, "model": None}
-    )
 
     def _cb(pct: int, downloaded: int, total: int) -> None:
         _download_state["progress"] = pct
         _download_state["downloaded"] = downloaded
         _download_state["total"] = total
 
+    # Resolve requested ids → [(progress label, downloader), ...], skipping
+    # models that are already installed. `None` = download everything.
+    want = set(req.models) if req.models else None
+
+    def _wants(x: str) -> bool:
+        return want is None or x in want
+
+    targets: list[tuple[str, object]] = []
+
+    def _run_detect() -> None:
+        detect_service.progress_callback = _cb
+        try:
+            detect_service.download_model()
+        finally:
+            detect_service.progress_callback = None
+
+    if _wants("detect") and not detect_service.is_model_ready():
+        targets.append(("detect", _run_detect))
+    if _wants("ocr") and not ocr_service.is_model_ready():
+        targets.append(
+            ("ocr", lambda: ocr_service.download_model(progress_callback=_cb))
+        )
+
+    if _wants("inpaint"):
+        inpaint_ids = list(inpaint_service.MODELS)
+    else:
+        inpaint_ids = [x for x in (want or []) if x in inpaint_service.MODELS]
+    for name in inpaint_ids:
+        model = inpaint_service.MODELS[name]
+        if not model.is_ready():
+            targets.append(("inpaint", lambda m=model: m.download(_cb)))
+
+    if not targets:
+        return {"status": "ok", "alreadyPresent": True}
+
+    _download_state.update(
+        {"running": True, "progress": 0, "downloaded": 0, "total": 0, "done": False, "error": None, "model": None}
+    )
+
     def _worker() -> None:
         try:
-            if not detect_service.is_model_ready():
-                _download_state["model"] = "detect"
-                detect_service.progress_callback = _cb
-                detect_service.download_model()
-                detect_service.progress_callback = None
-            if not ocr_service.is_model_ready():
-                _download_state["model"] = "ocr"
-                ocr_service.download_model(progress_callback=_cb)
-            if not inpaint_service.is_model_ready():
-                _download_state["model"] = "inpaint"
-                inpaint_service.progress_callback = _cb
-                inpaint_service.download_model()
-                inpaint_service.progress_callback = None
+            for label, fn in targets:
+                _download_state["model"] = label
+                fn()
             _download_state["done"] = True
             _download_state["progress"] = 100
         except Exception as e:
+            log.error(f"Model download failed: {e}")
             import traceback
-            traceback.print_exc()
+
+            log.debug(traceback.format_exc())
             _download_state["error"] = str(e)
         finally:
             _download_state["running"] = False
-            detect_service.progress_callback = None
 
     threading.Thread(target=_worker, daemon=True).start()
     return {"status": "started"}

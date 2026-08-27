@@ -9,6 +9,7 @@ import { ui } from "../ui";
 import { history } from "../history";
 import { canvas } from "../canvas/index";
 import { sidebar } from "../sidebar";
+import { models } from "../models";
 import type { BBox, InpaintMask } from "../../types";
 
 /** Convert a Windows path to a loadable file:// URL */
@@ -51,7 +52,7 @@ export const inpaint = {
       }>("/inpaint", {
         imagePath: page.filePath,
         boxes: page.textDetections.map((d) => d.bbox),
-        model: "lama",
+        model: models.selectedModel("inpaint") || "lama_manga",
       });
       if (!result || !Array.isArray(result.patches))
         throw new Error(result?.detail || "Inpaint failed");

@@ -12,11 +12,13 @@ from typing import Callable, Optional
 
 from .base import BaseInpaintModel, ProgressCallback
 from .lama import LamaModel
+from .lama_manga import LamaMangaModel
 
 MODELS: dict[str, BaseInpaintModel] = {
     "lama": LamaModel(),
+    "lama_manga": LamaMangaModel(),
 }
-DEFAULT_MODEL = "lama"
+DEFAULT_MODEL = "lama_manga"
 
 # Module-level progress callback — legacy main.py pattern sets this before
 # calling download_model(); model classes accept a per-call callback too.
@@ -25,6 +27,21 @@ progress_callback: ProgressCallback = None
 
 def get_models() -> dict[str, BaseInpaintModel]:
     return dict(MODELS)
+
+
+def get_models_info() -> list[dict]:
+    """Registry metadata for the settings → Models manager."""
+    return [
+        {
+            "id": name,
+            "name": m.name,
+            "kind": "inpaint",
+            "ready": m.is_ready(),
+            "size": m.size(),
+            "description": m.description,
+        }
+        for name, m in MODELS.items()
+    ]
 
 
 def is_model_ready(model: Optional[str] = None) -> bool:

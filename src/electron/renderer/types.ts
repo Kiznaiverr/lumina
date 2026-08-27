@@ -127,6 +127,8 @@ export interface Page {
   _selectedTextIdx: number | null;
   /** Selected layer id in the unified layer model */
   _selectedLayerId: string | null;
+  /** Selected mask row id (expand reveal opacity/delete) */
+  _selectedMaskId: string | null;
   /** Per-page viewport — each page keeps its own zoom/pan */
   _zoomLevel?: number;
   _panX?: number;
@@ -155,12 +157,23 @@ export interface DownloadProgress {
   total: number;
   done: boolean;
   error?: string | null;
-  /** Which model is downloading: "detect" | "ocr" */
-  model?: string;
+  /** Which model is downloading: "detect" | "ocr" | "inpaint" */
+  model?: string | null;
+}
+
+/** One entry of GET /models — model manager registry */
+export interface ModelInfo {
+  id: string;
+  name: string;
+  kind: string; // "detect" | "ocr" | "inpaint"
+  ready: boolean;
+  size: number | null;
+  description: string;
 }
 
 export interface ModelCheck {
   cached: boolean;
+  models: ModelInfo[];
 }
 
 /** One entry of POST /ocr response */
@@ -177,7 +190,7 @@ export interface LuminaAPI {
   onProgress(cb: (msg: { step: string; detail?: string }) => void): void;
   apiPost<T = unknown>(endpoint: string, body: unknown): Promise<T>;
   checkModel(): Promise<ModelCheck>;
-  downloadModel(): Promise<void>;
+  downloadModel(models?: string[]): Promise<void>;
   onDownloadProgress(cb: (msg: DownloadProgress) => void): void;
   getFonts(): Promise<
     Array<{ family: string; path: string; weight: number; italic: boolean }>

@@ -5,12 +5,20 @@
 import * as i18n from "../i18n";
 import { translateSettings, type TranslateConfig } from "../pipeline/translate";
 
+/** Settings card — nested layer above the workbench pane */
+function card(): HTMLElement {
+  const c = document.createElement("div");
+  c.className = "settings-section";
+  return c;
+}
+
 export const translationTab = {
   build(pane: HTMLElement): void {
     pane.innerHTML = "";
 
-    // ── Provider ──
-    pane.appendChild(
+    // ── Provider & target ──
+    const general = card();
+    general.appendChild(
       this._row(i18n.t("settings.trProvider"), (row) => {
         const sel = document.createElement("select");
         sel.id = "tr-provider";
@@ -30,7 +38,7 @@ export const translationTab = {
     );
 
     // ── Target language ──
-    pane.appendChild(
+    general.appendChild(
       this._row(i18n.t("settings.trTargetLang"), (row) => {
         const sel = document.createElement("select");
         sel.id = "tr-target-lang";
@@ -48,10 +56,11 @@ export const translationTab = {
         return sel;
       }),
     );
+    pane.appendChild(general);
 
     // ── System instruction (global, shared by all LLM-based providers) ──
+    const instrCard = card();
     const instrWrap = document.createElement("div");
-    instrWrap.className = "mb-3";
     const instrLabel = document.createElement("div");
     instrLabel.className = "field-label";
     instrLabel.dataset.i18n = "settings.trLlmInstruction";
@@ -82,12 +91,13 @@ export const translationTab = {
     btnRow.appendChild(clearBtn);
 
     instrWrap.appendChild(btnRow);
-    pane.appendChild(instrWrap);
+    instrCard.appendChild(instrWrap);
+    pane.appendChild(instrCard);
 
     // ── LLM options panel ──
     const llmOpts = document.createElement("div");
     llmOpts.id = "tr-llm-options";
-    llmOpts.className = "hidden mb-3 flex flex-col gap-3";
+    llmOpts.className = "settings-section hidden flex flex-col gap-3";
     llmOpts.appendChild(
       this._field(
         "tr-llm-url",
@@ -112,7 +122,7 @@ export const translationTab = {
     // ── Gemini options panel ──
     const geminiOpts = document.createElement("div");
     geminiOpts.id = "tr-gemini-options";
-    geminiOpts.className = "hidden mb-3 flex flex-col gap-3";
+    geminiOpts.className = "settings-section hidden flex flex-col gap-3";
     geminiOpts.appendChild(
       this._field(
         "tr-gemini-key",

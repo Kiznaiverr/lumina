@@ -8,6 +8,9 @@ export const generalTab = {
   build(pane: HTMLElement): void {
     pane.innerHTML = "";
 
+    const section = document.createElement("div");
+    section.className = "settings-section";
+
     const row = document.createElement("div");
     row.className = "field-row items-center justify-between mb-3";
 
@@ -30,13 +33,15 @@ export const generalTab = {
 
     row.appendChild(label);
     row.appendChild(sel);
-    pane.appendChild(row);
+    section.appendChild(row);
 
     const hint = document.createElement("p");
     hint.className = "text-[0.68rem] text-text-muted leading-relaxed";
     hint.dataset.i18n = "settings.langHint";
     hint.textContent = i18n.t("settings.langHint");
-    pane.appendChild(hint);
+    section.appendChild(hint);
+
+    pane.appendChild(section);
 
     sel.value = i18n.lang();
     sel.addEventListener("change", function () {
