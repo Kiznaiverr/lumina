@@ -13,16 +13,24 @@ import type { TextDetection } from "../../types";
 const STORAGE_KEY = "lumina-translate";
 
 /** localStorage holds everything EXCEPT the api keys (those live in the vault) */
-type StoredConfig = Omit<TranslateConfig, "llmApiKey" | "geminiApiKey">;
+type StoredConfig = Omit<
+  TranslateConfig,
+  "llmApiKey" | "openrouterApiKey" | "grokApiKey" | "geminiApiKey"
+>;
 
 export interface TranslateConfig {
-  provider: "llm" | "gemini";
+  provider: "custom" | "openrouter" | "grok" | "gemini";
   sourceLang: string;
   targetLang: string;
   llmBaseUrl: string;
   llmApiKey: string;
   llmModel: string;
+  llmStyle: "openai" | "anthropic";
   llmInstruction: string;
+  openrouterApiKey: string;
+  openrouterModel: string;
+  grokApiKey: string;
+  grokModel: string;
   geminiApiKey: string;
   geminiModel: string;
 }
@@ -30,13 +38,19 @@ export interface TranslateConfig {
 function defaultConfig(): TranslateConfig {
   return {
     provider: "gemini",
-    sourceLang: "ja",
+    // "auto" = let the model detect the source language from the text
+    sourceLang: "auto",
     targetLang: "en",
     llmBaseUrl: "",
     llmApiKey: "",
-    llmModel: "",
+    llmModel: "gpt-4o-mini",
+    llmStyle: "openai",
     // Empty = use default from prompts/translate-default.md (backend side)
     llmInstruction: "",
+    openrouterApiKey: "",
+    openrouterModel: "openai/gpt-4o-mini",
+    grokApiKey: "",
+    grokModel: "grok-3",
     geminiApiKey: "",
     geminiModel: "gemini-2.0-flash",
   };
@@ -67,16 +81,23 @@ export const translateSettings = {
       targetLang: cfg.targetLang,
       llmBaseUrl: cfg.llmBaseUrl,
       llmModel: cfg.llmModel,
+      llmStyle: cfg.llmStyle,
       llmInstruction: cfg.llmInstruction,
+      openrouterModel: cfg.openrouterModel,
+      grokModel: cfg.grokModel,
       geminiModel: cfg.geminiModel,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     if (window.lumina.setSecret) {
+      // Each provider keeps its own key — empty fields never wipe the vault
       if (cfg.llmApiKey) window.lumina.setSecret("llmApiKey", cfg.llmApiKey);
+      if (cfg.openrouterApiKey)
+        window.lumina.setSecret("openrouterApiKey", cfg.openrouterApiKey);
+      if (cfg.grokApiKey) window.lumina.setSecret("grokApiKey", cfg.grokApiKey);
       if (cfg.geminiApiKey)
         window.lumina.setSecret("geminiApiKey", cfg.geminiApiKey);
       console.log(
-        `[Lumina] secrets save: llmKey=${cfg.llmApiKey ? "set" : "empty"} geminiKey=${cfg.geminiApiKey ? "set" : "empty"}`,
+        `[Lumina] secrets save: custom=${cfg.llmApiKey ? "set" : "empty"} openrouter=${cfg.openrouterApiKey ? "set" : "empty"} grok=${cfg.grokApiKey ? "set" : "empty"} gemini=${cfg.geminiApiKey ? "set" : "empty"}`,
       );
     } else {
       console.warn(
@@ -86,7 +107,9 @@ export const translateSettings = {
   },
 
   /** Explicitly clear a stored api key */
-  async clearKey(name: "llmApiKey" | "geminiApiKey"): Promise<void> {
+  async clearKey(
+    name: "llmApiKey" | "openrouterApiKey" | "grokApiKey" | "geminiApiKey",
+  ): Promise<void> {
     if (window.lumina.deleteSecret) await window.lumina.deleteSecret(name);
   },
 
@@ -96,10 +119,13 @@ export const translateSettings = {
     if (window.lumina.getSecret) {
       try {
         cfg.llmApiKey = (await window.lumina.getSecret("llmApiKey")) || "";
+        cfg.openrouterApiKey =
+          (await window.lumina.getSecret("openrouterApiKey")) || "";
+        cfg.grokApiKey = (await window.lumina.getSecret("grokApiKey")) || "";
         cfg.geminiApiKey =
           (await window.lumina.getSecret("geminiApiKey")) || "";
         console.log(
-          `[Lumina] secrets load: llmKey=${cfg.llmApiKey ? "set" : "empty"} geminiKey=${cfg.geminiApiKey ? "set" : "empty"}`,
+          `[Lumina] secrets load: custom=${cfg.llmApiKey ? "set" : "empty"} openrouter=${cfg.openrouterApiKey ? "set" : "empty"} grok=${cfg.grokApiKey ? "set" : "empty"} gemini=${cfg.geminiApiKey ? "set" : "empty"}`,
         );
       } catch {
         /* vault unavailable — proceed with empty keys */

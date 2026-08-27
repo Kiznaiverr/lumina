@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from ._base import TranslateError, http_post_json
-from .llm import _render_template, load_default_instruction
+from .custom import _render_template, load_default_instruction
 
 _API_BASE = "https://generativelanguage.googleapis.com/v1beta"
 

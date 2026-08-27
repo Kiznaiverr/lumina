@@ -7,3 +7,4 @@
 - [x] fix stale tools
 - [] three-shake lucide bundle
 - [] export and save features
+- [] testing and fix knowed bug

@@ -11,24 +11,38 @@ from __future__ import annotations
 from typing import Callable
 
 from ._base import TranslateError
-from . import gemini, llm
+from . import custom, gemini
 
 ProviderFn = Callable[[str, str, str, dict], str]
 BatchFn = Callable[[list[str], str, str, dict], list[str]]
 
+# "custom", "openrouter" and "grok" all share the OpenAI/Anthropic-compatible
+# client (services/translate/custom.py) — only the endpoint/style differ.
 PROVIDERS: dict[str, ProviderFn] = {
-    "llm": llm.translate,
+    "custom": custom.translate,
+    "openrouter": custom.translate,
+    "grok": custom.translate,
     "gemini": gemini.translate,
 }
 
 BATCH_PROVIDERS: dict[str, BatchFn] = {
-    "llm": llm.translate_batch,
+    "custom": custom.translate_batch,
+    "openrouter": custom.translate_batch,
+    "grok": custom.translate_batch,
     "gemini": gemini.translate_batch,
 }
 
 
 def _provider_name(config: dict) -> str:
-    return (config.get("provider") or "").lower()
+    name = (config.get("provider") or "").lower()
+    # Legacy key — the generic provider was renamed llm -> custom
+    return "custom" if name == "llm" else name
+
+
+def _normalize_source(config: dict) -> str:
+    """"auto" or empty -> "" so the prompt tells the model to detect it."""
+    source = (config.get("sourceLang") or "auto").strip()
+    return "" if source.lower() == "auto" else source
 
 
 def translate_text(text: str, config: dict) -> str:
@@ -36,14 +50,14 @@ def translate_text(text: str, config: dict) -> str:
     fn = PROVIDERS.get(name)
     if fn is None:
         raise TranslateError(f"Unknown translation provider: {name!r}")
-    return fn(text, config.get("sourceLang") or "ja", config.get("targetLang") or "en", config)
+    return fn(text, _normalize_source(config), config.get("targetLang") or "en", config)
 
 
 def translate_texts(texts: list[str], config: dict) -> list[str]:
     """Translate a list of texts — native batch if the provider supports it,
     otherwise per-text loop."""
     name = _provider_name(config)
-    source = config.get("sourceLang") or "ja"
+    source = _normalize_source(config)
     target = config.get("targetLang") or "en"
 
     # Keep empty texts out of the API call; restore them positionally after.
@@ -75,16 +89,3 @@ __all__ = [
     "PROVIDERS",
     "BATCH_PROVIDERS",
 ]
-
-
-def translate_text(text: str, config: dict) -> str:
-    provider = (config.get("provider") or "").lower()
-    source = config.get("sourceLang") or "ja"
-    target = config.get("targetLang") or "en"
-    fn = PROVIDERS.get(provider)
-    if fn is None:
-        raise TranslateError(f"Unknown translation provider: {provider!r}")
-    return fn(text, source, target, config)
-
-
-__all__ = ["TranslateError", "translate_text", "PROVIDERS"]

@@ -1,10 +1,38 @@
-"""OpenAI-compatible LLM provider (OpenAI, OpenRouter, Ollama, etc.)."""
+"""Custom LLM provider — OpenAI-compatible or Anthropic-compatible chat APIs.
+
+Serves three provider presets from the registry:
+  custom      — any base URL; API style chosen in settings (openai | anthropic)
+  openrouter  — https://openrouter.ai/api/v1 (OpenAI-compatible)
+  grok        — https://api.x.ai/v1 (OpenAI-compatible)
+
+Config keys (shared with the renderer):
+  llmBaseUrl, llmApiKey, llmModel, llmStyle ("openai" | "anthropic"), llmInstruction
+  openrouterApiKey, openrouterModel  — OpenRouter preset
+  grokApiKey, grokModel              — Grok preset
+"""
 from __future__ import annotations
 
 import re
 from pathlib import Path
 
 from ._base import TranslateError, http_post_json
+
+# Preset endpoints for providers that reuse this client. "custom" instead
+# reads llmBaseUrl + llmStyle from the settings config.
+_PRESETS: dict[str, dict[str, str]] = {
+    "openrouter": {
+        "base_url": "https://openrouter.ai/api/v1",
+        "style": "openai",
+        "key": "openrouterApiKey",
+        "model": "openrouterModel",
+    },
+    "grok": {
+        "base_url": "https://api.x.ai/v1",
+        "style": "openai",
+        "key": "grokApiKey",
+        "model": "grokModel",
+    },
+}
 
 # Default instruction lives in prompts/translate-default.md.
 # {target} placeholder is replaced with the target language at request time.
@@ -43,7 +71,31 @@ def _render_template(template: str, values: dict) -> str:
     return re.sub(r"\{\{\w+\}\}", "", out)
 
 
-def _chat(base_url: str, api_key: str, model: str, system: str, user: str) -> str:
+def _resolve(config: dict) -> tuple[str, str, str, str]:
+    """(base_url, style, api_key, model) from config — presets win over fields.
+
+    Each preset reads its own key/model fields; llmApiKey/llmModel act as a
+    fallback for legacy configs saved before per-provider keys existed.
+    """
+    provider = (config.get("provider") or "").lower()
+    preset = _PRESETS.get(provider)
+    if preset:
+        return (
+            preset["base_url"],
+            preset["style"],
+            config.get(preset["key"]) or config.get("llmApiKey") or "",
+            config.get(preset["model"]) or config.get("llmModel") or "",
+        )
+    style = (config.get("llmStyle") or "openai").lower()
+    return (
+        config.get("llmBaseUrl") or "",
+        style,
+        config.get("llmApiKey") or "",
+        config.get("llmModel") or "",
+    )
+
+
+def _chat_openai(base_url: str, api_key: str, model: str, system: str, user: str) -> str:
     body = {
         "model": model,
         "messages": [
@@ -70,10 +122,38 @@ def _chat(base_url: str, api_key: str, model: str, system: str, user: str) -> st
     return re.sub(r'^["\u201c\u300c]+|["\u201d\u300d]+$', "", out).strip()
 
 
+def _chat_anthropic(base_url: str, api_key: str, model: str, system: str, user: str) -> str:
+    body = {
+        "model": model,
+        "max_tokens": 4096,
+        "system": system,
+        "messages": [{"role": "user", "content": user}],
+        "temperature": 0.3,
+    }
+    headers = {"anthropic-version": "2023-06-01"}
+    if api_key:
+        headers["x-api-key"] = api_key
+    try:
+        result = http_post_json(base_url.rstrip("/") + "/v1/messages", body, headers)
+    except Exception as e:
+        raise TranslateError(f"Anthropic request failed: {e}") from e
+    content = result.get("content") or []
+    out = "".join(
+        p.get("text", "") for p in content if isinstance(p, dict)
+    ).strip()
+    if not out:
+        raise TranslateError(f"Anthropic returned no content: {result}")
+    return re.sub(r'^["\u201c\u300d]+|["\u201d\u300d]+$', "", out).strip()
+
+
+def _chat(base_url: str, api_key: str, model: str, style: str, system: str, user: str) -> str:
+    if style == "anthropic":
+        return _chat_anthropic(base_url, api_key, model, system, user)
+    return _chat_openai(base_url, api_key, model, system, user)
+
+
 def translate(text: str, source: str, target: str, config: dict) -> str:
-    base_url = config.get("llmBaseUrl") or ""
-    api_key = config.get("llmApiKey") or ""
-    model = config.get("llmModel") or ""
+    base_url, style, api_key, model = _resolve(config)
     if not base_url:
         raise TranslateError("LLM base URL not configured")
     if not model:
@@ -88,16 +168,14 @@ def translate(text: str, source: str, target: str, config: dict) -> str:
         },
     )
     user = f"Target language: {target}\n\nText:\n{text}"
-    return _chat(base_url, api_key, model, system, user)
+    return _chat(base_url, api_key, model, style, system, user)
 
 
 def translate_batch(
     texts: list[str], source: str, target: str, config: dict
 ) -> list[str]:
     """Translate all texts in ONE chat completion using a numbered list."""
-    base_url = config.get("llmBaseUrl") or ""
-    api_key = config.get("llmApiKey") or ""
-    model = config.get("llmModel") or ""
+    base_url, style, api_key, model = _resolve(config)
     if not base_url:
         raise TranslateError("LLM base URL not configured")
     if not model:
@@ -121,7 +199,7 @@ def translate_batch(
         "[1] translation of line 1\n\n"
         f"{numbered}"
     )
-    raw = _chat(base_url, api_key, model, system, user)
+    raw = _chat(base_url, api_key, model, style, system, user)
 
     # Parse "[i] text" lines back into a result array
     results: list[str] = [""] * len(texts)

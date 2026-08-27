@@ -52,14 +52,19 @@ class OcrResponse(BaseModel):
 
 
 class TranslateConfig(BaseModel):
-    provider: str  # "google" | "deepl" | "llm"
-    sourceLang: str = "ja"
+    provider: str  # "custom" | "openrouter" | "grok" | "gemini"
+    sourceLang: str = "auto"  # "auto" = model detects the source language
     targetLang: str = "en"
     apiKey: str | None = None
     llmBaseUrl: str | None = None
     llmApiKey: str | None = None
     llmModel: str | None = None
+    llmStyle: str | None = None  # "openai" | "anthropic" (custom provider only)
     llmInstruction: str | None = None
+    openrouterApiKey: str | None = None
+    openrouterModel: str | None = None
+    grokApiKey: str | None = None
+    grokModel: str | None = None
     geminiApiKey: str | None = None
     geminiModel: str | None = None
 
