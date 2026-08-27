@@ -2,20 +2,19 @@
 
 Implements the generic ONNX pipeline shared by every LaMa-family export:
 
-  crop each box with context padding → build a text mask → resize both to
-  ``input_size`` → run the graph (image + mask inputs) → scale the output →
-  resize back → write one RGBA patch per box (RGB = inpainted pixels,
-  A = feathered mask).
+  crop each box with context padding → build a text mask → letterbox both
+  to a square ``input_size`` (aspect-preserving) → run the graph → scale the
+  output → resize back → write one RGBA patch per box (RGB = inpainted
+  pixels, A = feathered mask).
 
 Subclasses only override:
   - metadata: ``model_id`` / ``model_filename`` (+ ``name`` / ``description``)
   - preprocessing knobs: ``mask_binary``, ``output_scale``, ``input_size``,
     ``context_pad``, ``mask_dilate``
-  - the mask strategy: ``_build_mask(crop)`` → 0..255 mask
-
-A non-LaMa model that follows the same image+mask ONNX contract can also
-subclass this; anything architecturally different should subclass
-:class:`BaseInpaintModel` directly.
+  - the mask strategy: ``_build_mask(crop, box_rect)`` → 0..255 mask.
+    ``box_rect`` is the detected text box relative to the crop, so a mask
+    can be constrained to the text region and never erase artwork in the
+    context margin.
 """
 from __future__ import annotations
 
@@ -162,22 +161,48 @@ class OnnxInpaintModel(BaseInpaintModel):
             crop = img[y0:y1, x0:x1]
             ch, cw = crop.shape[:2]
 
-            mask = self._build_mask(crop)
+            # Detected text box relative to the crop — subclasses use this
+            # to constrain the mask to the text region only.
+            box_rect = (
+                int(box["x"]) - x0,
+                int(box["y"]) - y0,
+                int(box["x"]) + int(box["w"]) - x0,
+                int(box["y"]) + int(box["h"]) - y0,
+            )
+            mask = self._build_mask(crop, box_rect)
+
+            # Letterbox to a square input: preserve aspect ratio, pad with
+            # replicated edge pixels (mask pads with 0). The old direct
+            # resize to 512x512 squished wide/short crops, which made LaMa
+            # hallucinate distorted art around the text.
+            s = self.input_size
+            scale = s / max(cw, ch)
+            nw, nh = max(1, round(cw * scale)), max(1, round(ch * scale))
+            pad_x = (s - nw) // 2
+            pad_y = (s - nh) // 2
+
+            resized_img = cv.resize(crop, (nw, nh), interpolation=cv.INTER_LINEAR)
+            resized_mask = cv.resize(mask, (nw, nh), interpolation=cv.INTER_NEAREST)
+            img_sq = cv.copyMakeBorder(
+                resized_img,
+                pad_y, s - nh - pad_y, pad_x, s - nw - pad_x,
+                cv.BORDER_REPLICATE,
+            )
+            mask_sq = cv.copyMakeBorder(
+                resized_mask,
+                pad_y, s - nh - pad_y, pad_x, s - nw - pad_x,
+                cv.BORDER_CONSTANT,
+                value=0,
+            )
 
             image_blob = cv.dnn.blobFromImage(
-                crop,
-                1.0 / 255.0,
-                (self.input_size, self.input_size),
-                (0, 0, 0),
-                swapRB=False,
+                img_sq, 1.0 / 255.0, (s, s), (0, 0, 0), swapRB=False
             )
-            mask_blob = cv.dnn.blobFromImage(
-                mask, 1.0, (self.input_size, self.input_size), (0,), crop=False
-            )
+            mask_blob = cv.dnn.blobFromImage(mask_sq, 1.0, (s, s), (0,), crop=False)
             if self.mask_binary:
                 mask_blob = (mask_blob > 0).astype(np.float32)
             else:
-                mask_blob = mask_blob / 255.0
+                mask_blob = np.asarray(mask_blob, dtype=np.float32) / 255.0
 
             feed: dict = {}
             ins = session.get_inputs()
@@ -196,6 +221,7 @@ class OnnxInpaintModel(BaseInpaintModel):
 
             result = np.transpose(output, (1, 2, 0))
             result = np.clip(result, 0, 255).astype(np.uint8)
+            result = result[pad_y : pad_y + nh, pad_x : pad_x + nw]
             result = cv.resize(result, (cw, ch), interpolation=cv.INTER_LINEAR)
 
             # Feathered mask → alpha channel (same blur as the old compositor)
@@ -216,6 +242,44 @@ class OnnxInpaintModel(BaseInpaintModel):
         log.info(f"Inpaint complete: {len(patches)} patch(es) -> {output_dir}")
         return patches
 
-    def _build_mask(self, crop: np.ndarray) -> np.ndarray:
-        """Turn an RGB crop into a 0..255 mask covering the text region."""
-        raise NotImplementedError
+    def _build_mask(
+        self, crop: np.ndarray, box_rect: tuple[int, int, int, int]
+    ) -> np.ndarray:
+        """Default mask: glyph-precise, constrained inside the text box.
+
+        ``box_rect`` = (bx0, by0, bx1, by1) of the detected text box,
+        relative to the crop. Otsu is computed inside the box ONLY, so
+        artwork in the context margin is never erased. Dark glyphs on light
+        panels and light glyphs on dark panels are both handled.
+        """
+        import cv2 as cv
+
+        gray = cv.cvtColor(crop, cv.COLOR_BGR2GRAY)
+        bx0, by0, bx1, by1 = box_rect
+        box_gray = gray[by0:by1, bx0:bx1]
+
+        mask = np.zeros(gray.shape, np.uint8)
+
+        # Flat region (no text) → nothing to inpaint.
+        if box_gray.size == 0 or box_gray.std() < 2:
+            return mask
+
+        dark = cv.threshold(
+            box_gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU
+        )[1]
+        light = cv.threshold(
+            box_gray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU
+        )[1]
+
+        # Dark glyphs on light panels vs white glyphs on dark panels.
+        glyph = light if box_gray.mean() < 128 else dark
+        mask[by0:by1, bx0:bx1] = glyph
+
+        # Near-empty result (mid-gray text, colorful art) → full box.
+        if cv.countNonZero(mask) < box_gray.size * 0.01:
+            mask[by0:by1, bx0:bx1] = 255
+
+        kernel = cv.getStructuringElement(
+            cv.MORPH_ELLIPSE, (self.mask_dilate * 2 + 1,) * 2
+        )
+        return cv.dilate(mask, kernel)

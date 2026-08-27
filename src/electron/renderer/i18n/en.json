@@ -50,7 +50,7 @@
   "models.download": "Download",
   "models.downloading": "Downloading…",
   "models.openShortcut": "Manage models",
-  "models.missingHint": "Model not installed — open Settings → Models",
+  "models.missingHint": "Selected model not installed — open Settings → Models",
   "models.warning": "Some models are missing — manage them in Settings → Models",
 
   "status.noDetections": "No detections",
@@ -111,9 +111,13 @@
   "toast.trFailed": "Translation failed",
 
   "toast.inpaintNoText": "Run Detect first — no boxes to inpaint",
+  "toast.inpaintFirstRun": "First run — loading the inpainting engine, please wait...",
   "toast.inpaintRunning": "Inpainting text regions...",
   "toast.inpaintDone": "Inpaint complete — {{count}} mask(s) created",
   "toast.inpaintFailed": "Inpaint failed",
+
+  "toast.modelDownloading": "Downloading {{model}} model...",
+  "toast.modelDownloaded": "Model downloaded",
 
   "sidebar.text.originalText": "Original text",
 
@@ -137,6 +141,9 @@
   "layers.source": "Source",
   "layers.translation": "Translation",
   "layers.toggleVisible": "Toggle visibility",
+  "layers.mask": "Mask",
+  "layers.maskCount": "{{count}} patches",
+  "layers.background": "Background",
   "layers.sourcePlaceholder": "OCR source text…",
   "layers.translationPlaceholder": "Translated text…",
 
@@ -159,6 +166,8 @@
   "type.searchFont": "Search fonts…",
   "type.autoFit": "Auto-fit",
   "type.bgPatch": "White backing",
+  "type.collapse": "Collapse",
+  "type.expand": "Expand",
 
   "shortcuts.title": "Keyboard Shortcuts",
   "shortcuts.undo": "Undo",

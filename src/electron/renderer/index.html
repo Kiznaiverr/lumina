@@ -138,84 +138,105 @@
         <!-- Populated by tools.js -->
       </div>
 
-      <!-- Center: Single Canvas -->
-      <div
-        class="card card-raised flex-1 relative overflow-hidden bg-surface-0"
-        id="canvas-area"
-      >
-        <!-- Landing -->
+      <!-- Center column: canvas above, page navigation below (canvas width only) -->
+      <div class="flex-1 min-w-0 flex flex-col gap-1.5">
+        <!-- Center: Single Canvas -->
         <div
-          id="landing"
-          class="absolute inset-0 flex flex-col items-center justify-center bg-surface-0 z-10"
+          class="card card-raised flex-1 relative overflow-hidden bg-surface-0"
+          id="canvas-area"
         >
-          <h2 class="text-text-primary text-sm mb-1" data-i18n="landing.title">
-            Manga Translation Editor
-          </h2>
-          <p class="text-text-muted text-xs mb-5" data-i18n="landing.subtitle">
-            Import a page to begin
-          </p>
-          <button
-            class="btn primary"
-            id="btn-import-landing"
-            data-i18n="landing.import"
+          <!-- Landing -->
+          <div
+            id="landing"
+            class="absolute inset-0 flex flex-col items-center justify-center bg-surface-0 z-10"
           >
-            Import Image
-          </button>
+            <h2
+              class="text-text-primary text-sm mb-1"
+              data-i18n="landing.title"
+            >
+              Manga Translation Editor
+            </h2>
+            <p
+              class="text-text-muted text-xs mb-5"
+              data-i18n="landing.subtitle"
+            >
+              Import a page to begin
+            </p>
+            <button
+              class="btn primary"
+              id="btn-import-landing"
+              data-i18n="landing.import"
+            >
+              Import Image
+            </button>
+          </div>
+
+          <!-- Single Konva container -->
+          <div id="canvas-container" class="absolute inset-0"></div>
+
+          <!-- Page indicator -->
+          <div
+            id="page-indicator"
+            class="absolute top-2 right-2 z-20 text-[0.65rem] text-text-muted hidden"
+          ></div>
+
+          <!-- Zoom controls -->
+          <div id="zoom-controls" class="absolute bottom-2 left-2 z-20 hidden">
+            <div
+              class="flex items-center bg-surface-1 border border-surface-3 rounded overflow-hidden"
+            >
+              <button
+                id="btn-zoom-out"
+                class="zoom-btn"
+                data-i18n-title="zoom.zoomOut"
+              >
+                <i data-lucide="minus" class="w-3 h-3"></i>
+              </button>
+              <span
+                id="zoom-value"
+                class="px-2 font-mono text-[0.65rem] text-text-secondary select-none"
+                >100%</span
+              >
+              <button
+                id="btn-zoom-fit"
+                class="zoom-btn"
+                data-i18n-title="zoom.fit"
+              >
+                <i data-lucide="maximize" class="w-3 h-3"></i>
+              </button>
+              <button
+                id="btn-zoom-in"
+                class="zoom-btn"
+                data-i18n-title="zoom.zoomIn"
+              >
+                <i data-lucide="plus" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress overlay -->
+          <div id="progress-overlay" class="overlay">
+            <div
+              class="text-text-secondary text-xs mb-2"
+              id="progress-title"
+              data-i18n="progress.processing"
+            >
+              Processing...
+            </div>
+            <div id="progress-steps"></div>
+          </div>
         </div>
 
-        <!-- Single Konva container -->
-        <div id="canvas-container" class="absolute inset-0"></div>
-
-        <!-- Page indicator -->
+        <!-- Page Strip (page navigation) — spans only the canvas width and
+             butts against the sidebar; the sidebar stays full height. -->
         <div
-          id="page-indicator"
-          class="absolute top-2 right-2 z-20 text-[0.65rem] text-text-muted hidden"
-        ></div>
-
-        <!-- Zoom controls -->
-        <div id="zoom-controls" class="absolute bottom-2 left-2 z-20 hidden">
+          id="page-strip"
+          class="card h-[68px] flex-shrink-0 overflow-x-auto custom-scrollbar hidden"
+        >
           <div
-            class="flex items-center bg-surface-1 border border-surface-3 rounded overflow-hidden"
-          >
-            <button
-              id="btn-zoom-out"
-              class="zoom-btn"
-              data-i18n-title="zoom.zoomOut"
-            >
-              <i data-lucide="minus" class="w-3 h-3"></i>
-            </button>
-            <span
-              id="zoom-value"
-              class="px-2 font-mono text-[0.65rem] text-text-secondary select-none"
-              >100%</span
-            >
-            <button
-              id="btn-zoom-fit"
-              class="zoom-btn"
-              data-i18n-title="zoom.fit"
-            >
-              <i data-lucide="maximize" class="w-3 h-3"></i>
-            </button>
-            <button
-              id="btn-zoom-in"
-              class="zoom-btn"
-              data-i18n-title="zoom.zoomIn"
-            >
-              <i data-lucide="plus" class="w-3 h-3"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Progress overlay -->
-        <div id="progress-overlay" class="overlay">
-          <div
-            class="text-text-secondary text-xs mb-2"
-            id="progress-title"
-            data-i18n="progress.processing"
-          >
-            Processing...
-          </div>
-          <div id="progress-steps"></div>
+            id="page-strip-items"
+            class="flex gap-1 p-1.5 h-full items-center"
+          ></div>
         </div>
       </div>
 
@@ -232,17 +253,6 @@
           <!-- Populated by sidebar.js -->
         </div>
       </div>
-    </div>
-
-    <!-- Page Strip -->
-    <div
-      id="page-strip"
-      class="card h-[68px] flex-shrink-0 overflow-x-auto custom-scrollbar hidden"
-    >
-      <div
-        id="page-strip-items"
-        class="flex gap-1 p-1.5 h-full items-center"
-      ></div>
     </div>
 
     <!-- Status Bar -->

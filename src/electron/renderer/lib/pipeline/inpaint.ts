@@ -43,7 +43,14 @@ export const inpaint = {
     }
     state.isRunning = true;
 
-    const loadingToast = ui.toast(i18n.t("toast.inpaintRunning"), "running", 0);
+    const isFirstRun = !state._inpaintLoaded;
+    const loadingToast = ui.toast(
+      isFirstRun
+        ? i18n.t("toast.inpaintFirstRun")
+        : i18n.t("toast.inpaintRunning"),
+      "running",
+      0,
+    );
 
     try {
       const result = await window.lumina.apiPost<{
@@ -76,6 +83,7 @@ export const inpaint = {
       // Detection boxes stay in the page model but are no longer drawn —
       // see render.ts (overlays only while masks.length === 0).
       page.inpaintMasks = masks;
+      state._inpaintLoaded = true;
 
       canvas.render();
       sidebar.render();

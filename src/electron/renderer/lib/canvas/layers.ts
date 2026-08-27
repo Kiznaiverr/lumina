@@ -3,6 +3,7 @@ import { state } from "../state";
 import { canvas } from "./index";
 import { sidebar } from "../sidebar";
 import { history } from "../history";
+import { textIdxForLayerId, applyTextSelection } from "./selection";
 
 function _findLayer(
   page: { layers: Array<{ id: string }> } | null,
@@ -18,8 +19,18 @@ canvas.selectLayer = function (id): void {
   const page = state.getActivePage();
   if (!page) return;
   page._selectedLayerId = id;
-  canvas.render(); // re-syncs transformer selection on the text nodes
-  sidebar.render();
+  // Mirror to the parallel detection selection so the text box on the
+  // canvas highlights when a layer is picked from the sidebar.
+  page._selectedTextIdx = textIdxForLayerId(page, id);
+  canvas.render(); // re-syncs textool transformer to _selectedLayerId
+  if (page._selectedTextIdx !== null) {
+    canvas.selectTextDetection(page._selectedTextIdx);
+  } else {
+    // Free-text layer — no parallel detection box; clear the rect highlight
+    // without touching _selectedLayerId.
+    applyTextSelection(null);
+    if (sidebar && sidebar.render) sidebar.render();
+  }
 };
 
 canvas.setLayerText = function (id, field, text): void {
@@ -46,6 +57,29 @@ canvas.toggleLayerVisible = function (id): void {
   const i = _findLayer(page, id);
   if (!page || i < 0) return;
   page.layers[i].visible = !page.layers[i].visible;
+  canvas.render();
+  sidebar.render();
+  history.snapshot();
+};
+
+// Virtual "Mask" row — one toggle that flips every inpaint patch at once.
+canvas.toggleAllMasks = function (): void {
+  const page = state.getActivePage();
+  if (!page || page.inpaintMasks.length === 0) return;
+  const show = !page.inpaintMasks.some((m) => m.visible);
+  page.inpaintMasks.forEach((m) => {
+    m.visible = show;
+  });
+  canvas.render();
+  sidebar.render();
+  history.snapshot();
+};
+
+// Virtual "Background" row — the imported page image itself.
+canvas.toggleBackgroundVisible = function (): void {
+  const page = state.getActivePage();
+  if (!page) return;
+  page.backgroundVisible = !page.backgroundVisible;
   canvas.render();
   sidebar.render();
   history.snapshot();

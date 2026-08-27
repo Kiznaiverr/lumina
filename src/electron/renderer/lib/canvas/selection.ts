@@ -6,6 +6,7 @@ import { canvas } from "./index";
 import { TEXT_COLOR } from "./render";
 import { sidebar } from "../sidebar";
 import { groupRegistry } from "./groupRegistry";
+import type { Page } from "../../types";
 
 // ── Clear groups (called before re-render) ──
 
@@ -13,16 +14,46 @@ canvas._clearGroups = function (): void {
   groupRegistry.clear();
 };
 
-// ── Selection ──
+// ── Parallel mapping between layers and text detections ──
+// Dialogue layers mirror textDetections 1:1; free-text layers have no
+// detection counterpart.
 
-canvas.selectTextDetection = function (idx: number | null): void {
+/** Layer id of the i-th text detection (dialogue layer), or null. */
+export function layerIdForTextIdx(
+  page: Page | null,
+  idx: number | null,
+): string | null {
+  if (!page || idx === null) return null;
+  let n = 0;
+  for (const l of page.layers) {
+    if (l.type !== "text-dialogue") continue;
+    if (n === idx) return l.id;
+    n++;
+  }
+  return null;
+}
+
+/** Detection index mirrored by a layer id, or null (free-text layers). */
+export function textIdxForLayerId(
+  page: Page | null,
+  id: string | null,
+): number | null {
+  if (!page || !id) return null;
+  let n = 0;
+  for (const l of page.layers) {
+    if (l.type !== "text-dialogue") continue;
+    if (l.id === id) return n;
+    n++;
+  }
+  return null;
+}
+
+/** Re-apply the text-box highlight + transformer + status bar. */
+export function applyTextSelection(idx: number | null): void {
   const page = state.getActivePage();
   if (!page) return;
 
-  page._selectedTextIdx = idx;
-
   const textGroups = groupRegistry.textGroups();
-
   textGroups.forEach(function (g, i) {
     const rect = g.findOne<Konva.Rect>("rect");
     if (!rect) return;
@@ -42,6 +73,25 @@ canvas.selectTextDetection = function (idx: number | null): void {
   canvas._updateStatus();
   const layer1 = canvas.getLayer();
   if (layer1) layer1.draw();
+}
+
+// ── Selection ──
+
+canvas.selectTextDetection = function (idx: number | null): void {
+  const page = state.getActivePage();
+  if (!page) return;
+
+  page._selectedTextIdx = idx;
+  // Mirror to the koharu panel selection — clicking a text box on the
+  // canvas selects its dialogue layer (highlight + TypeSection target).
+  if (idx !== null) {
+    const lid = layerIdForTextIdx(page, idx);
+    if (lid) page._selectedLayerId = lid;
+  } else {
+    page._selectedLayerId = null;
+  }
+
+  applyTextSelection(idx);
   if (sidebar && sidebar.render) sidebar.render();
 };
 

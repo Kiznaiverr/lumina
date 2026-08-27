@@ -40,6 +40,7 @@ export const history = {
           visible: m.visible,
           opacity: m.opacity,
         })),
+        backgroundVisible: p.backgroundVisible,
       })),
     );
   },
@@ -91,6 +92,7 @@ export const history = {
       _selectedTextIdx: number | null;
       layers: unknown;
       _selectedLayerId: string | null;
+      backgroundVisible?: boolean;
       inpaintMasks?: Array<{
         id: string;
         bbox: { x: number; y: number; w: number; h: number };
@@ -106,6 +108,8 @@ export const history = {
       page._selectedTextIdx = snap[i]._selectedTextIdx;
       page.layers = snap[i].layers as never;
       page._selectedLayerId = snap[i]._selectedLayerId;
+      if (typeof snap[i].backgroundVisible === "boolean")
+        page.backgroundVisible = snap[i].backgroundVisible;
       const masks = (snap[i].inpaintMasks || []).map((m) => ({
         ...m,
         image: undefined,

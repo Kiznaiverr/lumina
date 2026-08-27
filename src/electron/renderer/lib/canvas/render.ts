@@ -107,17 +107,20 @@ function _render(): void {
   const sr = _getScaleRatio();
   const off = _getOffset();
 
-  // Background is always the original page image — inpaint patches are
-  // composited on top as layered masks (Photoshop-style).
-  _bgImage = new Konva.Image({
-    name: "bg",
-    image: page.image,
-    x: off.x,
-    y: off.y,
-    width: page.naturalWidth * sr,
-    height: page.naturalHeight * sr,
-  });
-  _layer.add(_bgImage);
+  // Background is the original page image — inpaint patches are composited
+  // on top as layered masks (Photoshop-style). Hiding it leaves text and
+  // masks visible above the dark backdrop.
+  if (page.backgroundVisible !== false) {
+    _bgImage = new Konva.Image({
+      name: "bg",
+      image: page.image,
+      x: off.x,
+      y: off.y,
+      width: page.naturalWidth * sr,
+      height: page.naturalHeight * sr,
+    });
+    _layer.add(_bgImage);
+  }
 
   // Inpaint masks: one Konva.Image per patch. The patch PNG's alpha channel
   // is the feathered mask, so Konva's normal alpha compositing reproduces

@@ -6,3 +6,4 @@
 - [] improve resizing 
 - [x] fix stale tools
 - [] three-shake lucide bundle
+- [] export and save features

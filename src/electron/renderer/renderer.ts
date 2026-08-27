@@ -59,6 +59,7 @@ function _loadImageAsPage(filePath: string): Promise<Page | null> {
         textDetections: [],
         layers: [],
         inpaintMasks: [],
+        backgroundVisible: true,
         _selectedTextIdx: null,
         _selectedLayerId: null,
         _selectedMaskId: null,

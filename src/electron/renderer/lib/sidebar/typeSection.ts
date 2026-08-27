@@ -15,6 +15,9 @@ const FONT_SIZE_PRESETS = [
 ];
 const WEIGHTS = [400, 500, 600, 700, 800, 900];
 
+const TYPE_COLLAPSED_KEY = "lumina-type-collapsed";
+let _collapsed = localStorage.getItem(TYPE_COLLAPSED_KEY) === "1";
+
 /** Global type defaults — new layers inherit these (Photoshop-style) */
 let _globalType: Typography = loadGlobalTypography();
 
@@ -30,20 +33,35 @@ function selectedTextLayer(page: Page | null): PageLayer | null {
 }
 
 export const typeSection = {
+  isCollapsed(): boolean {
+    return _collapsed;
+  },
+
+  toggleCollapsed(): void {
+    _collapsed = !_collapsed;
+    localStorage.setItem(TYPE_COLLAPSED_KEY, _collapsed ? "1" : "0");
+  },
+
   /** Build DOM once; visibility toggled on each sidebar render */
   build(host: HTMLElement): void {
     host.className =
       "type-section shrink-0 border-b border-surface-3 overflow-y-auto";
     host.id = "type-section";
+    host.classList.toggle("type-collapsed", _collapsed);
 
-    // Header
+    // Header — clicking it collapses/expands the section (persisted)
     const header = document.createElement("div");
-    header.className = "layer-header";
+    header.className = "layer-header type-header";
     header.innerHTML =
       '<i data-lucide="type" class="layer-header-icon"></i>' +
       "<span>" +
       i18n.t("type.title") +
       "</span>";
+    const chev = document.createElement("button");
+    chev.className = "type-collapse-btn";
+    chev.dataset.lucide = _collapsed ? "chevron-down" : "chevron-up";
+    chev.title = i18n.t(_collapsed ? "type.expand" : "type.collapse");
+    header.appendChild(chev);
     host.appendChild(header);
 
     const body = document.createElement("div");

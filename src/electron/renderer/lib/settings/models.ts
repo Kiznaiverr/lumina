@@ -45,6 +45,11 @@ export const modelsTab = {
     models.onProgress((p) => this._onProgress(pane, p));
   },
 
+  /** Called on every close path (Done, X, overlay click) — keep buttons fresh. */
+  commit(): void {
+    models.refreshButtons();
+  },
+
   refresh(): void {
     const pane = document.getElementById("tab-models");
     if (!pane) return;
@@ -142,6 +147,7 @@ export const modelsTab = {
       opt.appendChild(check);
       opt.addEventListener("click", () => {
         models.setSelectedModel(kind, m.id);
+        models.refreshButtons();
         wrap.classList.remove("open");
         menu.classList.add("hidden");
         this._updatePicker(wrap, kind, items);
@@ -168,8 +174,8 @@ export const modelsTab = {
 
   /** Sync the picker's button label + menu highlight to the active model. */
   _updatePicker(wrap: HTMLElement, kind: string, items: ModelInfo[]): void {
-    // UI follows the saved pick (even if not installed); the pipeline still
-    // falls back to an installed model via models.selectedModel().
+    // UI follows the saved pick (even if not installed). The header pipeline
+    // buttons disable when the picked model is missing — no silent fallback.
     const picked = models.pickedModel(kind);
     const sel = picked || models.selectedModel(kind);
     const cur = items.find((m) => m.id === sel) ?? items[0];
@@ -203,19 +209,6 @@ export const modelsTab = {
     const text = document.createElement("p");
     text.className = "model-desc-text";
 
-    const bar = document.createElement("div");
-    bar.className = "model-progress hidden";
-    const track = document.createElement("div");
-    track.className = "model-progress-bar";
-    const fill = document.createElement("div");
-    fill.className = "model-progress-fill";
-    track.appendChild(fill);
-    const pct = document.createElement("span");
-    pct.className = "model-progress-pct";
-    pct.textContent = "0%";
-    bar.appendChild(track);
-    bar.appendChild(pct);
-
     const btn = document.createElement("button");
     btn.className = "btn model-dl";
     btn.dataset.action = "download";
@@ -228,7 +221,7 @@ export const modelsTab = {
       });
     });
 
-    card.append(head, text, bar, btn);
+    card.append(head, text, btn);
     this._updateDesc(card, items);
     return card;
   },
@@ -273,22 +266,15 @@ export const modelsTab = {
       '[data-panel="' + kind + '"]',
     );
     if (!panel) return;
-    const bar = panel.querySelector<HTMLElement>(".model-progress");
-    const fill = panel.querySelector<HTMLElement>(".model-progress-fill");
-    const pct = panel.querySelector<HTMLElement>(".model-progress-pct");
     const btn = panel.querySelector<HTMLButtonElement>(".model-dl");
-    if (!bar || !fill || !pct) return;
 
     if (p.running) {
-      bar.classList.remove("hidden");
-      fill.style.width = p.progress + "%";
-      pct.textContent = p.progress + "%";
+      // Real progress bar lives in the global download toast (lib/ui.ts).
       if (btn) {
         btn.disabled = true;
         btn.textContent = i18n.t("models.downloading");
       }
     } else if (p.done || p.error) {
-      bar.classList.add("hidden");
       // Re-check + re-render once the batch finishes
       this.refresh();
     }

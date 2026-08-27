@@ -177,6 +177,11 @@ export const translationTab = {
       persist();
     });
 
+    // Hydrate non-secret fields synchronously from localStorage FIRST —
+    // the DOM must never show defaults (select = first option "llm", empty
+    // model fields) that a keystroke/commit could persist over the stored
+    // config. Then fill the vault keys asynchronously.
+    this._applyLocal(pane);
     this.refresh();
   },
 
@@ -186,15 +191,13 @@ export const translationTab = {
     if (pane) this._persist(pane);
   },
 
-  async refresh(): Promise<void> {
-    const pane = document.getElementById("tab-translation");
-    if (!pane) return;
-    // Snapshot field values now; if the user edits while the vault fetch is
-    // in flight, abort applying stale values over their edits.
-    const before = this._snapshot(pane);
-    // Full config incl. api keys from the encrypted vault
-    const cfg = await translateSettings.loadWithSecrets();
-    if (this._snapshot(pane) !== before) return; // user edited during fetch
+  /**
+   * Apply non-secret config from localStorage — synchronous, no IPC, so the
+   * DOM is always correct before any user interaction. This is what keeps
+   * provider/model/url/instruction from reverting to defaults.
+   */
+  _applyLocal(pane: HTMLElement): void {
+    const cfg = translateSettings.load();
     const providerSel = pane.querySelector<HTMLSelectElement>("#tr-provider");
     const targetSel = pane.querySelector<HTMLSelectElement>("#tr-target-lang");
     if (providerSel) providerSel.value = cfg.provider;
@@ -207,31 +210,35 @@ export const translationTab = {
     };
     set("tr-instruction", cfg.llmInstruction);
     set("tr-llm-url", cfg.llmBaseUrl);
-    set("tr-llm-key", cfg.llmApiKey);
     set("tr-llm-model", cfg.llmModel);
-    set("tr-gemini-key", cfg.geminiApiKey);
     set("tr-gemini-model", cfg.geminiModel);
     this._syncVisibility(pane);
   },
 
-  /** Serialized field values — used to detect edits during async refresh */
-  _snapshot(pane: HTMLElement): string {
-    return [
-      "tr-provider",
-      "tr-target-lang",
-      "tr-instruction",
-      "tr-llm-url",
-      "tr-llm-key",
-      "tr-llm-model",
-      "tr-gemini-key",
-      "tr-gemini-model",
-    ]
-      .map(
-        (id) =>
-          pane.querySelector<HTMLInputElement | HTMLTextAreaElement>("#" + id)
-            ?.value ?? "",
-      )
-      .join("\u0000");
+  async refresh(): Promise<void> {
+    const pane = document.getElementById("tab-translation");
+    if (!pane) return;
+    // Only the API keys come from the encrypted vault (async IPC). Non-secret
+    // fields were already applied synchronously in _applyLocal. Guard against
+    // overwriting a key the user just typed while the fetch was in flight.
+    const before = this._keySnapshot(pane);
+    const cfg = await translateSettings.loadWithSecrets();
+    if (this._keySnapshot(pane) !== before) return;
+    const set = (id: string, v: string) => {
+      const el = pane.querySelector<HTMLInputElement>("#" + id);
+      if (el && document.activeElement !== el) el.value = v;
+    };
+    set("tr-llm-key", cfg.llmApiKey);
+    set("tr-gemini-key", cfg.geminiApiKey);
+  },
+
+  /** Key-field values only — the async part of refresh must not touch the rest */
+  _keySnapshot(pane: HTMLElement): string {
+    return (
+      (pane.querySelector<HTMLInputElement>("#tr-llm-key")?.value ?? "") +
+      "\u0000" +
+      (pane.querySelector<HTMLInputElement>("#tr-gemini-key")?.value ?? "")
+    );
   },
 
   _syncVisibility(pane: HTMLElement): void {

@@ -19,6 +19,9 @@ function loadTypeHeight(): number | null {
 
 let _typeHeight: number | null = loadTypeHeight();
 let _activeTab: "layers" | "masks" = "layers";
+// Per-tab scroll of the list — sidebar.render() rebuilds the list DOM, which
+// would otherwise reset the scroll to top on every selection/toggle.
+let _tabScroll: Record<"layers" | "masks", number> = { layers: 0, masks: 0 };
 
 /** Drag the splitter to resize the Type section height (Photoshop-style). */
 function wireSplitter(
@@ -52,6 +55,17 @@ function wireSplitter(
   });
 }
 
+// Re-clamp the Type section height on window resize — without a render the
+// stored height stays stale and can clip the layer list at the sidebar edge.
+window.addEventListener("resize", function () {
+  if (!_typeHeight || typeSection.isCollapsed()) return;
+  const el = document.getElementById("type-section");
+  if (!el || !el.parentElement) return;
+  const max = el.parentElement.clientHeight - 48;
+  const h = Math.max(TYPE_MIN_HEIGHT, Math.min(_typeHeight, max));
+  if (h !== el.offsetHeight) el.style.height = h + "px";
+});
+
 function tabHTML(
   tab: "layers" | "masks",
   label: string,
@@ -81,29 +95,51 @@ export const sidebar = {
   render(): void {
     const scroll = document.getElementById("sidebar-scroll");
     if (!scroll) return;
+
+    // Preserve scroll position across the DOM rebuild below (keyed by tab)
+    const prevList = scroll.querySelector<HTMLElement>(".layer-list");
+    if (prevList) _tabScroll[_activeTab] = prevList.scrollTop;
+
     scroll.innerHTML = "";
 
     const page: Page | null = state.getActivePage();
     const total = page ? (page.layers || []).length : 0;
     const maskCount = page ? (page.inpaintMasks || []).length : 0;
 
-    // Type section (hidden when no text layer selected)
+    // Type section (hidden when no text layer selected; header click collapses)
     const typeHost = document.createElement("div");
     scroll.appendChild(typeHost);
     typeSection.build(typeHost);
     typeSection.refresh();
-    if (_typeHeight) {
+    if (_typeHeight && !typeSection.isCollapsed()) {
+      // Clamp to the current sidebar height (same budget as the splitter
+      // drag: tabs 32px + splitter 6px + ~10px for the list). The stored
+      // height can be stale after the page strip appears (workspace shrinks
+      // 68px) or the window resizes — without this the layer list gets
+      // pushed out of #sidebar and clipped by its overflow-hidden.
+      const max = scroll.clientHeight - 48;
+      const h = Math.max(TYPE_MIN_HEIGHT, Math.min(_typeHeight, max));
       typeHost.style.maxHeight = "none";
-      typeHost.style.height = _typeHeight + "px";
+      typeHost.style.height = h + "px";
+    }
+    const typeHeader = typeHost.querySelector<HTMLElement>(".type-header");
+    if (typeHeader) {
+      typeHeader.addEventListener("click", function () {
+        typeSection.toggleCollapsed();
+        sidebar.render();
+      });
     }
 
     // Photoshop-style height splitter between Type and tabs/list
-    const splitter = document.createElement("div");
-    splitter.className = "sidebar-splitter";
-    splitter.title = i18n.t("sidebar.resizeType");
-    splitter.innerHTML = '<span class="sidebar-splitter-grip"></span>';
-    scroll.appendChild(splitter);
-    wireSplitter(splitter, typeHost, scroll);
+    // (not shown when the Type section is collapsed)
+    if (!typeSection.isCollapsed()) {
+      const splitter = document.createElement("div");
+      splitter.className = "sidebar-splitter";
+      splitter.title = i18n.t("sidebar.resizeType");
+      splitter.innerHTML = '<span class="sidebar-splitter-grip"></span>';
+      scroll.appendChild(splitter);
+      wireSplitter(splitter, typeHost, scroll);
+    }
 
     // Tab bar: Layers | Masks
     const tabs = document.createElement("div");
@@ -138,6 +174,8 @@ export const sidebar = {
       content.innerHTML = layerListHTML(page);
       wireEvents();
     }
+
+    content.scrollTop = _tabScroll[_activeTab] || 0;
 
     createIcons();
   },

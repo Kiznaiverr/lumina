@@ -124,6 +124,8 @@ export interface Page {
   layers: PageLayer[];
   /** Inpaint patches — composited over the original image, one per mask layer */
   inpaintMasks: InpaintMask[];
+  /** Original image visibility (the background layer in the Layers tab) */
+  backgroundVisible: boolean;
   _selectedTextIdx: number | null;
   /** Selected layer id in the unified layer model */
   _selectedLayerId: string | null;

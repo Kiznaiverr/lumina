@@ -50,7 +50,7 @@
   "models.download": "Unduh",
   "models.downloading": "Mengunduh…",
   "models.openShortcut": "Kelola model",
-  "models.missingHint": "Model belum terpasang — buka Settings → Model",
+  "models.missingHint": "Model terpilih belum terpasang — buka Settings → Model",
   "models.warning": "Beberapa model belum terpasang — kelola di Settings → Model",
 
   "status.noDetections": "Tidak ada deteksi",
@@ -111,9 +111,13 @@
   "toast.trFailed": "Terjemahan gagal",
 
   "toast.inpaintNoText": "Jalankan Deteksi dulu — belum ada area untuk di-inpaint",
+  "toast.inpaintFirstRun": "menyiapkan mesin inpainting, mohon tunggu...",
   "toast.inpaintRunning": "Membersihkan area teks...",
   "toast.inpaintDone": "Inpaint selesai — {{count}} mask dibuat",
   "toast.inpaintFailed": "Inpaint gagal",
+
+  "toast.modelDownloading": "Mengunduh model {{model}}...",
+  "toast.modelDownloaded": "Model selesai diunduh",
 
   "sidebar.text.originalText": "Teks asli",
 
@@ -137,6 +141,9 @@
   "layers.source": "Sumber",
   "layers.translation": "Terjemahan",
   "layers.toggleVisible": "Tampilkan/sembunyikan",
+  "layers.mask": "Masker",
+  "layers.maskCount": "{{count}} tambalan",
+  "layers.background": "Latar Belakang",
   "layers.sourcePlaceholder": "Teks sumber OCR…",
   "layers.translationPlaceholder": "Teks terjemahan…",
 
@@ -159,6 +166,8 @@
   "type.searchFont": "Cari font…",
   "type.autoFit": "Auto-fit",
   "type.bgPatch": "Alas putih",
+  "type.collapse": "Ciutkan",
+  "type.expand": "Perluas",
 
   "shortcuts.title": "Shortcut Keyboard",
   "shortcuts.undo": "Undo",

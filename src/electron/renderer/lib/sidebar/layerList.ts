@@ -25,16 +25,69 @@ function layerName(layer: PageLayer): string {
 }
 
 export function layerListHTML(page: Page | null): string {
-  if (!page || !page.layers.length)
-    return (
-      '<div class="field-readonly">' + i18n.t("sidebar.noDetections") + "</div>"
-    );
+  if (!page) return "";
 
   let html = "";
   page.layers.forEach(function (layer) {
     html += layerRowHTML(page, layer);
   });
+
+  // Virtual rows (NOT part of page.layers — that array maps 1:1 to
+  // textDetections): a group Mask row that toggles every inpaint patch at
+  // once, and the Background row = the imported page image.
+  if (page.inpaintMasks.length > 0) {
+    html += virtualRowHTML(
+      "mask",
+      i18n.t("layers.mask"),
+      i18n.t("layers.maskCount", { count: page.inpaintMasks.length }),
+      page.inpaintMasks.some((m) => m.visible),
+    );
+  }
+  html += virtualRowHTML(
+    "background",
+    i18n.t("layers.background"),
+    page.fileName,
+    page.backgroundVisible !== false,
+  );
+
+  if (!html)
+    return (
+      '<div class="field-readonly">' + i18n.t("sidebar.noDetections") + "</div>"
+    );
   return html;
+}
+
+/** Virtual rows act on whole groups, not single layers — no select/move/delete. */
+function virtualRowHTML(
+  kind: "mask" | "background",
+  name: string,
+  sub: string,
+  visible: boolean,
+): string {
+  return (
+    '<div class="layer-row layer-row-virtual" data-virtual="' +
+    kind +
+    '">' +
+    '<div class="layer-row-main">' +
+    '<i data-lucide="' +
+    (kind === "mask" ? "eraser" : "image") +
+    '" class="layer-icon"></i>' +
+    '<div class="layer-name-wrap">' +
+    '<span class="layer-name">' +
+    esc(name) +
+    "</span>" +
+    '<span class="layer-kind">' +
+    esc(sub) +
+    "</span>" +
+    "</div>" +
+    '<button class="layer-eye" data-action="toggle-visible" title="' +
+    esc(i18n.t("layers.toggleVisible")) +
+    '">' +
+    (visible ? '<i data-lucide="eye"></i>' : '<i data-lucide="eye-off"></i>') +
+    "</button>" +
+    "</div>" +
+    "</div>"
+  );
 }
 
 function layerRowHTML(page: Page, layer: PageLayer): string {
@@ -179,6 +232,25 @@ export function wireEvents(): void {
       });
       ta.addEventListener("keydown", function (e) {
         if (e.key === "Escape") ta.blur();
+      });
+    });
+
+  // Virtual rows (mask group / background image) — eye toggles the whole
+  // group, clicking the row body deselects the text layer.
+  document
+    .querySelectorAll<HTMLElement>(".layer-row[data-virtual]")
+    .forEach(function (el) {
+      el.addEventListener("click", function (e) {
+        const target = e.target as HTMLElement;
+        const eye = target.closest(".layer-eye") as HTMLButtonElement | null;
+        if (eye) {
+          e.stopPropagation();
+          if (el.getAttribute("data-virtual") === "mask")
+            canvas.toggleAllMasks();
+          else canvas.toggleBackgroundVisible();
+          return;
+        }
+        if (state.getActivePage()?._selectedLayerId) canvas.selectLayer(null);
       });
     });
 }

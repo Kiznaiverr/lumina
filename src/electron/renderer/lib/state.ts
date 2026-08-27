@@ -17,6 +17,7 @@ export interface AppState {
   // ── Detection state ──
   isRunning: boolean;
   _modelLoaded: boolean;
+  _inpaintLoaded: boolean;
 
   // ── Canvas state ──
   _resizeTimer: ReturnType<typeof setTimeout> | null;
@@ -52,6 +53,7 @@ export const state: AppState = new (class implements AppState {
 
   isRunning = false;
   _modelLoaded = false;
+  _inpaintLoaded = false;
 
   _resizeTimer: ReturnType<typeof setTimeout> | null = null;
 

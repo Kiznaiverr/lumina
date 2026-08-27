@@ -42,6 +42,8 @@ export interface CanvasAPI {
   toggleMaskVisible(id: string): void;
   deleteMask(id: string): void;
   setMaskOpacity(id: string, opacity: number): void;
+  toggleAllMasks(): void;
+  toggleBackgroundVisible(): void;
   /** Sync the header "show detection boxes" toggle with page state */
   updateBoxToggle(): void;
   _refreshTextGroup(idx: number): void;
@@ -106,6 +108,8 @@ export const canvas: CanvasAPI = {
   toggleMaskVisible() {},
   deleteMask() {},
   setMaskOpacity() {},
+  toggleAllMasks() {},
+  toggleBackgroundVisible() {},
   updateBoxToggle() {},
   _refreshTextGroup() {},
   _updateStatus() {},

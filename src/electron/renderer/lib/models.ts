@@ -8,6 +8,7 @@
  * - selectedModel(): active model id per kind (persisted in localStorage)
  */
 import * as i18n from "./i18n";
+import { ui } from "./ui";
 import type { DownloadProgress, ModelInfo } from "../types";
 
 let _models: ModelInfo[] = [];
@@ -32,16 +33,29 @@ function el(id: string): HTMLElement | null {
   return document.getElementById(id);
 }
 
-/** A kind is usable when at least one of its models is installed. */
-function readyFor(kind: string): boolean {
+/** Effective model id for a kind: the saved pick wins (even if not installed),
+ *  else the first installed model, else the first registered model. */
+function resolveSelected(kind: string): string {
+  const sel = loadSelected();
   const list = _models.filter((m) => m.kind === kind);
-  return list.some((m) => m.ready);
+  if (!list.length) return "";
+  const picked = list.find((m) => m.id === sel[kind]);
+  if (picked) return picked.id;
+  const installed = list.find((m) => m.ready);
+  return installed ? installed.id : (list[0]?.id ?? "");
 }
 
-/** True when every kind (detect / ocr / inpaint) has ≥1 installed model. */
+/** True when the selected model for a kind is installed. */
+function selectedReady(kind: string): boolean {
+  const id = resolveSelected(kind);
+  const m = _models.find((x) => x.kind === kind && x.id === id);
+  return !!m && m.ready;
+}
+
+/** True when every kind (detect / ocr / inpaint) has its selected model installed. */
 function allReady(): boolean {
   const kinds = new Set(_models.map((m) => m.kind));
-  return kinds.size > 0 && Array.from(kinds).every((k) => readyFor(k));
+  return kinds.size > 0 && Array.from(kinds).every((k) => selectedReady(k));
 }
 
 function setBtn(id: string, enabled: boolean, modelReady: boolean): void {
@@ -51,11 +65,19 @@ function setBtn(id: string, enabled: boolean, modelReady: boolean): void {
   btn.title = _hasImage && !modelReady ? i18n.t("models.missingHint") : "";
 }
 
-/** Gate header buttons: pipeline needs an image AND its model installed. */
+/** Gate header buttons: pipeline needs an image AND the selected model installed. */
 function updateButtons(): void {
-  setBtn("btn-detect", _hasImage && readyFor("detect"), readyFor("detect"));
-  setBtn("btn-ocr", _hasImage && readyFor("ocr"), readyFor("ocr"));
-  setBtn("btn-inpaint", _hasImage && readyFor("inpaint"), readyFor("inpaint"));
+  setBtn(
+    "btn-detect",
+    _hasImage && selectedReady("detect"),
+    selectedReady("detect"),
+  );
+  setBtn("btn-ocr", _hasImage && selectedReady("ocr"), selectedReady("ocr"));
+  setBtn(
+    "btn-inpaint",
+    _hasImage && selectedReady("inpaint"),
+    selectedReady("inpaint"),
+  );
   // Translate is API-based — only needs a page loaded.
   const tr = el("btn-translate") as HTMLButtonElement | null;
   if (tr) tr.disabled = !_hasImage;
@@ -82,9 +104,9 @@ export const models = {
     return allReady();
   },
 
-  /** True when every model of the given kind is installed. */
+  /** True when the selected model of the given kind is installed. */
   ready(kind: string): boolean {
-    return readyFor(kind);
+    return selectedReady(kind);
   },
 
   list(): ModelInfo[] {
@@ -103,22 +125,22 @@ export const models = {
     await this.check();
   },
 
-  /** Active model id for a kind (e.g. "inpaint" → "lama_manga"). */
+  /** Active model id for a kind (e.g. "inpaint" → "lama_manga").
+   *  The saved pick is returned even when not installed — the header buttons
+   *  (not this method) are what disable the pipeline in that case. */
   selectedModel(kind: string): string {
-    const sel = loadSelected();
-    const list = _models.filter((m) => m.kind === kind);
-    if (!list.length) return "";
-    const picked = list.find((m) => m.id === sel[kind]);
-    if (picked && picked.ready) return picked.id;
-    // Saved pick not installed → prefer any installed model of this kind.
-    const installed = list.find((m) => m.ready);
-    return installed ? installed.id : (list[0]?.id ?? "");
+    return resolveSelected(kind);
   },
 
   setSelectedModel(kind: string, id: string): void {
     const sel = loadSelected();
     sel[kind] = id;
     saveSelected(sel);
+  },
+
+  /** Re-evaluate header buttons + warn badge from the current selection. */
+  refreshButtons(): void {
+    updateButtons();
   },
 
   /** Raw persisted pick for a kind (even if not installed yet) — for UI display. */
@@ -139,7 +161,21 @@ export const models = {
   },
 };
 
-// Forward backend progress events to all subscribers once.
+// Forward backend progress events to all subscribers once, and drive the
+// global download toast (bottom-right: bar, size, speed) for visual feedback.
 window.lumina.onDownloadProgress((p) => {
   for (const cb of _progressCbs) cb(p);
+  if (p.running) {
+    if (!document.getElementById("dl-toast")) {
+      const kindLabel = p.model
+        ? i18n.t("models.section" + p.model[0].toUpperCase() + p.model.slice(1))
+        : "";
+      ui.downloadToast(i18n.t("toast.modelDownloading", { model: kindLabel }));
+    }
+    ui.updateDownloadToast(p.progress || 0, p.downloaded || 0, p.total || 0);
+  } else if (p.done || p.error) {
+    const el = document.getElementById("dl-toast");
+    if (el) el.remove();
+    if (p.done) ui.toast(i18n.t("toast.modelDownloaded"), "success", 3000);
+  }
 });

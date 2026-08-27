@@ -1,7 +1,8 @@
 """LaMa inpainting model (opencv/inpainting_lama) via ONNX Runtime.
 
-Concrete LaMa configuration on top of :class:`OnnxInpaintModel`. The only
-LaMa-specific piece is the mask strategy: Otsu threshold + dilation.
+Concrete LaMa configuration on top of :class:`OnnxInpaintModel`. The mask
+strategy (glyph-precise Otsu inside the text box) lives in the base class
+default — this file only carries model metadata.
 
 Emits one RGBA patch PNG per input box:
 
@@ -14,8 +15,6 @@ identical to the old single cleaned-image output, but every region stays
 independently toggleable, deletable, and opacity-adjustable.
 """
 from __future__ import annotations
-
-import numpy as np
 
 from .onnx import OnnxInpaintModel
 
@@ -33,13 +32,3 @@ class LamaModel(OnnxInpaintModel):
     model_filename = "inpainting_lama_2025jan.onnx"
     mask_binary = True  # threshold mask to 0/1 before feeding
     output_scale = 1.0  # graph already emits 0..255
-
-    def _build_mask(self, crop: np.ndarray) -> np.ndarray:
-        import cv2 as cv
-
-        gray = cv.cvtColor(crop, cv.COLOR_RGB2GRAY)
-        _, mask = cv.threshold(gray, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
-        kernel = cv.getStructuringElement(
-            cv.MORPH_ELLIPSE, (self.mask_dilate * 2 + 1,) * 2
-        )
-        return cv.dilate(mask, kernel)

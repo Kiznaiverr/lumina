@@ -470,6 +470,31 @@ body.resizing-settings * {
   color: #6a6a6a;
   font-variant-numeric: tabular-nums;
 }
+/* Type section header — click to collapse/expand (persisted) */
+.type-header {
+  cursor: pointer;
+  user-select: none;
+}
+.type-header:hover .type-collapse-btn {
+  color: #cfcfcf;
+}
+.type-collapse-btn {
+  margin-left: auto;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #6a6a6a;
+  cursor: pointer;
+}
+.type-collapse-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.type-collapsed #type-body {
+  display: none;
+}
 #sidebar-scroll {
   display: flex;
   flex-direction: column;
@@ -1233,35 +1258,6 @@ body.resizing-row {
 .model-badge.missing {
   background: rgba(255, 152, 0, 0.15);
   color: #ffb74d;
-}
-.model-progress {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 5px;
-}
-.model-progress.hidden {
-  display: none;
-}
-.model-progress-bar {
-  flex: 1;
-  height: 4px;
-  background: #333;
-  border-radius: 2px;
-  overflow: hidden;
-}
-.model-progress-fill {
-  height: 100%;
-  width: 0;
-  background: #e94560;
-  transition: width 0.2s ease;
-}
-.model-progress-pct {
-  font-size: 0.6rem;
-  color: #969696;
-  width: 34px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 .model-dl {
   flex-shrink: 0;
