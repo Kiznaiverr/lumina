@@ -2,6 +2,8 @@ import { BrowserWindow, dialog, ipcMain } from "electron";
 import path from "path";
 import fs from "fs";
 import http from "http";
+import { IPC } from "../shared/bridge";
+import { PROJECT_ROOT } from "./paths";
 
 const PYTHON_PORT = 8765;
 
@@ -62,8 +64,8 @@ function translateText(text: string): string {
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // i18n: load translation JSON files from disk
-  ipcMain.handle("load-translations", async () => {
-    const rendererDir = path.join(__dirname, "../../../src/electron/renderer");
+  ipcMain.handle(IPC.loadTranslations, async () => {
+    const rendererDir = path.join(PROJECT_ROOT, "src/renderer");
     const i18nDir = path.join(rendererDir, "i18n");
     const result: Record<string, Record<string, string>> = {};
     try {
@@ -80,7 +82,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return result;
   });
 
-  ipcMain.handle("check-model", async () => {
+  ipcMain.handle(IPC.checkModel, async () => {
     try {
       const result = (await apiGet("/model/check")) as { cached: boolean };
       return result;
@@ -89,7 +91,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
   });
 
-  ipcMain.handle("download-model", async (_event, models: string[] = []) => {
+  ipcMain.handle(IPC.downloadModel, async (_event, models: string[] = []) => {
     try {
       // Kick off background download in Python backend (empty = all missing)
       await apiPost("/model/download", { models });
@@ -99,7 +101,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
     // Poll progress and forward to renderer
     const send = (msg: Record<string, unknown>) =>
-      mainWindow.webContents.send("model-download-progress", msg);
+      mainWindow.webContents.send(IPC.modelDownloadProgress, msg);
 
     return new Promise((resolve) => {
       const poll = setInterval(async () => {
@@ -125,7 +127,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     });
   });
 
-  ipcMain.handle("import-image", async () => {
+  ipcMain.handle(IPC.importImage, async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       title: "Import Manga Page",
       filters: [
@@ -137,7 +139,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return result.filePaths[0];
   });
 
-  ipcMain.handle("import-images", async () => {
+  ipcMain.handle(IPC.importImages, async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       title: "Import Manga Pages",
       filters: [
@@ -149,9 +151,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return result.filePaths;
   });
 
-  ipcMain.handle("run-pipeline", async (_event, imagePath: string) => {
+  ipcMain.handle(IPC.runPipeline, async (_event, imagePath: string) => {
     const send = (step: string, detail?: string) => {
-      mainWindow.webContents.send("pipeline-progress", { step, detail });
+      mainWindow.webContents.send(IPC.pipelineProgress, { step, detail });
     };
 
     try {
@@ -223,7 +225,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   // Generic API proxy — renderer calls this directly for fine-grained control
   ipcMain.handle(
-    "api-post",
+    IPC.apiPost,
     async (_event, endpoint: string, body: unknown) => {
       try {
         return await apiPost(endpoint, body);
@@ -234,7 +236,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   );
 
   // System fonts
-  ipcMain.handle("get-fonts", async () => {
+  ipcMain.handle(IPC.getFonts, async () => {
     const fs = await import("fs");
     const pathMod = await import("path");
     const fontDirs: string[] = [];
@@ -416,12 +418,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
 
   // Load default LLM instruction from prompts/translate-default.md
-  ipcMain.handle("load-default-instruction", async () => {
+  ipcMain.handle(IPC.loadDefaultInstruction, async () => {
     try {
-      const p = path.join(
-        __dirname,
-        "../../../src/python/prompts/translate-default.md",
-      );
+      const p = path.join(PROJECT_ROOT, "python/prompts/translate-default.md");
       return fs.readFileSync(p, "utf-8");
     } catch {
       return "";

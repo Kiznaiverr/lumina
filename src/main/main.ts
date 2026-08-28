@@ -3,6 +3,7 @@ import * as path from "path";
 import { spawnPythonBackend, stopPythonBackend } from "./backend";
 import { registerIpcHandlers } from "./pipeline";
 import { registerSecretHandlers } from "./storage";
+import { MAIN_DIR, PROJECT_ROOT } from "./paths";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -16,14 +17,12 @@ function createWindow(): void {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, "../preload/preload.js"),
+      preload: path.join(MAIN_DIR, "../preload/preload.cjs"),
     },
   });
 
-  // From dist/electron/main/main.js → ../../../src/electron/renderer/index.html
-  mainWindow.loadFile(
-    path.join(__dirname, "../../../src/electron/renderer/index.html"),
-  );
+  // From dist/main/main.js → repo root → src/renderer/index.html
+  mainWindow.loadFile(path.join(PROJECT_ROOT, "src/renderer/index.html"));
 
   registerIpcHandlers(mainWindow);
   registerSecretHandlers();

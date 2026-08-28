@@ -30,10 +30,10 @@ from .base import BaseInpaintModel, ProgressCallback
 # Model + patch directories live in <repo>/models and <repo>/cache
 # (override with LUMINA_MODEL_DIR / LUMINA_CACHE_DIR env vars).
 _MODELS_DIR = Path(
-    os.environ.get("LUMINA_MODEL_DIR", Path(__file__).resolve().parents[4] / "models")
+    os.environ.get("LUMINA_MODEL_DIR", Path(__file__).resolve().parents[3] / "models")
 )
 _CACHE_DIR = Path(
-    os.environ.get("LUMINA_CACHE_DIR", Path(__file__).resolve().parents[4] / "cache")
+    os.environ.get("LUMINA_CACHE_DIR", Path(__file__).resolve().parents[3] / "cache")
 )
 
 

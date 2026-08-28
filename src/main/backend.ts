@@ -2,9 +2,7 @@ import { spawn, ChildProcess } from "child_process";
 import fs from "fs";
 import path from "path";
 import http from "http";
-
-// From dist/electron/main/backend.js → ../../../lumina root
-const PROJECT_ROOT = path.join(__dirname, "../../..");
+import { PROJECT_ROOT } from "./paths";
 
 // ── Minimal .env loader ──
 function loadEnvFile(): void {
@@ -31,7 +29,7 @@ loadEnvFile();
 
 let pythonProcess: ChildProcess | null = null;
 const PYTHON_PORT = parseInt(process.env.LUMINA_BACKEND_PORT || "8765", 10);
-const PYTHON_DIR = path.join(PROJECT_ROOT, "src", "python");
+const PYTHON_DIR = path.join(PROJECT_ROOT, "python");
 const PYTHON_ENTRY = path.join(PYTHON_DIR, "main.py");
 const PYTHON_EXECUTABLE =
   process.platform === "win32"

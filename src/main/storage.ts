@@ -3,9 +3,10 @@
  * Keychain on macOS, libsecret on Linux) and persisted to
  * <userData>/secrets.json. Values survive restarts for the same OS user.
  */
-import { app, safeStorage } from "electron";
+import { app, ipcMain, safeStorage } from "electron";
 import fs from "fs";
 import path from "path";
+import { IPC } from "../shared/bridge";
 
 const FILE_NAME = "secrets.json";
 
@@ -84,13 +85,11 @@ export function deleteSecret(key: string): void {
 }
 
 export function registerSecretHandlers(): void {
-  // Lazy import to avoid circular import with pipeline.ts registration order
-  const { ipcMain } = require("electron") as typeof import("electron");
-  ipcMain.handle("secrets-set", (_e, key: string, value: string) => {
+  ipcMain.handle(IPC.secretsSet, (_e, key: string, value: string) => {
     setSecret(String(key), String(value ?? ""));
   });
-  ipcMain.handle("secrets-get", (_e, key: string) => getSecret(String(key)));
-  ipcMain.handle("secrets-delete", (_e, key: string) =>
+  ipcMain.handle(IPC.secretsGet, (_e, key: string) => getSecret(String(key)));
+  ipcMain.handle(IPC.secretsDelete, (_e, key: string) =>
     deleteSecret(String(key)),
   );
 }

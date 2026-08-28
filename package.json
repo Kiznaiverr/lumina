@@ -2,13 +2,16 @@
   "name": "lumina",
   "version": "0.2.0",
   "description": "Manga/Manhwa/Manhua Translation Automation Desktop App",
-  "main": "dist/electron/main/main.js",
+  "type": "module",
+  "main": "dist/main/main.js",
   "scripts": {
-    "build": "tsc && npm run build:renderer",
-    "build:renderer": "esbuild src/electron/renderer/renderer.ts --bundle --outfile=dist/renderer/bundle.js --format=iife --target=es2022 --loader:.html=text",
-    "typecheck:renderer": "tsc -p src/electron/renderer/tsconfig.json",
-    "start": "npm run build && electron dist/electron/main/main.js",
-    "dev": "npm run build && electron dist/electron/main/main.js"
+    "build": "npm run build:main && npm run build:preload && npm run build:renderer && npm run typecheck",
+    "build:main": "esbuild src/main/main.ts --bundle --platform=node --format=esm --external:electron --outfile=dist/main/main.js",
+    "build:preload": "esbuild src/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/preload.cjs",
+    "build:renderer": "esbuild src/renderer/renderer.ts --bundle --outfile=dist/renderer/bundle.js --format=iife --target=es2022 --loader:.html=text",
+    "typecheck": "tsc -p tsconfig.json",
+    "start": "npm run build && electron dist/main/main.js",
+    "dev": "npm run build && electron dist/main/main.js"
   },
   "dependencies": {
     "electron": "^43.4.1",

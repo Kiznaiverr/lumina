@@ -1,5 +1,14 @@
 /* ── Lumina Shared Types ── */
 
+// IPC contract types — single source of truth in src/shared/bridge.ts
+export type {
+  DownloadProgress,
+  FontInfo,
+  LuminaAPI,
+  ModelCheck,
+  ModelInfo,
+} from "../shared/bridge";
+
 export type DetectionStatus = "auto" | "adjusted" | "rejected";
 
 export type TextType = "bubble" | "text_bubble" | "text_free" | string;
@@ -152,60 +161,8 @@ export interface DetectResult {
   detail?: string;
 }
 
-export interface DownloadProgress {
-  running: boolean;
-  progress: number;
-  downloaded: number;
-  total: number;
-  done: boolean;
-  error?: string | null;
-  /** Which model is downloading: "detect" | "ocr" | "inpaint" */
-  model?: string | null;
-}
-
-/** One entry of GET /models — model manager registry */
-export interface ModelInfo {
-  id: string;
-  name: string;
-  kind: string; // "detect" | "ocr" | "inpaint"
-  ready: boolean;
-  size: number | null;
-  description: string;
-}
-
-export interface ModelCheck {
-  cached: boolean;
-  models: ModelInfo[];
-}
-
 /** One entry of POST /ocr response */
 export interface OcrResult {
   index: number;
   text: string;
-}
-
-/** window.lumina API exposed by preload.ts */
-export interface LuminaAPI {
-  importImage(): Promise<string | null>;
-  importImages(): Promise<string[] | null>;
-  runPipeline(imagePath: string): Promise<unknown>;
-  onProgress(cb: (msg: { step: string; detail?: string }) => void): void;
-  apiPost<T = unknown>(endpoint: string, body: unknown): Promise<T>;
-  checkModel(): Promise<ModelCheck>;
-  downloadModel(models?: string[]): Promise<void>;
-  onDownloadProgress(cb: (msg: DownloadProgress) => void): void;
-  getFonts(): Promise<
-    Array<{ family: string; path: string; weight: number; italic: boolean }>
-  >;
-  loadTranslations(): Promise<Record<string, Record<string, string>>>;
-  loadDefaultInstruction(): Promise<string>;
-  setSecret(key: string, value: string): Promise<void>;
-  getSecret(key: string): Promise<string | null>;
-  deleteSecret(key: string): Promise<void>;
-}
-
-declare global {
-  interface Window {
-    lumina: LuminaAPI;
-  }
 }
