@@ -1,34 +1,34 @@
 """Translation providers — pluggable registry.
 
-Each provider module exposes:
+Each provider module in provider/ exposes:
   translate(text, source, target, config) -> str          (single)
   translate_batch(texts, source, target, config) -> list  (optional, native batch)
 
-Add a new provider by dropping a module here and registering it in PROVIDERS.
+Protocol clients (wire formats) live in protocol/ and are shared across
+providers that speak the same API. Add a new provider by dropping a module in
+provider/ and registering it in PROVIDERS.
 """
 from __future__ import annotations
 
 from typing import Callable
 
 from ._base import TranslateError
-from . import custom, gemini
+from .provider import custom, gemini, grok, openrouter
 
 ProviderFn = Callable[[str, str, str, dict], str]
 BatchFn = Callable[[list[str], str, str, dict], list[str]]
 
-# "custom", "openrouter" and "grok" all share the OpenAI/Anthropic-compatible
-# client (services/translate/custom.py) — only the endpoint/style differ.
 PROVIDERS: dict[str, ProviderFn] = {
     "custom": custom.translate,
-    "openrouter": custom.translate,
-    "grok": custom.translate,
+    "openrouter": openrouter.translate,
+    "grok": grok.translate,
     "gemini": gemini.translate,
 }
 
 BATCH_PROVIDERS: dict[str, BatchFn] = {
     "custom": custom.translate_batch,
-    "openrouter": custom.translate_batch,
-    "grok": custom.translate_batch,
+    "openrouter": openrouter.translate_batch,
+    "grok": grok.translate_batch,
     "gemini": gemini.translate_batch,
 }
 

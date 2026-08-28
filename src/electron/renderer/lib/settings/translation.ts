@@ -120,11 +120,10 @@ export const translationTab = {
         "https://api.openai.com/v1",
       ),
     );
-    llmOpts.appendChild(customRows);
-    llmOpts.appendChild(
+    customRows.appendChild(
       this._keyField("tr-custom-key", i18n.t("settings.trLlmKey"), "sk-..."),
     );
-    llmOpts.appendChild(
+    customRows.appendChild(
       this._field(
         "tr-llm-model",
         "text",
@@ -132,6 +131,7 @@ export const translationTab = {
         "gpt-4o-mini",
       ),
     );
+    llmOpts.appendChild(customRows);
 
     // OpenRouter: fixed OpenAI-compatible endpoint, own key + model
     const openrouterRows = document.createElement("div");
@@ -230,6 +230,11 @@ export const translationTab = {
       translationTab._syncVisibility(pane);
       persist();
     });
+    const styleSel = pane.querySelector<HTMLSelectElement>("#tr-llm-style");
+    styleSel?.addEventListener("change", function () {
+      translationTab._syncStylePlaceholders(pane);
+      persist();
+    });
     // "input" fires on every keystroke/paste — keys are committed immediately
     [sourceSel, targetInput, llmOpts, geminiOpts].forEach((root) => {
       root
@@ -293,6 +298,7 @@ export const translationTab = {
     set("tr-grok-model", cfg.grokModel || "grok-3");
     const styleSel = pane.querySelector<HTMLSelectElement>("#tr-llm-style");
     if (styleSel) styleSel.value = cfg.llmStyle;
+    this._syncStylePlaceholders(pane);
     set("tr-gemini-model", cfg.geminiModel);
     this._syncVisibility(pane);
   },
@@ -327,6 +333,22 @@ export const translationTab = {
     return ids
       .map((id) => pane.querySelector<HTMLInputElement>("#" + id)?.value ?? "")
       .join("\u0000");
+  },
+
+  /** Placeholders for the custom URL/model fields follow the API style */
+  _syncStylePlaceholders(pane: HTMLElement): void {
+    const style =
+      pane.querySelector<HTMLSelectElement>("#tr-llm-style")?.value ?? "openai";
+    const url = pane.querySelector<HTMLInputElement>("#tr-llm-url");
+    const model = pane.querySelector<HTMLInputElement>("#tr-llm-model");
+    if (url)
+      url.placeholder =
+        style === "anthropic"
+          ? "https://api.anthropic.com"
+          : "https://api.openai.com/v1";
+    if (model)
+      model.placeholder =
+        style === "anthropic" ? "claude-sonnet-4-5" : "gpt-4o-mini";
   },
 
   _syncVisibility(pane: HTMLElement): void {
