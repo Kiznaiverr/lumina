@@ -5,6 +5,7 @@ import { ui } from "../ui";
 import { history } from "../history";
 import { canvas } from "../canvas/index";
 import { sidebar } from "../sidebar";
+import { models } from "../models";
 import type { OcrResult } from "../../types";
 
 export const ocr = {
@@ -30,6 +31,7 @@ export const ocr = {
       }>("/ocr", {
         imagePath: page.filePath,
         boxes: page.textDetections.map((d) => d.bbox),
+        model: models.selectedModel("ocr") || "manga_ocr",
       });
       if (!result || !result.results)
         throw new Error(result?.detail || "OCR failed");

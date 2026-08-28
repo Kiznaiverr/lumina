@@ -40,6 +40,7 @@ class DetectResponse(BaseModel):
 class OcrRequest(BaseModel):
     imagePath: str
     boxes: list[Bbox]
+    model: str = "manga_ocr"
 
 
 class OcrResult(BaseModel):

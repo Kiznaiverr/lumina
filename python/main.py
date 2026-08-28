@@ -78,7 +78,7 @@ def ocr(req: OcrRequest):
         from services.ocr import ocr_boxes
 
         texts = ocr_boxes(
-            req.imagePath, [b.model_dump() for b in req.boxes]
+            req.imagePath, [b.model_dump() for b in req.boxes], model=req.model
         )
         return OcrResponse(
             results=[OcrResult(index=i, text=t) for i, t in enumerate(texts)]
@@ -147,10 +147,10 @@ def inpaint(req: InpaintRequest):
 
 def _all_model_infos() -> list[dict]:
     from services.detect import get_model_info as detect_info
-    from services.ocr import get_model_info as ocr_info
+    from services.ocr import get_models_info as ocr_infos
     from services.inpaint import get_models_info as inpaint_infos
 
-    return [detect_info(), ocr_info()] + inpaint_infos()
+    return [detect_info()] + ocr_infos() + inpaint_infos()
 
 
 @app.get("/models", response_model=ModelStatus)
@@ -202,10 +202,14 @@ def model_download(req: ModelDownloadRequest):
 
     if _wants("detect") and not detect_service.is_model_ready():
         targets.append(("detect", _run_detect))
-    if _wants("ocr") and not ocr_service.is_model_ready():
-        targets.append(
-            ("ocr", lambda: ocr_service.download_model(progress_callback=_cb))
-        )
+    if _wants("ocr"):
+        ocr_ids = list(ocr_service.MODELS)
+    else:
+        ocr_ids = [x for x in (want or []) if x in ocr_service.MODELS]
+    for name in ocr_ids:
+        model = ocr_service.MODELS[name]
+        if not model.is_ready():
+            targets.append(("ocr", lambda m=model: m.download(_cb)))
 
     if _wants("inpaint"):
         inpaint_ids = list(inpaint_service.MODELS)
