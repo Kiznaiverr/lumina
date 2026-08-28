@@ -4,7 +4,11 @@
 - [x] fix sidebar and re-design
 - [x] change original/cleaned canvas to background/mask layer
 - [] improve resizing 
-- [x] fix stale tools
-- [x] three-shake lucide bundle
+- [] fix stale tools
+- [] three-shake lucide bundle
 - [] export and save features
+- [] caching managements
+- [] more efficient model description
+- [] more efficient model loading
+- [] make undo/redo different per page/image
 - [] testing and fix knowed bug
