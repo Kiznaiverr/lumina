@@ -4,8 +4,10 @@ import { state, CONST } from "../state";
 import { canvas } from "./index";
 import { contextMenu } from "../contextMenu";
 import { history } from "../history";
+import { sidebar } from "../sidebar";
 import type { BBox, TextDetection } from "../../types";
 import { groupRegistry } from "./groupRegistry";
+import { applyTextSelection } from "./selection";
 
 // ── Transformer accessors (called from render.ts) ──
 
@@ -208,12 +210,12 @@ canvas._createTextGroup = function (
     if (page.textDetections[idx].status === "auto") {
       page.textDetections[idx].status = "adjusted";
     }
-    // Re-apply synced bbox to visuals — resetting scale alone leaves the
-    // group/rect at the OLD size until next full render.
-    const d = page.textDetections[idx];
-    group.position({ x: off.x + d.bbox.x * sr, y: off.y + d.bbox.y * sr });
-    _applySizeToGroup(group, d.bbox.w * sr, d.bbox.h * sr);
-    canvas._refreshTextGroup(idx);
+    // Full re-render (mirrors textool's onNodeTransformEnd) — the old
+    // in-place re-apply left rect/anchors/OCR-text stale until the next
+    // zoom-triggered render.
+    canvas.render();
+    applyTextSelection(page._selectedTextIdx ?? null);
+    sidebar.render();
     history.snapshot();
   });
 

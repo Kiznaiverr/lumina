@@ -4,7 +4,7 @@ import { state } from "../../state";
 import { canvas } from "../index";
 import { sidebar } from "../../sidebar";
 import { history } from "../../history";
-import { layerTextNodes } from "./shared";
+import { layerTextNodes, stageToImg } from "./shared";
 
 let transformer: Konva.Transformer | null = null;
 
@@ -20,6 +20,10 @@ function ensureTransformer(): void {
   const konvaLayer = canvas.getLayer();
   if (!konvaLayer) return;
   if (!transformer) {
+    // Same visual language as the detection transformer (white square
+    // anchors, colored border) — but all 8 anchors so the text box can be
+    // resized in width, height, or both. padding keeps the handles outside
+    // the editor textarea while typing.
     transformer = new Konva.Transformer({
       rotateEnabled: false,
       enabledAnchors: [
@@ -37,7 +41,7 @@ function ensureTransformer(): void {
       anchorSize: 8,
       borderStroke: "#e94560",
       borderStrokeWidth: 1,
-      padding: 2,
+      padding: 6,
     });
     konvaLayer.add(transformer);
   }
@@ -63,7 +67,7 @@ export function syncTransformerSelection(): void {
 }
 
 /** Commit a transform back to the layer model */
-export function onNodeTransformEnd(node: Konva.Text): void {
+export function onNodeTransformEnd(node: Konva.Group): void {
   const page = state.getActivePage();
   if (!page) return;
   const id = node.getAttr("layerId") as string;
@@ -78,26 +82,32 @@ export function onNodeTransformEnd(node: Konva.Text): void {
   node.scaleY(1);
 
   const sr = canvas.getScaleRatio();
+  const p = stageToImg(node.x(), node.y());
+  const rect = node.findOne<Konva.Rect>(".layer-text-box");
+  const baseW = rect ? rect.width() : 0;
+  const baseH = rect ? rect.height() : 0;
 
-  // Corner handles scale everything proportionally (incl. explicit font size)
-  if (Math.abs(sx - 1) > 0.001 && Math.abs(sy - 1) > 0.001) {
-    const ratio = (sx + sy) / 2;
-    lay.bbox.w = Math.max(8, Math.round(lay.bbox.w * ratio));
-    lay.bbox.h = Math.max(8, Math.round(lay.bbox.h * ratio));
+  // Commit the actual rendered box — position AND size. The Transformer only
+  // writes x/y/scaleX/scaleY (never width/height), so reading them here
+  // (before the reset) captures the real dragged size.
+  lay.bbox.x = p.x;
+  lay.bbox.y = p.y;
+  lay.bbox.w = Math.max(8, Math.round((baseW * sx) / sr));
+  lay.bbox.h = Math.max(8, Math.round((baseH * sy) / sr));
+
+  if (state.activeTool === "select") {
+    // Free transform (Move tool): box AND font scale together.
     if (lay.typography.fontSize !== null) {
+      const ratio = Math.sqrt(Math.abs(sx * sy));
       lay.typography.fontSize = Math.max(
         4,
         Math.round(lay.typography.fontSize * ratio),
       );
     }
-  } else {
-    // Side handles resize the box only; explicit size falls back to auto-fit
-    const nw = Math.max(8, Math.round(node.width()));
-    const nh = Math.max(8, Math.round(node.height()));
-    lay.bbox.w = Math.round(nw / sr);
-    lay.bbox.h = Math.round(nh / sr);
-    lay.typography.fontSize = null;
   }
+  // Text tool: box-only resize (Photoshop text box) — explicit font size
+  // stays fixed and the text re-wraps; auto-fit (fontSize null) re-fits on
+  // the next render.
 
   canvas.render();
   sidebar.render();

@@ -82,31 +82,28 @@ export const typeSection = {
     row2.appendChild(this._field(i18n.t("type.style"), this._styleSelect()));
     body.appendChild(row2);
 
-    // Row 3: Alignment segmented + Direction
-    const row3 = this._grid("minmax(0,1fr) minmax(0,84px)");
+    // Row 3: Alignment (full width — direction note removed)
+    const row3 = this._grid("minmax(0,1fr)");
     row3.appendChild(
       this._field(i18n.t("type.alignment"), this._alignSegmented()),
     );
-    row3.appendChild(
-      this._field(i18n.t("type.direction"), this._directionNote()),
-    );
     body.appendChild(row3);
 
-    // Row 4: Stroke color + width
-    const row4 = this._grid("minmax(0,1fr) minmax(0,1fr)");
+    // Row 4: Border — toggle + color + width steppers
+    const row4 = this._grid("minmax(0,26px) minmax(0,1fr) minmax(0,1fr)");
     row4.appendChild(
-      this._field(i18n.t("type.strokeColor"), this._strokeColorInput()),
+      this._field(i18n.t("type.strokeColor"), this._strokeToggle()),
     );
+    row4.appendChild(this._field("", this._strokeColorInput()));
     row4.appendChild(
       this._field(i18n.t("type.strokeWidth"), this._strokeWidth()),
     );
     body.appendChild(row4);
 
-    // Row 5: Auto-fit + Background patch
-    const row5 = this._grid("minmax(0,1fr) minmax(0,1fr)");
+    // Row 5: Auto-fit — full-width button
     const autofitBtn = document.createElement("button");
     autofitBtn.id = "type-autofit";
-    autofitBtn.className = "field-select type-align-btn";
+    autofitBtn.className = "field-select type-align-btn type-autofit-btn";
     autofitBtn.textContent = i18n.t("type.autoFit");
     autofitBtn.addEventListener("click", function () {
       const page: Page | null = state.getActivePage();
@@ -117,23 +114,7 @@ export const typeSection = {
       history.snapshot();
       typeSection.refresh();
     });
-    row5.appendChild(this._field(i18n.t("type.autoFit"), autofitBtn));
-
-    const bgToggle = document.createElement("button");
-    bgToggle.id = "type-bg-patch";
-    bgToggle.className = "type-align-btn";
-    bgToggle.innerHTML = '<i data-lucide="square"></i>';
-    bgToggle.addEventListener("click", function () {
-      const page: Page | null = state.getActivePage();
-      const layer = selectedTextLayer(page);
-      if (!layer) return;
-      layer.backgroundPatch = !layer.backgroundPatch;
-      canvas.render();
-      history.snapshot();
-      typeSection.refresh();
-    });
-    row5.appendChild(this._field(i18n.t("type.bgPatch"), bgToggle));
-    body.appendChild(row5);
+    body.appendChild(autofitBtn);
   },
 
   /** Refresh control values from the selected layer */
@@ -142,8 +123,9 @@ export const typeSection = {
     if (!host) return;
     const page: Page | null = state.getActivePage();
     const layer = selectedTextLayer(page);
-    // Always visible AND always enabled: no selection edits the global
-    // defaults (which new layers inherit); selection edits the layer.
+    // Always visible; no selection edits the global defaults (which new
+    // layers inherit), selection edits the layer. Only layer-bound controls
+    // (auto-fit) are disabled without a selection.
     host.classList.remove("hidden");
     host.classList.toggle("type-disabled", false);
     host
@@ -153,6 +135,10 @@ export const typeSection = {
       .forEach(function (el) {
         el.disabled = false;
       });
+    if (!layer) {
+      const af = host.querySelector<HTMLButtonElement>("#type-autofit");
+      if (af) af.disabled = true;
+    }
     const t = layer ? layer.typography : _globalType;
     const set = function (id: string, value: string): void {
       const el = host.querySelector<HTMLInputElement | HTMLSelectElement>(
@@ -182,9 +168,17 @@ export const typeSection = {
         "active",
         !!t.strokeColor && t.strokeWidth > 0,
       );
-    // Background patch toggle visual (layer-only feature)
-    const bgToggle = host.querySelector<HTMLButtonElement>("#type-bg-patch");
-    if (bgToggle) bgToggle.classList.toggle("active", !!layer?.backgroundPatch);
+    // Color well dims while the border is off
+    const strokeColor =
+      host.querySelector<HTMLInputElement>("#type-stroke-color");
+    if (strokeColor)
+      strokeColor.classList.toggle(
+        "off",
+        !(t.strokeColor && t.strokeWidth > 0),
+      );
+    // Auto-fit active state (fontSize null = fitted by the box)
+    const autoFitBtn = host.querySelector<HTMLButtonElement>("#type-autofit");
+    if (autoFitBtn) autoFitBtn.classList.toggle("active", t.fontSize === null);
   },
 
   // ── Control factories ──
@@ -373,38 +367,32 @@ export const typeSection = {
     return wrap;
   },
 
-  _directionNote(): HTMLElement {
-    const note = document.createElement("div");
-    note.className = "field-readonly text-[0.62rem]";
-    note.textContent = i18n.t("type.horizontalOnly");
-    return note;
+  /** Border on/off toggle — works on the selected layer, or the global
+   * default when nothing is selected. */
+  _strokeToggle(): HTMLElement {
+    const toggle = document.createElement("button");
+    toggle.id = "type-stroke-on";
+    toggle.className = "type-align-btn type-square-toggle";
+    toggle.innerHTML = '<i data-lucide="square"></i>';
+    toggle.title = i18n.t("type.strokeColor");
+    toggle.addEventListener("click", function () {
+      if (typeSection._strokeActive()) {
+        typeSection._apply({ strokeColor: null, strokeWidth: 0 });
+      } else {
+        typeSection._apply({
+          strokeColor: typeSection._currentStrokeColor(),
+          strokeWidth: Math.max(1, typeSection._currentStrokeWidth()),
+        });
+      }
+    });
+    return toggle;
   },
 
   _strokeColorInput(): HTMLElement {
-    const wrap = document.createElement("div");
-    wrap.className = "flex items-center gap-1";
-    const toggle = document.createElement("button");
-    toggle.id = "type-stroke-on";
-    toggle.className = "type-align-btn";
-    toggle.innerHTML = '<i data-lucide="square"></i>';
-    toggle.addEventListener("click", function () {
-      const page: Page | null = state.getActivePage();
-      const layer = selectedTextLayer(page);
-      if (!layer) return;
-      const on =
-        !!layer.typography.strokeColor && layer.typography.strokeWidth > 0;
-      if (on) {
-        typeSection._apply({ strokeColor: null, strokeWidth: 0 });
-      } else {
-        typeSection._apply({ strokeColor: "#ffffff", strokeWidth: 2 });
-      }
-    });
-    wrap.appendChild(toggle);
-
     const input = document.createElement("input");
     input.type = "color";
     input.id = "type-stroke-color";
-    input.className = "type-color-well";
+    input.className = "type-color-well type-color-well-flex";
     input.value = "#ffffff";
     input.addEventListener("input", function () {
       typeSection._apply({
@@ -412,20 +400,24 @@ export const typeSection = {
         strokeWidth: Math.max(1, typeSection._currentStrokeWidth()),
       });
     });
-    wrap.appendChild(input);
-    return wrap;
+    return input;
+  },
+
+  _strokeActive(): boolean {
+    const page: Page | null = state.getActivePage();
+    const layer = selectedTextLayer(page);
+    const t = layer ? layer.typography : _globalType;
+    return !!t.strokeColor && t.strokeWidth > 0;
   },
 
   _strokeWidth(): HTMLElement {
-    const wrap = document.createElement("div");
-    wrap.className = "flex items-center gap-1";
     const minus = document.createElement("button");
     minus.className = "type-step-btn";
     minus.textContent = "−";
     const num = document.createElement("input");
     num.type = "number";
     num.id = "type-stroke-width";
-    num.className = "field-select w-full min-w-0";
+    num.className = "field-select type-width-num";
     num.min = "0";
     num.max = "20";
     num.step = "0.5";
@@ -447,6 +439,8 @@ export const typeSection = {
         strokeColor: v > 0 ? typeSection._currentStrokeColor() : null,
       });
     });
+    const wrap = document.createElement("div");
+    wrap.className = "flex items-center gap-1";
     wrap.appendChild(minus);
     wrap.appendChild(num);
     wrap.appendChild(plus);
@@ -455,7 +449,7 @@ export const typeSection = {
 
   _currentStrokeWidth(): number {
     const el = document.getElementById("type-stroke-width") as HTMLInputElement;
-    return el ? parseFloat(el.value || "0") : 2;
+    return el ? parseFloat(el.value || "0") : 4;
   },
 
   _currentStrokeColor(): string | null {
@@ -476,5 +470,6 @@ export const typeSection = {
     Object.assign(layer.typography, patch);
     canvas.render();
     history.snapshot();
+    typeSection.refresh(); // keep toggles/segments/alerts in sync
   },
 };

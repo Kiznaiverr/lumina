@@ -761,6 +761,51 @@ body.resizing-row {
   background: #e94560;
   color: #fff;
 }
+.type-square-toggle {
+  width: 100%;
+  height: 26px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.type-square-toggle:hover {
+  border-color: #555;
+}
+.type-square-toggle.active {
+  background: #e94560;
+  color: #fff;
+  border-color: #e94560;
+}
+.type-color-well.off {
+  opacity: 0.45;
+}
+.type-width-num {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+}
+.type-autofit-btn {
+  width: 100%;
+  height: 26px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.type-autofit-btn:hover {
+  background: #2a2a2a;
+  color: #fff;
+}
+.type-autofit-btn.active {
+  background: #e94560;
+  color: #fff;
+  border-color: #e94560;
+}
+.type-autofit-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
 
 /* ── Layer editor (source/translation) ── */
 .layer-editor {

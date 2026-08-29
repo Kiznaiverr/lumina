@@ -4,7 +4,7 @@ import { state } from "../../state";
 import { canvas } from "../index";
 
 /** All layer text nodes currently on the stage (visual + interactive) */
-export const layerTextNodes: Konva.Text[] = [];
+export const layerTextNodes: Konva.Group[] = [];
 
 let editor: HTMLTextAreaElement | null = null;
 export let editingLayerId: string | null = null;

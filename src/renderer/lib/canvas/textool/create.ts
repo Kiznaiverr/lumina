@@ -5,6 +5,7 @@ import { sidebar } from "../../sidebar";
 import { history } from "../../history";
 import { defaultTypography, loadGlobalTypography } from "../../../types";
 import type { PageLayer } from "../../../types";
+import { t } from "../../i18n";
 import { startEdit } from "./editor";
 
 export function createLayer(
@@ -31,14 +32,16 @@ export function createLayer(
   return layer;
 }
 
-/** Create a new empty layer and immediately open the editor on it */
+/** Create a new empty layer and immediately open the editor on it. The text
+ * is seeded with a placeholder so the box is immediately visible — it is
+ * selected (ta.select()), so typing replaces it right away. */
 export function createAndEdit(bbox: {
   x: number;
   y: number;
   w: number;
   h: number;
 }): void {
-  const lay = createLayer(bbox, "");
+  const lay = createLayer(bbox, t("text.placeholder"));
   if (!lay) return;
   canvas.render();
   sidebar.render();

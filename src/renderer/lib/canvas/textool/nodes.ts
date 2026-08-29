@@ -4,14 +4,27 @@ import { state } from "../../state";
 import { canvas } from "../index";
 import { sidebar } from "../../sidebar";
 import { history } from "../../history";
-import { layerTextNodes, isEditing, stageToImg } from "./shared";
+import { tools } from "../../tools";
+import {
+  layerTextNodes,
+  isEditing,
+  stageToImg,
+  getEditingLayerId,
+} from "./shared";
+
+// Manual double-click detection. selectLayer() full-renders, which destroys
+// the node mid-gesture and breaks Konva's native dblclick — a timestamp
+// check in the click handler is immune to that.
+const _lastClickAt: Record<string, number> = {};
 import { makeNode } from "./nodeFactory";
 import {
   syncTransformerSelection,
   onNodeTransformEnd,
   resetTransformer,
+  getTransformer,
 } from "./transformer";
-import { startEdit } from "./editor";
+import { getEditor } from "./shared";
+import { startEdit, syncEditorBox, refreshEditingState } from "./editor";
 
 /** Rebuild all layer text nodes on the stage. One Konva.Text per layer —
  * both the visual rendering and the interaction target. */
@@ -33,38 +46,22 @@ export function renderLayerTextNodes(): void {
     const text = lay.translation || lay.source || "";
     if (!text) return;
     const node = makeNode(lay, text);
-    // backgroundPatch: white rounded-rect backing drawn behind the text
-    if (lay.backgroundPatch) {
-      const sr = canvas.getScaleRatio();
-      const pad = Math.max(6, (lay.typography.fontSize || 20) / 2) * sr;
-      const backing = new Konva.Rect({
-        name: "layer-text-backing",
-        x: node.x() - pad,
-        y: node.y() - pad,
-        width: node.width() + pad * 2,
-        height: node.height() + pad * 2,
-        cornerRadius: Math.max(4, (lay.typography.fontSize || 20) / 2) * sr,
-        fill: "#ffffff",
-        listening: false,
-      });
-      konvaLayer.add(backing);
-    }
     node.on("click tap", function (e) {
       e.cancelBubble = true;
       if (isEditing()) return;
-      // In text tool mode: single-click starts edit immediately (Photoshop).
-      // Otherwise: select + show transformer; double-click to edit.
-      if (state.activeTool === "text") {
+      const now = Date.now();
+      if (now - (_lastClickAt[lay.id] || 0) < 350) {
+        // Double-click → edit in place (switching to the text tool first).
+        delete _lastClickAt[lay.id];
+        if (state.activeTool !== "text") tools.setActive("text");
         startEdit(lay.id);
-      } else {
-        canvas.selectLayer(lay.id);
-        syncTransformerSelection();
-        canvas.getLayer()?.draw();
+        return;
       }
-    });
-    node.on("dblclick dbltap", function (e) {
-      e.cancelBubble = true;
-      startEdit(lay.id);
+      _lastClickAt[lay.id] = now;
+      // Click = select (shows transform handles).
+      canvas.selectLayer(lay.id);
+      syncTransformerSelection();
+      canvas.getLayer()?.draw();
     });
     node.on("dragend", function () {
       const img = stageToImg(node.x(), node.y());
@@ -80,6 +77,18 @@ export function renderLayerTextNodes(): void {
     });
     node.on("transformend", function () {
       onNodeTransformEnd(node);
+      // Box was resized with the transformer while editing — onNodeTransformEnd()
+      // full-renders, so re-hide the fresh node's glyphs, keep the handles
+      // attached and move the textarea to the new box.
+      if (getEditingLayerId() === lay.id) {
+        refreshEditingState();
+        const ta = getEditor();
+        if (ta) {
+          ta.focus();
+          const len = ta.value.length;
+          ta.setSelectionRange(len, len);
+        }
+      }
     });
     konvaLayer.add(node);
     layerTextNodes.push(node);
@@ -87,4 +96,7 @@ export function renderLayerTextNodes(): void {
 
   syncTransformerSelection();
   konvaLayer.draw();
+  // Full render (zoom/pan) while editing must not show the committed text
+  // as a "shadow" under the textarea — re-hide glyphs + re-sync the editor.
+  refreshEditingState();
 }

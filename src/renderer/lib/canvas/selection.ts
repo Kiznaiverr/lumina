@@ -6,6 +6,7 @@ import { canvas } from "./index";
 import { TEXT_COLOR } from "./render";
 import { sidebar } from "../sidebar";
 import { groupRegistry } from "./groupRegistry";
+import { syncTransformerSelection } from "./textool/transformer";
 import type { Page } from "../../types";
 
 // ── Clear groups (called before re-render) ──
@@ -70,6 +71,10 @@ export function applyTextSelection(idx: number | null): void {
       tTransformer.nodes([]);
     }
   }
+  // Also clear the text-tool transformer so its selection border disappears
+  // on deselect — it follows _selectedLayerId which selectTextDetection
+  // already reset (zoom used to hide this because it full re-renders).
+  syncTransformerSelection();
   canvas._updateStatus();
   const layer1 = canvas.getLayer();
   if (layer1) layer1.draw();
@@ -177,4 +182,8 @@ canvas.onToolChange = function (tool: string): void {
   if (tTransformer && tool !== "select") tTransformer.nodes([]);
   // Re-render so layer text nodes pick up the right interactivity mode
   canvas.render();
+  // Konva may have left a stale inline resize cursor on stage.content from a
+  // previous transformer drag — clear it so the new tool's cursor applies.
+  const stage = canvas.getStage();
+  if (stage && stage.content) stage.content.style.cursor = "";
 };

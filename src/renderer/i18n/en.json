@@ -157,6 +157,7 @@
   "layers.background": "Background",
   "layers.sourcePlaceholder": "OCR source text…",
   "layers.translationPlaceholder": "Translated text…",
+  "text.placeholder": "Lorem ipsum dolor sit amet",
 
   "type.title": "Type",
   "type.font": "Font",
@@ -165,7 +166,6 @@
   "type.weight": "Weight",
   "type.style": "Style",
   "type.alignment": "Alignment",
-  "type.direction": "Direction",
   "type.strokeColor": "Border",
   "type.strokeWidth": "Width",
   "type.defaultFont": "Default",
@@ -173,10 +173,8 @@
   "type.presets": "Size presets",
   "type.styles.normal": "Regular",
   "type.styles.italic": "Italic",
-  "type.horizontalOnly": "Horizontal only",
   "type.searchFont": "Search fonts…",
   "type.autoFit": "Auto-fit",
-  "type.bgPatch": "White backing",
   "type.collapse": "Collapse",
   "type.expand": "Expand",
 

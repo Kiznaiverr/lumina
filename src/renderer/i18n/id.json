@@ -157,6 +157,7 @@
   "layers.background": "Latar Belakang",
   "layers.sourcePlaceholder": "Teks sumber OCR…",
   "layers.translationPlaceholder": "Teks terjemahan…",
+  "text.placeholder": "Lorem ipsum dolor sit amet",
 
   "type.title": "Teks",
   "type.font": "Font",
@@ -165,7 +166,6 @@
   "type.weight": "Ketebalan",
   "type.style": "Gaya",
   "type.alignment": "Perataan",
-  "type.direction": "Arah",
   "type.strokeColor": "Outline",
   "type.strokeWidth": "Lebar",
   "type.defaultFont": "Default",
@@ -173,10 +173,8 @@
   "type.presets": "Preset ukuran",
   "type.styles.normal": "Normal",
   "type.styles.italic": "Miring",
-  "type.horizontalOnly": "Hanya horizontal",
   "type.searchFont": "Cari font…",
   "type.autoFit": "Auto-fit",
-  "type.bgPatch": "Alas putih",
   "type.collapse": "Ciutkan",
   "type.expand": "Perluas",
 

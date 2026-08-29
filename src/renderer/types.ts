@@ -106,8 +106,6 @@ export interface PageLayer {
   opacity: number; // 0-1
   /** Result of the last auto-fit — drives the "needs review" badge */
   fitStatus?: "ok" | "overflow-tolerated" | "forced-minimum";
-  /** White rounded-rect backing behind text (for flat caption boxes) */
-  backgroundPatch?: boolean;
 }
 
 export interface InpaintMask {

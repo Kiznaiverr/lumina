@@ -1,17 +1,20 @@
-- [] fix auto-fit button in type section
+- [x] fix auto-fit button in type section
 - [] plugable model (done partially)
 - [x] model management in settings
 - [x] fix sidebar and re-design
 - [x] change original/cleaned canvas to background/mask layer
+- [] improve type section UI
 - [] auto colloring text based on detected text color
 - [] improve model selection and management UI
-- [] improve resizing 
-- [] fix stale tools
+- [x] improve resizing 
+- [x] fix stale tools
+- [x] fix text tool
 - [] three-shake lucide bundle
 - [] export and save features
 - [] caching managements
 - [] more efficient model description
 - [] more efficient model loading
 - [] make undo/redo different per page/image
+- [] add more tools
 - [] onnx runtime with gpu acceleration support
-- [] testing and fix knowed bug
+- [] testing and hunt another bugs
