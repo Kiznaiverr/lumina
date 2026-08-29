@@ -33,6 +33,8 @@ export interface TextDetection extends BaseDetection {
   text?: string;
   /** Translation result — empty until translate runs */
   translated?: string;
+  /** Dominant glyph color of the box (#rrggbb) from the detect step */
+  textColor?: string;
 }
 
 export interface BubbleDetection extends BaseDetection {}
@@ -152,6 +154,7 @@ export interface DetectResult {
     bbox: BBox;
     type?: TextType;
     confidence?: number;
+    textColor?: string;
   }>;
   /* bubbleDetections intentionally ignored by the FE — inpaint & OCR only
    * need text boxes. Backend still returns them for future use. */

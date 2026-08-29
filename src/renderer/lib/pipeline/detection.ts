@@ -50,6 +50,7 @@ export const detection = {
             type: d.type,
             confidence: d.confidence || 0,
             status: "auto",
+            textColor: d.textColor,
           }),
         ),
       );
@@ -69,10 +70,12 @@ export const detection = {
           bbox: Object.assign({}, d.bbox),
           source: d.text || "",
           translation: d.translated || "",
-          // New dialogue layers inherit the global type defaults
+          // New dialogue layers inherit the global type defaults; the
+          // detected glyph color overrides the default color when available.
           typography: Object.assign(
             defaultTypography(),
             loadGlobalTypography(),
+            d.textColor ? { color: d.textColor } : {},
           ),
           visible: true,
           opacity: 1,

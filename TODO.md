@@ -1,12 +1,12 @@
 - [x] fix auto-fit button in type section
-- [x] plugable model 
+- [x] plugable model
 - [x] model management in settings
 - [x] fix sidebar and re-design
 - [x] change original/cleaned canvas to background/mask layer
 - [] improve type section UI
-- [] auto colloring text based on detected text color
+- [x] auto colloring text based on detected text color
 - [] improve model selection and management UI
-- [x] improve resizing 
+- [x] improve resizing
 - [x] fix stale tools
 - [x] fix text tool
 - [] three-shake lucide bundle

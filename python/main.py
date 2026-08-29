@@ -55,8 +55,16 @@ def detect(req: DetectRequest):
         from services.detect import detect as run_detect
 
         result = run_detect(req.imagePath, model=req.model)
+        texts = result["textDetections"]
+        if texts:
+            from services.color import detect_text_colors
+
+            colors = detect_text_colors(req.imagePath, [t["bbox"] for t in texts])
+            for det, color in zip(texts, colors):
+                if color:
+                    det["textColor"] = color
         return DetectResponse(
-            textDetections=[TextDetection(**d) for d in result["textDetections"]],
+            textDetections=[TextDetection(**d) for d in texts],
             bubbleDetections=[BubbleDetection(**d) for d in result["bubbleDetections"]],
         )
     except Exception as e:

@@ -15,6 +15,7 @@ class TextDetection(BaseModel):
     bbox: Bbox
     type: str  # "text_bubble" | "text_free"
     confidence: float
+    textColor: str | None = None  # dominant glyph color of the box (#rrggbb)
 
 
 class BubbleDetection(BaseModel):
