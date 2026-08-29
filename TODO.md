@@ -5,11 +5,13 @@
 - [x] change original/cleaned canvas to background/mask layer
 - [] improve type section UI
 - [x] auto colloring text based on detected text color
+- [x] text rotation (auto-detected slant + manual control)
 - [] improve model selection and management UI
 - [x] improve resizing
 - [x] fix stale tools
 - [x] fix text tool
-- [] three-shake lucide bundle
+- [x] rotation tool
+- [] tree-shake lucide bundle
 - [] export and save features
 - [] caching managements
 - [] more efficient model description

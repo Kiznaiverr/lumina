@@ -100,7 +100,14 @@ export const typeSection = {
     );
     body.appendChild(row4);
 
-    // Row 5: Auto-fit — full-width button
+    // Row 5: Rotation — stepper + reset-to-0
+    const row5 = this._grid("minmax(0,1fr)");
+    row5.appendChild(
+      this._field(i18n.t("type.rotation"), this._rotationField()),
+    );
+    body.appendChild(row5);
+
+    // Row 6: Auto-fit — full-width button
     const autofitBtn = document.createElement("button");
     autofitBtn.id = "type-autofit";
     autofitBtn.className = "field-select type-align-btn type-autofit-btn";
@@ -153,6 +160,7 @@ export const typeSection = {
     set("type-style", t.fontStyle);
     set("type-stroke-color", t.strokeColor || "#ffffff");
     set("type-stroke-width", String(t.strokeWidth));
+    set("type-rotation", String(Math.round(t.rotation)));
 
     // Alignment segmented active state
     host
@@ -450,6 +458,52 @@ export const typeSection = {
   _currentStrokeWidth(): number {
     const el = document.getElementById("type-stroke-width") as HTMLInputElement;
     return el ? parseFloat(el.value || "0") : 4;
+  },
+
+  _rotationField(): HTMLElement {
+    const wrap = document.createElement("div");
+    wrap.className = "flex items-center gap-1";
+    const minus = document.createElement("button");
+    minus.className = "type-step-btn";
+    minus.textContent = "−";
+    const num = document.createElement("input");
+    num.type = "number";
+    num.id = "type-rotation";
+    num.className = "field-select type-width-num";
+    num.min = "-45";
+    num.max = "45";
+    num.step = "1";
+    num.value = "0";
+    const plus = document.createElement("button");
+    plus.className = "type-step-btn";
+    plus.textContent = "+";
+    const reset = document.createElement("button");
+    reset.id = "type-rotation-reset";
+    reset.className = "type-step-btn";
+    reset.textContent = "↺";
+    reset.title = i18n.t("type.rotationReset");
+    const commit = function (): void {
+      const v = Math.max(-45, Math.min(45, parseFloat(num.value || "0")));
+      typeSection._apply({ rotation: Number.isFinite(v) ? v : 0 });
+    };
+    minus.addEventListener("click", function () {
+      num.value = String(Math.max(-45, parseFloat(num.value || "0") - 1));
+      commit();
+    });
+    plus.addEventListener("click", function () {
+      num.value = String(Math.min(45, parseFloat(num.value || "0") + 1));
+      commit();
+    });
+    reset.addEventListener("click", function () {
+      num.value = "0";
+      commit();
+    });
+    num.addEventListener("change", commit);
+    wrap.appendChild(minus);
+    wrap.appendChild(num);
+    wrap.appendChild(plus);
+    wrap.appendChild(reset);
+    return wrap;
   },
 
   _currentStrokeColor(): string | null {

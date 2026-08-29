@@ -25,7 +25,7 @@ function ensureTransformer(): void {
     // resized in width, height, or both. padding keeps the handles outside
     // the editor textarea while typing.
     transformer = new Konva.Transformer({
-      rotateEnabled: false,
+      rotateEnabled: true,
       enabledAnchors: [
         "top-left",
         "top-center",
@@ -66,6 +66,13 @@ export function syncTransformerSelection(): void {
   }
 }
 
+/** Wrap an angle to (-180, 180] */
+function normalizeRotation(deg: number): number {
+  let r = ((deg % 360) + 360) % 360;
+  if (r > 180) r -= 360;
+  return Math.round(r);
+}
+
 /** Commit a transform back to the layer model */
 export function onNodeTransformEnd(node: Konva.Group): void {
   const page = state.getActivePage();
@@ -80,6 +87,17 @@ export function onNodeTransformEnd(node: Konva.Group): void {
   const sy = node.scaleY();
   node.scaleX(1);
   node.scaleY(1);
+
+  // Rotation: the Transformer rotates the group around the box center
+  // (each gesture starts at group rotation 0), so the applied delta stacks
+  // on top of the text's own typo.rotation. Commit the total and reset.
+  const deltaRot = node.rotation();
+  node.rotation(0);
+  if (deltaRot !== 0) {
+    lay.typography.rotation = normalizeRotation(
+      (lay.typography.rotation || 0) + deltaRot,
+    );
+  }
 
   const sr = canvas.getScaleRatio();
   const p = stageToImg(node.x(), node.y());

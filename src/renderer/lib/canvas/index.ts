@@ -319,8 +319,9 @@ function _bindHoverCursor(): void {
     return "default";
   };
 
-  // Transformer anchors are named after the 8 resize handles (rotation is
-  // disabled). Konva maps these to CSS resize cursors — we mirror that map.
+  // Transformer anchors are named after the 8 resize handles, plus the
+  // rotate handle ("rotater"). Konva maps these to CSS resize cursors (the
+  // rotater defaults to crosshair) — we mirror that map.
   const anchorCursor: Record<string, string> = {
     "top-left": "nwse-resize",
     "top-right": "nesw-resize",
@@ -330,6 +331,7 @@ function _bindHoverCursor(): void {
     "bottom-center": "ns-resize",
     "middle-left": "ew-resize",
     "middle-right": "ew-resize",
+    rotater: "crosshair",
   };
 
   const setCursor = function (cursor: string): void {

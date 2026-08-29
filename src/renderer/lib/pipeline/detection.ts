@@ -51,6 +51,7 @@ export const detection = {
             confidence: d.confidence || 0,
             status: "auto",
             textColor: d.textColor,
+            textAngle: d.textAngle,
           }),
         ),
       );
@@ -71,11 +72,12 @@ export const detection = {
           source: d.text || "",
           translation: d.translated || "",
           // New dialogue layers inherit the global type defaults; the
-          // detected glyph color overrides the default color when available.
+          // detected glyph color + slant override the defaults when available.
           typography: Object.assign(
             defaultTypography(),
             loadGlobalTypography(),
             d.textColor ? { color: d.textColor } : {},
+            typeof d.textAngle === "number" ? { rotation: d.textAngle } : {},
           ),
           visible: true,
           opacity: 1,

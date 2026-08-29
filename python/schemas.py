@@ -16,6 +16,7 @@ class TextDetection(BaseModel):
     type: str  # "text_bubble" | "text_free"
     confidence: float
     textColor: str | None = None  # dominant glyph color of the box (#rrggbb)
+    textAngle: float | None = None  # text slant in degrees, [-45, 45]; 0 = horizontal
 
 
 class BubbleDetection(BaseModel):

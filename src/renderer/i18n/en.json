@@ -177,6 +177,8 @@
   "type.autoFit": "Auto-fit",
   "type.collapse": "Collapse",
   "type.expand": "Expand",
+  "type.rotation": "Rotation",
+  "type.rotationReset": "Reset to 0",
 
   "shortcuts.title": "Keyboard Shortcuts",
   "shortcuts.undo": "Undo",

@@ -177,6 +177,8 @@
   "type.autoFit": "Auto-fit",
   "type.collapse": "Ciutkan",
   "type.expand": "Perluas",
+  "type.rotation": "Rotasi",
+  "type.rotationReset": "Reset ke 0",
 
   "shortcuts.title": "Shortcut Keyboard",
   "shortcuts.undo": "Undo",

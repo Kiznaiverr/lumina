@@ -57,12 +57,14 @@ def detect(req: DetectRequest):
         result = run_detect(req.imagePath, model=req.model)
         texts = result["textDetections"]
         if texts:
-            from services.color import detect_text_colors
+            from services.color import detect_text_styles
 
-            colors = detect_text_colors(req.imagePath, [t["bbox"] for t in texts])
-            for det, color in zip(texts, colors):
-                if color:
-                    det["textColor"] = color
+            styles = detect_text_styles(req.imagePath, [t["bbox"] for t in texts])
+            for det, style in zip(texts, styles):
+                if style["color"]:
+                    det["textColor"] = style["color"]
+                if style["angle"] is not None:
+                    det["textAngle"] = style["angle"]
         return DetectResponse(
             textDetections=[TextDetection(**d) for d in texts],
             bubbleDetections=[BubbleDetection(**d) for d in result["bubbleDetections"]],

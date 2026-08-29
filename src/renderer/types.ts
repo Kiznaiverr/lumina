@@ -35,6 +35,8 @@ export interface TextDetection extends BaseDetection {
   translated?: string;
   /** Dominant glyph color of the box (#rrggbb) from the detect step */
   textColor?: string;
+  /** Text slant in degrees, [-45, 45]; 0 = horizontal (from the detect step) */
+  textAngle?: number;
 }
 
 export interface BubbleDetection extends BaseDetection {}
@@ -55,6 +57,8 @@ export interface Typography {
   color: string; // hex
   strokeColor: string | null; // outline, null = off
   strokeWidth: number;
+  /** Clockwise degrees, 0 = horizontal (auto-detected from original text) */
+  rotation: number;
 }
 
 export function defaultTypography(): Typography {
@@ -67,6 +71,7 @@ export function defaultTypography(): Typography {
     color: "#111111",
     strokeColor: null,
     strokeWidth: 0,
+    rotation: 0,
   };
 }
 
@@ -155,6 +160,7 @@ export interface DetectResult {
     type?: TextType;
     confidence?: number;
     textColor?: string;
+    textAngle?: number;
   }>;
   /* bubbleDetections intentionally ignored by the FE — inpaint & OCR only
    * need text boxes. Backend still returns them for future use. */
