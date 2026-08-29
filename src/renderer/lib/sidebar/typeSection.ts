@@ -78,6 +78,35 @@ let _openFontWrap: HTMLElement | null = null;
   });
 }
 
+// Persisted picker geometry — survives sidebar rebuilds and app restarts,
+// so the user doesn't have to re-drag/resize after every font pick.
+const PICKER_POS_KEY = "lumina:fontPickerPos";
+const PICKER_SIZE_KEY = "lumina:fontPickerSize";
+let _pickerPos: { x: number; y: number } | null = null;
+let _pickerSize: { w: number; h: number } | null = null;
+{
+  const rawPos = localStorage.getItem(PICKER_POS_KEY);
+  if (rawPos) {
+    try {
+      const p = JSON.parse(rawPos) as { x?: unknown; y?: unknown };
+      if (typeof p.x === "number" && typeof p.y === "number")
+        _pickerPos = { x: p.x, y: p.y };
+    } catch {
+      /* ignore */
+    }
+  }
+  const rawSize = localStorage.getItem(PICKER_SIZE_KEY);
+  if (rawSize) {
+    try {
+      const s = JSON.parse(rawSize) as { w?: unknown; h?: unknown };
+      if (typeof s.w === "number" && typeof s.h === "number")
+        _pickerSize = { w: s.w, h: s.h };
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 function selectedTextLayer(page: Page | null): PageLayer | null {
   if (!page || !page._selectedLayerId) return null;
   const layer = page.layers.find(function (l) {
@@ -146,29 +175,28 @@ export const typeSection = {
     );
     body.appendChild(row3);
 
-    // Row 4: Border — toggle + color + width steppers
-    const row4 = this._grid("minmax(0,26px) minmax(0,1fr) minmax(0,1fr)");
-    row4.appendChild(
-      this._field(i18n.t("type.strokeColor"), this._strokeToggle()),
-    );
-    row4.appendChild(this._field("", this._strokeColorInput()));
+    // Row 4: Border — toggle + color well (one field so they align), width
+    const row4 = this._grid("minmax(0,1fr) minmax(0,1fr)");
+    const borderGroup = document.createElement("div");
+    borderGroup.className = "flex items-center gap-1 min-w-0";
+    borderGroup.appendChild(this._strokeToggle());
+    borderGroup.appendChild(this._strokeColorInput());
+    row4.appendChild(this._field(i18n.t("type.strokeColor"), borderGroup));
     row4.appendChild(
       this._field(i18n.t("type.strokeWidth"), this._strokeWidth()),
     );
     body.appendChild(row4);
 
-    // Row 5: Rotation — stepper + reset-to-0
-    const row5 = this._grid("minmax(0,1fr)");
+    // Row 5: Rotation stepper + compact Auto-fit on the same row
+    const row5 = this._grid("minmax(0,1fr) auto");
     row5.appendChild(
       this._field(i18n.t("type.rotation"), this._rotationField()),
     );
-    body.appendChild(row5);
-
-    // Row 6: Auto-fit — full-width button
     const autofitBtn = document.createElement("button");
     autofitBtn.id = "type-autofit";
-    autofitBtn.className = "field-select type-align-btn type-autofit-btn";
+    autofitBtn.className = "type-align-btn type-autofit-btn";
     autofitBtn.textContent = i18n.t("type.autoFit");
+    autofitBtn.title = i18n.t("type.autoFit");
     autofitBtn.addEventListener("click", function () {
       const page: Page | null = state.getActivePage();
       const layer = selectedTextLayer(page);
@@ -178,7 +206,8 @@ export const typeSection = {
       history.snapshot();
       typeSection.refresh();
     });
-    body.appendChild(autofitBtn);
+    row5.appendChild(autofitBtn);
+    body.appendChild(row5);
   },
 
   /** Refresh control values from the selected layer */
@@ -304,6 +333,19 @@ export const typeSection = {
     const panel = document.createElement("div");
     panel.className = "font-picker-panel";
     panel.hidden = true;
+    // Restore the persisted size (drag position is applied on open())
+    if (_pickerSize) {
+      panel.style.width = _pickerSize.w + "px";
+      panel.style.height = _pickerSize.h + "px";
+    }
+    // Persist size changes (CSS resize:both handle) as they happen
+    const ro = new ResizeObserver(function (entries) {
+      if (panel.hidden) return; // display:none reports 0×0
+      const r = entries[entries.length - 1].contentRect;
+      _pickerSize = { w: Math.round(r.width), h: Math.round(r.height) };
+      localStorage.setItem(PICKER_SIZE_KEY, JSON.stringify(_pickerSize));
+    });
+    ro.observe(panel);
     const head = document.createElement("div");
     head.className = "font-picker-panel-head";
     const title = document.createElement("span");
@@ -427,16 +469,32 @@ export const typeSection = {
       search.value = "";
       renderList();
       panel.hidden = false;
-      // Position below the trigger, then flip/clamp if it would overflow
-      const tr = trigger.getBoundingClientRect();
-      panel.style.left = tr.left + "px";
-      panel.style.top = tr.bottom + 4 + "px";
       const pr = panel.getBoundingClientRect();
-      if (pr.bottom > window.innerHeight - 8) {
-        panel.style.top = Math.max(8, tr.top - pr.height - 4) + "px";
-      }
-      if (pr.right > window.innerWidth - 8) {
-        panel.style.left = Math.max(8, window.innerWidth - pr.width - 8) + "px";
+      if (_pickerPos) {
+        // Restore the last position, clamped to the current viewport
+        panel.style.left =
+          Math.max(
+            8,
+            Math.min(_pickerPos.x, window.innerWidth - pr.width - 8),
+          ) + "px";
+        panel.style.top =
+          Math.max(
+            8,
+            Math.min(_pickerPos.y, window.innerHeight - pr.height - 8),
+          ) + "px";
+      } else {
+        // Position below the trigger, then flip/clamp if it would overflow
+        const tr = trigger.getBoundingClientRect();
+        panel.style.left = tr.left + "px";
+        panel.style.top = tr.bottom + 4 + "px";
+        const pr2 = panel.getBoundingClientRect();
+        if (pr2.bottom > window.innerHeight - 8) {
+          panel.style.top = Math.max(8, tr.top - pr2.height - 4) + "px";
+        }
+        if (pr2.right > window.innerWidth - 8) {
+          panel.style.left =
+            Math.max(8, window.innerWidth - pr2.width - 8) + "px";
+        }
       }
       _openFontPicker = panel;
       _openFontWrap = wrap;
@@ -468,6 +526,11 @@ export const typeSection = {
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
         document.body.style.userSelect = "";
+        _pickerPos = {
+          x: parseFloat(panel.style.left) || 0,
+          y: parseFloat(panel.style.top) || 0,
+        };
+        localStorage.setItem(PICKER_POS_KEY, JSON.stringify(_pickerPos));
       };
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
@@ -684,7 +747,7 @@ export const typeSection = {
       });
     });
     const wrap = document.createElement("div");
-    wrap.className = "flex items-center gap-1";
+    wrap.className = "flex items-center gap-1 type-stepper type-stepper-w";
     wrap.appendChild(minus);
     wrap.appendChild(num);
     wrap.appendChild(plus);
@@ -698,7 +761,7 @@ export const typeSection = {
 
   _rotationField(): HTMLElement {
     const wrap = document.createElement("div");
-    wrap.className = "flex items-center gap-1";
+    wrap.className = "flex items-center gap-1 type-stepper type-stepper-r";
     const minus = document.createElement("button");
     minus.className = "type-step-btn";
     minus.textContent = "−";

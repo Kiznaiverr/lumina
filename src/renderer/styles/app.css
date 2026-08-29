@@ -638,11 +638,8 @@ body.resizing-settings * {
 .type-section {
   max-height: 240px;
 }
-/* Cap the controls' width so they stay compact when the sidebar is
-   resized wider (the layer/mask list still uses the full width). */
-#type-body {
-  max-width: 248px;
-}
+/* The type section follows the sidebar width — controls stretch/fill their
+   grid tracks so resizing never leaves a gap on the right. */
 
 /* ── Sidebar vertical splitter (Type / Layers, Photoshop-style) ── */
 .sidebar-splitter {
@@ -691,6 +688,10 @@ body.resizing-row {
   border: 1px solid #333;
   border-radius: 4px;
   cursor: pointer;
+}
+.type-color-well-flex {
+  flex: 1;
+  min-width: 0;
 }
 .type-size-btn,
 .type-step-btn {
@@ -762,11 +763,11 @@ body.resizing-row {
   color: #fff;
 }
 .type-square-toggle {
-  width: 100%;
+  width: 26px;
   height: 26px;
+  flex-shrink: 0;
   border: 1px solid #333;
   border-radius: 4px;
-  flex-shrink: 0;
 }
 .type-square-toggle:hover {
   border-color: #555;
@@ -784,9 +785,20 @@ body.resizing-row {
   min-width: 0;
   height: 26px;
 }
-.type-autofit-btn {
+.type-stepper {
   width: 100%;
+}
+.type-stepper .type-width-num {
+  min-width: 28px;
+  padding-left: 2px;
+  padding-right: 2px;
+  text-align: center;
+}
+.type-autofit-btn {
   height: 26px;
+  align-self: end;
+  padding: 0 10px;
+  white-space: nowrap;
   border: 1px solid #333;
   border-radius: 4px;
   font-size: 0.66rem;
