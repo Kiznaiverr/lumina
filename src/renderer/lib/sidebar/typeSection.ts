@@ -21,6 +21,63 @@ let _collapsed = localStorage.getItem(TYPE_COLLAPSED_KEY) === "1";
 /** Global type defaults — new layers inherit these (Photoshop-style) */
 let _globalType: Typography = loadGlobalTypography();
 
+const RECENT_FONTS_KEY = "lumina:recentFonts";
+const MAX_RECENT_FONTS = 5;
+
+/** Recently used fonts (internal names, newest first) */
+function loadRecentFonts(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_FONTS_KEY);
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    if (!Array.isArray(arr)) return [];
+    return arr.filter(function (v): v is string {
+      return typeof v === "string";
+    });
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentFonts(list: string[]): void {
+  localStorage.setItem(
+    RECENT_FONTS_KEY,
+    JSON.stringify(list.slice(0, MAX_RECENT_FONTS)),
+  );
+}
+
+/** Internal font name → display family (or the default label) */
+function _fontDisplayName(internal: string | null): string {
+  if (!internal) return i18n.t("type.defaultFont");
+  for (const f of state.fontList || []) {
+    if (internalFontName(f.family) === internal) return f.family;
+  }
+  return internal;
+}
+
+// Single global document listener (registered once at module load) — closes
+// the open font picker on outside click / Escape. Element listeners die with
+// each sidebar rebuild; these module-level refs track the live menu.
+let _openFontPicker: HTMLElement | null = null;
+let _openFontWrap: HTMLElement | null = null;
+{
+  document.addEventListener("mousedown", function (e) {
+    if (!_openFontPicker) return;
+    const t = e.target as Node;
+    if (_openFontWrap && !_openFontWrap.contains(t)) {
+      _openFontPicker.hidden = true;
+      _openFontPicker = null;
+      _openFontWrap = null;
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && _openFontPicker) {
+      _openFontPicker.hidden = true;
+      _openFontPicker = null;
+      _openFontWrap = null;
+    }
+  });
+}
+
 function selectedTextLayer(page: Page | null): PageLayer | null {
   if (!page || !page._selectedLayerId) return null;
   const layer = page.layers.find(function (l) {
@@ -154,6 +211,8 @@ export const typeSection = {
       if (el && document.activeElement !== el) el.value = value;
     };
     set("type-font", t.fontFamily || "");
+    const trig = host.querySelector<HTMLButtonElement>("#type-font-trigger");
+    if (trig) trig.textContent = _fontDisplayName(t.fontFamily || null);
     set("type-color", t.color);
     set("type-size", t.fontSize === null ? "" : String(t.fontSize));
     set("type-weight", String(t.fontWeight));
@@ -210,52 +269,229 @@ export const typeSection = {
     return wrap;
   },
 
-  /** Font select with a search input on top (native select + filter) */
+  /** Font picker — floating draggable panel (Photoshop/Figma style): title
+   * bar drag handle, resizable, search + recent fonts, per-font preview.
+   * A hidden native select (id type-font) stays as the refresh() sync
+   * target. */
   _fontSelect(): HTMLElement {
     const wrap = document.createElement("div");
     wrap.className = "font-picker";
+
+    // Hidden native select — value sync target for refresh()
     const sel = document.createElement("select");
     sel.id = "type-font";
-    sel.className = "field-select";
-    const def = document.createElement("option");
-    def.value = "";
-    def.textContent = i18n.t("type.defaultFont");
-    sel.appendChild(def);
+    sel.style.display = "none";
+    const defOpt = document.createElement("option");
+    defOpt.value = "";
+    defOpt.textContent = i18n.t("type.defaultFont");
+    sel.appendChild(defOpt);
     (state.fontList || []).forEach(function (f) {
       const opt = document.createElement("option");
       opt.value = internalFontName(f.family);
       opt.textContent = f.family;
-      opt.style.fontFamily = f.family;
       sel.appendChild(opt);
-    });
-    sel.addEventListener("change", function () {
-      typeSection._apply({ fontFamily: this.value || null });
     });
     wrap.appendChild(sel);
 
-    // Search box filters the select options live
+    // Trigger button
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.id = "type-font-trigger";
+    trigger.className = "field-select font-picker-trigger";
+    trigger.textContent = _fontDisplayName(sel.value || null);
+
+    // Floating panel (position:fixed, drag via title bar, resize:both)
+    const panel = document.createElement("div");
+    panel.className = "font-picker-panel";
+    panel.hidden = true;
+    const head = document.createElement("div");
+    head.className = "font-picker-panel-head";
+    const title = document.createElement("span");
+    title.className = "font-picker-panel-title";
+    title.textContent = i18n.t("type.font");
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "font-picker-close";
+    closeBtn.textContent = "✕";
+    head.appendChild(title);
+    head.appendChild(closeBtn);
     const search = document.createElement("input");
     search.type = "text";
-    search.className = "field-select mt-0.5";
+    search.className = "font-picker-search";
     search.placeholder = i18n.t("type.searchFont");
-    search.addEventListener("input", function () {
-      const q = this.value.toLowerCase();
-      Array.from(sel.options).forEach(function (opt) {
-        const name = (opt.textContent || "").toLowerCase();
-        opt.hidden = q !== "" && name.indexOf(q) === -1 && opt.value !== "";
-      });
-      // Auto-select first visible non-default match while searching
-      if (q) {
-        const first = Array.from(sel.options).find(
-          (o) => !o.hidden && o.value !== "",
-        );
-        if (first) sel.value = first.value;
+    const list = document.createElement("div");
+    list.className = "font-picker-list";
+    panel.appendChild(head);
+    panel.appendChild(search);
+    panel.appendChild(list);
+    wrap.appendChild(trigger);
+    wrap.appendChild(panel);
+
+    const close = function (): void {
+      panel.hidden = true;
+      _openFontPicker = null;
+      _openFontWrap = null;
+    };
+
+    /** Rebuild the item list filtered by the search query */
+    const renderList = function (): void {
+      const q = search.value.toLowerCase();
+      const current = sel.value;
+      list.innerHTML = "";
+
+      const item = function (
+        value: string,
+        label: string,
+        family?: string,
+      ): void {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className =
+          "font-picker-item" + (value === current ? " selected" : "");
+        b.dataset.value = value;
+        const sample = document.createElement("span");
+        sample.className = "font-picker-sample";
+        sample.textContent = "Ag";
+        if (family) sample.style.fontFamily = family;
+        const name = document.createElement("span");
+        name.className = "font-picker-name";
+        name.textContent = label;
+        b.appendChild(sample);
+        b.appendChild(name);
+        b.addEventListener("click", function () {
+          if (sel.value !== value) {
+            sel.value = value;
+            trigger.textContent = _fontDisplayName(value || null);
+            typeSection._apply({ fontFamily: value || null });
+            if (value) {
+              const recents = loadRecentFonts();
+              saveRecentFonts(
+                [value].concat(
+                  recents.filter(function (r) {
+                    return r !== value;
+                  }),
+                ),
+              );
+            }
+          }
+          close();
+        });
+        list.appendChild(b);
+      };
+
+      // Default is always first
+      item("", i18n.t("type.defaultFont"));
+
+      const fonts = state.fontList || [];
+      const byInternal = new Map<string, string>(
+        fonts.map(function (f) {
+          return [internalFontName(f.family), f.family];
+        }),
+      );
+
+      if (q === "") {
+        const recents = loadRecentFonts()
+          .filter(function (r) {
+            return byInternal.has(r);
+          })
+          .slice(0, MAX_RECENT_FONTS);
+        if (recents.length > 0) {
+          const head = document.createElement("div");
+          head.className = "font-picker-head";
+          head.textContent = i18n.t("type.recent");
+          list.appendChild(head);
+          recents.forEach(function (r) {
+            const fam = byInternal.get(r) as string;
+            item(r, fam, fam);
+          });
+        }
+        if (fonts.length > 0) {
+          const head = document.createElement("div");
+          head.className = "font-picker-head";
+          head.textContent = i18n.t("type.allFonts");
+          list.appendChild(head);
+        }
+        fonts.forEach(function (f) {
+          item(internalFontName(f.family), f.family, f.family);
+        });
+      } else {
+        fonts.forEach(function (f) {
+          if (f.family.toLowerCase().indexOf(q) !== -1) {
+            item(internalFontName(f.family), f.family, f.family);
+          }
+        });
       }
+    };
+
+    const open = function (): void {
+      search.value = "";
+      renderList();
+      panel.hidden = false;
+      // Position below the trigger, then flip/clamp if it would overflow
+      const tr = trigger.getBoundingClientRect();
+      panel.style.left = tr.left + "px";
+      panel.style.top = tr.bottom + 4 + "px";
+      const pr = panel.getBoundingClientRect();
+      if (pr.bottom > window.innerHeight - 8) {
+        panel.style.top = Math.max(8, tr.top - pr.height - 4) + "px";
+      }
+      if (pr.right > window.innerWidth - 8) {
+        panel.style.left = Math.max(8, window.innerWidth - pr.width - 8) + "px";
+      }
+      _openFontPicker = panel;
+      _openFontWrap = wrap;
+      search.focus();
+    };
+
+    // Drag via the title bar (clamped to the window)
+    let dragOff = { x: 0, y: 0 };
+    head.addEventListener("mousedown", function (e) {
+      if ((e.target as HTMLElement).closest(".font-picker-close")) return;
+      if (panel.hidden) return;
+      e.preventDefault();
+      const r = panel.getBoundingClientRect();
+      dragOff = { x: e.clientX - r.left, y: e.clientY - r.top };
+      document.body.style.userSelect = "none";
+      const onMove = function (ev: MouseEvent): void {
+        const x = Math.min(
+          Math.max(8, ev.clientX - dragOff.x),
+          window.innerWidth - 80,
+        );
+        const y = Math.min(
+          Math.max(8, ev.clientY - dragOff.y),
+          window.innerHeight - 48,
+        );
+        panel.style.left = x + "px";
+        panel.style.top = y + "px";
+      };
+      const onUp = function (): void {
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+        document.body.style.userSelect = "";
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
     });
-    search.addEventListener("change", function () {
-      typeSection._apply({ fontFamily: sel.value || null });
+
+    trigger.addEventListener("click", function () {
+      if (panel.hidden) open();
+      else close();
     });
-    wrap.appendChild(search);
+    closeBtn.addEventListener("click", close);
+    search.addEventListener("input", renderList);
+    // Enter in the search box picks the first matching font
+    search.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      const items = Array.from(
+        list.querySelectorAll<HTMLButtonElement>(".font-picker-item"),
+      );
+      const first =
+        items.find(function (b) {
+          return b.dataset.value !== "";
+        }) || items[0];
+      if (first) first.click();
+    });
+
     return wrap;
   },
   _colorInput(): HTMLElement {

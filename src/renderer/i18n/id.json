@@ -179,6 +179,8 @@
   "type.expand": "Perluas",
   "type.rotation": "Rotasi",
   "type.rotationReset": "Reset ke 0",
+  "type.recent": "Terakhir dipakai",
+  "type.allFonts": "Semua font",
 
   "shortcuts.title": "Shortcut Keyboard",
   "shortcuts.undo": "Undo",

@@ -179,6 +179,8 @@
   "type.expand": "Expand",
   "type.rotation": "Rotation",
   "type.rotationReset": "Reset to 0",
+  "type.recent": "Recently used",
+  "type.allFonts": "All fonts",
 
   "shortcuts.title": "Keyboard Shortcuts",
   "shortcuts.undo": "Undo",

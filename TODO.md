@@ -11,6 +11,7 @@
 - [x] fix stale tools
 - [x] fix text tool
 - [x] rotation tool
+- [] per line re-translate
 - [] tree-shake lucide bundle
 - [] export and save features
 - [] caching managements
