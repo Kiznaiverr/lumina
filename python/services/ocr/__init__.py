@@ -10,10 +10,14 @@ from __future__ import annotations
 from typing import Optional
 
 from .base import BaseOcrModel, ProgressCallback
+from .baberu import BaberuOcrModel
 from .manga_ocr import MangaOcrModel
+from .ppocrv6 import PPOcrV6Model
 
 MODELS: dict[str, BaseOcrModel] = {
     "manga_ocr": MangaOcrModel(),
+    "ppocrv6": PPOcrV6Model(),
+    "baberu": BaberuOcrModel(),
 }
 DEFAULT_MODEL = "manga_ocr"
 

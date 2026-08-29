@@ -3,6 +3,8 @@
 - [x] model management in settings
 - [x] fix sidebar and re-design
 - [x] change original/cleaned canvas to background/mask layer
+- [] auto colloring text based on detected text color
+- [] improve model selection and management UI
 - [] improve resizing 
 - [] fix stale tools
 - [] three-shake lucide bundle
@@ -11,4 +13,5 @@
 - [] more efficient model description
 - [] more efficient model loading
 - [] make undo/redo different per page/image
+- [] onnx runtime with gpu acceleration support
 - [] testing and fix knowed bug

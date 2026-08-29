@@ -98,15 +98,25 @@ def build_single_prompt(text: str, target: str) -> str:
 
 
 def build_batch_prompt(texts: list[str], target: str) -> str:
-    """User prompt for one numbered-list chat completion over many texts."""
-    numbered = "\n".join(f"[{i}] {t}" for i, t in enumerate(texts))
+    """User prompt for one numbered-list chat completion over many texts.
+
+    Line breaks inside a segment are escaped as ⏎ so multiline bubble text
+    (vertical text, stacked lines) cannot corrupt the numbered-list format.
+    """
+    escaped = [
+        t.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "⏎")
+        for t in texts
+    ]
+    numbered = "\n".join(f"[{i}] {t}" for i, t in enumerate(escaped))
     return (
         f"Target language: {target}\n\n"
         "The input is a numbered list of independent text segments "
-        "(speech bubbles on one manga page). Translate EACH line independently.\n"
+        "(speech bubbles on one manga page). Translate EACH segment independently.\n"
+        "Line breaks inside a segment are marked with the symbol ⏎ — keep them "
+        "in your translation.\n"
         "Output ONLY a numbered list in the same format with the same indices:\n"
-        "[0] translation of line 0\n"
-        "[1] translation of line 1\n\n"
+        "[0] translation of segment 0\n"
+        "[1] translation of segment 1\n\n"
         f"{numbered}"
     )
 
@@ -121,7 +131,7 @@ def parse_numbered_batch(raw: str, count: int, label: str = "LLM") -> list[str]:
         if not m:
             continue
         idx = int(m.group(1))
-        val = m.group(2).strip()
+        val = m.group(2).strip().replace("⏎", "\n")
         if 0 <= idx < count and not seen[idx]:
             results[idx] = val
             seen[idx] = True
