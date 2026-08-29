@@ -29,7 +29,8 @@ export interface ModelInfo {
   kind: string; // "detect" | "ocr" | "inpaint"
   ready: boolean;
   size: number | null;
-  description: string;
+  /** Filled from the renderer description registry — backend doesn't send it. */
+  description?: string;
 }
 
 export interface ModelCheck {

@@ -8,7 +8,7 @@ Implements the generic ONNX pipeline shared by every LaMa-family export:
   pixels, A = feathered mask).
 
 Subclasses only override:
-  - metadata: ``model_id`` / ``model_filename`` (+ ``name`` / ``description``)
+  - metadata: ``model_id`` / ``model_filename``
   - preprocessing knobs: ``mask_binary``, ``output_scale``, ``input_size``,
     ``context_pad``, ``mask_dilate``
   - the mask strategy: ``_build_mask(crop, box_rect)`` → 0..255 mask.

@@ -38,10 +38,6 @@ class PPOcrV6Model(BaseOcrModel):
     """PP-OCRv6 medium recognition model via ONNX Runtime (CTC)."""
 
     name = "PP-OCRv6 (Paddle)"
-    description = (
-        "PP-OCRv6 medium — PaddleOCR recognition, 50 languages incl. "
-        "Japanese, fast on CPU (~5 ms/line)."
-    )
 
     model_id = MODEL_ID
     model_dir = _models_dir() / "ppocrv6"

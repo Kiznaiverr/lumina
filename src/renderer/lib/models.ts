@@ -9,6 +9,7 @@
  */
 import * as i18n from "./i18n";
 import { ui } from "./ui";
+import { describe, recommendedFor } from "./models/descriptions";
 import type { DownloadProgress, ModelInfo } from "../types";
 
 let _models: ModelInfo[] = [];
@@ -34,13 +35,16 @@ function el(id: string): HTMLElement | null {
 }
 
 /** Effective model id for a kind: the saved pick wins (even if not installed),
- *  else the first installed model, else the first registered model. */
+ *  else the recommended model, else the first installed, else first registered. */
 function resolveSelected(kind: string): string {
   const sel = loadSelected();
   const list = _models.filter((m) => m.kind === kind);
   if (!list.length) return "";
   const picked = list.find((m) => m.id === sel[kind]);
   if (picked) return picked.id;
+  const rec = recommendedFor(kind);
+  const recommended = list.find((m) => m.id === rec);
+  if (recommended) return recommended.id;
   const installed = list.find((m) => m.ready);
   return installed ? installed.id : (list[0]?.id ?? "");
 }
@@ -92,6 +96,12 @@ export const models = {
     try {
       const res = await window.lumina.checkModel();
       _models = res.models || [];
+      // Descriptions live in the renderer registry (bilingual), not backend.
+      const lang = i18n.lang();
+      _models.forEach((m) => {
+        const desc = describe(m.id, lang);
+        if (desc) m.description = desc;
+      });
       updateButtons();
     } catch {
       /* backend not ready yet — keep last state */

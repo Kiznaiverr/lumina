@@ -38,7 +38,6 @@ def get_models_info() -> list[dict]:
             "kind": "inpaint",
             "ready": m.is_ready(),
             "size": m.size(),
-            "description": m.description,
         }
         for name, m in MODELS.items()
     ]

@@ -22,11 +22,6 @@ from .lama import LamaModel
 
 class LamaMangaModel(LamaModel):
     name = "LaMa Manga"
-    description = (
-        "Big-LaMa fine-tuned on ~300K manga & anime images "
-        "(AnimeMangaInpainting, ONNX conversion by koharu). "
-        "Best-in-class text-region inpainting for manga pages."
-    )
 
     model_id = "mayocream/lama-manga-onnx"
     model_filename = "lama-manga.onnx"

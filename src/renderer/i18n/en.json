@@ -63,6 +63,9 @@
   "models.openShortcut": "Manage models",
   "models.missingHint": "Selected model not installed — open Settings → Models",
   "models.warning": "Some models are missing — manage them in Settings → Models",
+  "models.noDescription": "No description yet.",
+  "models.recommended": "Recommended",
+  "models.selected": "Selected",
 
   "status.noDetections": "No detections",
   "status.selected": "{{type}}#{{index}} selected",

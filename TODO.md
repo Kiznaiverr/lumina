@@ -3,19 +3,20 @@
 - [x] model management in settings
 - [x] fix sidebar and re-design
 - [x] change original/cleaned canvas to background/mask layer
-- [] improve type section UI
+- [x] improve type section UI
 - [x] auto colloring text based on detected text color
 - [x] text rotation (auto-detected slant + manual control)
-- [] improve model selection and management UI
+- [x] improve model selection and management UI
 - [x] improve resizing
 - [x] fix stale tools
 - [x] fix text tool
 - [x] rotation tool
 - [] per line re-translate
+- [] change reorder button in layer list to drag and drop
 - [] tree-shake lucide bundle
 - [] export and save features
 - [] caching managements
-- [] more efficient model description
+- [x] more efficient model description
 - [] more efficient model loading
 - [] make undo/redo different per page/image
 - [] add more tools

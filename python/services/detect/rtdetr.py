@@ -56,10 +56,6 @@ class RTDetrModel(BaseDetectModel):
     """RT-DETR v2 r50vd fine-tuned for comics (text + speech bubbles)."""
 
     name = "RT-DETR Text & Bubble Detector"
-    description = (
-        "RT-DETR v2 r50vd fine-tuned for comics — finds text boxes "
-        "and speech bubbles on manga pages."
-    )
 
     model_id = MODEL_ID
     model_path = _models_dir() / MODEL_FILENAME

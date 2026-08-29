@@ -63,6 +63,9 @@
   "models.openShortcut": "Kelola model",
   "models.missingHint": "Model terpilih belum terpasang — buka Settings → Model",
   "models.warning": "Beberapa model belum terpasang — kelola di Settings → Model",
+  "models.noDescription": "Belum ada deskripsi.",
+  "models.recommended": "Direkomendasikan",
+  "models.selected": "Terpilih",
 
   "status.noDetections": "Tidak ada deteksi",
   "status.selected": "{{type}}#{{index}} dipilih",

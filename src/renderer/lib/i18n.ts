@@ -29,9 +29,6 @@ export function setLang(code: string): void {
   localStorage.setItem("lumina-lang", code);
   document.documentElement.lang = code;
   _renderAll();
-  _updateLangBtn();
-  const dd = document.getElementById("lang-dropdown");
-  if (dd) dd.classList.add("hidden");
 }
 
 function _renderAll(): void {
@@ -51,11 +48,6 @@ function _renderAll(): void {
   document.title = t("app.title");
 }
 
-function _updateLangBtn(): void {
-  const label = document.getElementById("lang-current");
-  if (label) label.textContent = _lang.toUpperCase();
-}
-
 /** Load all translation JSONs via IPC, then init */
 export function init(): Promise<void> {
   return window.lumina
@@ -64,7 +56,6 @@ export function init(): Promise<void> {
       _data = data || {};
       document.documentElement.lang = _lang;
       _renderAll();
-      _updateLangBtn();
     })
     .catch(() => {
       // fallback: t() returns key

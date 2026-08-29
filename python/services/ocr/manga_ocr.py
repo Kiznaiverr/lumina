@@ -44,10 +44,6 @@ class MangaOcrModel(BaseOcrModel):
     """manga-ocr Japanese text recognition via ONNX Runtime (seq2seq)."""
 
     name = "manga-ocr (ONNX)"
-    description = (
-        "manga-ocr — Japanese text recognition trained on manga, "
-        "handles vertical, horizontal, and stylized typesetting."
-    )
 
     model_id = MODEL_ID
     model_dir = _models_dir() / "manga-ocr-onnx"

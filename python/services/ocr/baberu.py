@@ -75,11 +75,6 @@ class BaberuOcrModel(BaseOcrModel):
     """Baberu OCR — multilingual (ja/zh/en) manga bubble recognition."""
 
     name = "Baberu OCR"
-    description = (
-        "Baberu OCR — 115M manga-bubble model for Japanese, Chinese, and "
-        "English; trained on real manga typesetting incl. vertical text "
-        "and SFX. Fast on CPU."
-    )
 
     model_id = MODEL_ID
     model_dir = _models_dir() / "baberu-ocr"

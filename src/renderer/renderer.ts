@@ -195,21 +195,8 @@ i18n.init().then(function () {
   setTimeout(checkModels, 1500);
 });
 
-// ── Language picker (globe + dropdown) ──
-document.getElementById("btn-lang")!.addEventListener("click", function (e) {
-  e.stopPropagation();
-  const dd = document.getElementById("lang-dropdown");
-  if (dd) dd.classList.toggle("hidden");
-});
-document.querySelectorAll<HTMLElement>(".lang-opt").forEach(function (opt) {
-  opt.addEventListener("click", function () {
-    i18n.setLang(this.dataset.lang as string);
-    sidebar.render();
-    canvas._updateStatus();
-    if (shortcuts && shortcuts.updateHeaderTitles)
-      shortcuts.updateHeaderTitles();
-  });
-});
+// ── Language picker removed — interface language is set in Settings → General ──
+
 document.addEventListener("click", function () {
   const dd = document.getElementById("lang-dropdown");
   if (dd) dd.classList.add("hidden");

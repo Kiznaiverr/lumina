@@ -110,7 +110,6 @@ class ModelInfo(BaseModel):
     kind: str  # "detect" | "ocr" | "inpaint"
     ready: bool
     size: int | None = None  # bytes of installed weights; None if not installed
-    description: str = ""  # short blurb shown in the Settings → Models tab
 
 
 class ModelStatus(BaseModel):

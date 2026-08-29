@@ -23,10 +23,6 @@ class LamaModel(OnnxInpaintModel):
     """Big-LaMa inpainting via ONNX Runtime."""
 
     name = "LaMa"
-    description = (
-        "Big-LaMa trained on general imagery (OpenCV 2025 build). "
-        "Solid all-round inpainting quality for text regions."
-    )
 
     model_id = "opencv/inpainting_lama"
     model_filename = "inpainting_lama_2025jan.onnx"

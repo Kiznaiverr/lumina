@@ -1,0 +1,48 @@
+/* ── Model descriptions: OCR ──
+ * Bilingual copy shown in Settings → Models. Keyed by backend registry id.
+ * Edit freely — the renderer rebuilds, no backend restart needed.
+ */
+import type { ModelDescMap } from "./index";
+
+export const OCR_DESCS: ModelDescMap = {
+  manga_ocr: {
+    en: `Japanese text recognition trained on manga (original by kha-white, ONNX port by mayocream).
+
+• The most accurate Japanese recognizer of the three — handles vertical, horizontal, stylized, and even handwritten typesetting.
+• Japanese only: use it when the source language is Japanese; it won't help for other languages.
+• Lightweight and fast.
+• Source: huggingface.co/mayocream/manga-ocr-onnx`,
+    id: `Pengenalan teks bahasa Jepang yang dilatih pada manga (asli oleh kha-white, port ONNX oleh mayocream).
+
+• Paling akurat untuk bahasa Jepang di antara ketiganya — menangani teks vertikal, horizontal, bergaya, bahkan tulisan tangan.
+• Khusus Jepang: pakai saat bahasa sumbernya Jepang; tidak membantu untuk bahasa lain.
+• Ringan dan cepat.
+• Sumber: huggingface.co/mayocream/manga-ocr-onnx`,
+  },
+  ppocrv6: {
+    en: `PP-OCRv6 medium by PaddlePaddle — recognition for 50+ languages including Japanese. Very fast on CPU (~5 ms/line).
+
+• ⚠ Not recommended — in this app's testing the output was unreliable/inaccurate (likely a setup/config issue in the integration).
+• For manga, prefer Baberu OCR (recommended) or manga-ocr.
+• Source: huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx`,
+    id: `PP-OCRv6 medium oleh PaddlePaddle — pengenalan untuk 50+ bahasa termasuk Jepang. Sangat cepat di CPU (~5 ms/baris).
+
+• ⚠ Tidak direkomendasikan — pada pengujian di aplikasi ini hasilnya kurang akurat/tidak konsisten (kemungkinan masalah setting atau setup kode integrasinya).
+• Untuk manga, pilih Baberu OCR (direkomendasikan) atau manga-ocr.
+• Sumber: huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx`,
+  },
+  baberu: {
+    en: `Baberu OCR (by genshiai-daichi) — a 115M-parameter multilingual model (Japanese / Chinese / English) purpose-built for manga speech bubbles.
+
+• Trained on real manga typesetting: vertical text, horizontal text, and sound effects (SFX).
+• Understands stylized bubble layouts better than general-purpose OCR.
+• Runs fast on CPU — the recommended default for manga.
+• Source: huggingface.co/genshiai-daichi/baberu-ocr`,
+    id: `Baberu OCR (oleh genshiai-daichi) — model multibahasa 115M parameter (Jepang / Cina / Inggris) yang dirancang khusus untuk gelembung ucapan manga.
+
+• Dilatih pada tata letak manga asli: teks vertikal, teks horizontal, dan efek suara (SFX).
+• Lebih memahami layout gelembung yang bergaya daripada OCR tujuan umum.
+• Cepat di CPU — default yang direkomendasikan untuk manga.
+• Sumber: huggingface.co/genshiai-daichi/baberu-ocr`,
+  },
+};

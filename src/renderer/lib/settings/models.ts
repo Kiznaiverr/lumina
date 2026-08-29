@@ -1,11 +1,13 @@
 /* ── Settings: Models tab — model management ──
  * A segmented tab bar (Text Detection | OCR | Inpainting) switches between
- * category panels. Each panel holds a custom model picker (dropdown) and
- * the selected model's description card (install status, size, download).
+ * category panels. Each panel is a sidebar + workspace layout: the model
+ * list is a full-height nav column on the left (scrolls when long), and the
+ * selected model's description fills the remaining space on the right with
+ * a footer pinned at the bottom — no wasted vertical space.
  */
 import * as i18n from "../i18n";
-import { createIcons } from "../icons";
 import { models } from "../models";
+import { recommendedFor } from "../models/descriptions";
 import type { DownloadProgress, ModelInfo } from "../../types";
 
 const SECTIONS: Array<[string, string]> = [
@@ -34,13 +36,6 @@ function hintEl(): HTMLElement {
 export const modelsTab = {
   build(pane: HTMLElement): void {
     pane.dataset.modelsTab = "1";
-    // Clicking anywhere outside an open picker closes it.
-    document.addEventListener("click", (e) => {
-      if ((e.target as HTMLElement).closest(".model-picker")) return;
-      pane
-        .querySelectorAll<HTMLElement>(".model-picker.open")
-        .forEach((p) => p.classList.remove("open"));
-    });
     // Live progress → update the matching category panel
     models.onProgress((p) => this._onProgress(pane, p));
   },
@@ -66,10 +61,7 @@ export const modelsTab = {
       items: list.filter((m) => m.kind === kind),
     })).filter((s) => s.items.length > 0);
 
-    if (!sections.length) {
-      createIcons();
-      return;
-    }
+    if (!sections.length) return;
 
     // Preserve the previously active panel, else default to the first.
     if (!sections.some((s) => s.kind === _activeKind)) {
@@ -101,156 +93,146 @@ export const modelsTab = {
 
       pane.appendChild(this._panel(kind, items));
     }
-    createIcons();
     show(_activeKind!);
   },
 
-  /** One category panel: model picker on top, description card below. */
+  /** One category panel: model list (left) + description (right). */
   _panel(kind: string, items: ModelInfo[]): HTMLElement {
     const panel = document.createElement("div");
     panel.className = "model-panel hidden";
     panel.dataset.kind = kind;
     panel.dataset.panel = kind;
 
-    panel.appendChild(this._picker(kind, items, panel));
-    panel.appendChild(this._descCard(kind, items));
+    const grid = document.createElement("div");
+    grid.className = "model-grid";
+    grid.appendChild(this._list(kind, items, panel));
+    grid.appendChild(this._desc(kind, items));
+    panel.appendChild(grid);
 
+    this._updateAll(panel, kind, items);
     return panel;
   },
 
-  /** Custom dropdown — pick the active model for this task. */
-  _picker(kind: string, items: ModelInfo[], panel: HTMLElement): HTMLElement {
-    const wrap = document.createElement("div");
-    wrap.className = "model-picker";
+  /** Selectable model rows — name, size, status. Clicking selects. */
+  _list(kind: string, items: ModelInfo[], panel: HTMLElement): HTMLElement {
+    const list = document.createElement("div");
+    list.className = "model-list";
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "model-picker-btn";
-    const label = document.createElement("span");
-    const chev = document.createElement("i");
-    chev.dataset.lucide = "chevron-down";
-    btn.appendChild(label);
-    btn.appendChild(chev);
-
-    const menu = document.createElement("div");
-    menu.className = "model-picker-menu hidden";
     for (const m of items) {
-      const opt = document.createElement("button");
-      opt.type = "button";
-      opt.className = "model-picker-opt";
-      opt.dataset.model = m.id;
-      const optLabel = document.createElement("span");
-      optLabel.textContent = m.name;
-      const check = document.createElement("i");
-      check.dataset.lucide = "check";
-      opt.appendChild(optLabel);
-      opt.appendChild(check);
-      opt.addEventListener("click", () => {
+      const row = document.createElement("div");
+      row.className = "model-row";
+      row.dataset.model = m.id;
+
+      const name = document.createElement("span");
+      name.className = "model-name";
+      name.textContent = m.name;
+      name.title = m.name;
+
+      const meta = document.createElement("span");
+      meta.className = "model-meta";
+      const size = document.createElement("span");
+      size.className = "model-size";
+      size.textContent = fmtSize(m.size);
+      const badge = document.createElement("span");
+      badge.className = "model-badge " + (m.ready ? "ready" : "missing");
+      badge.textContent = i18n.t(m.ready ? "models.ready" : "models.missing");
+      meta.append(size, badge);
+
+      row.append(name, meta);
+      row.addEventListener("click", () => {
         models.setSelectedModel(kind, m.id);
         models.refreshButtons();
-        wrap.classList.remove("open");
-        menu.classList.add("hidden");
-        this._updatePicker(wrap, kind, items);
-        this._updateDesc(panel, items);
+        this._updateAll(panel, kind, items);
       });
-      menu.appendChild(opt);
+      list.appendChild(row);
     }
-    wrap.appendChild(btn);
-    wrap.appendChild(menu);
-
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const willOpen = menu.classList.contains("hidden");
-      document
-        .querySelectorAll<HTMLElement>(".model-picker.open")
-        .forEach((p) => p.classList.remove("open"));
-      wrap.classList.toggle("open", willOpen);
-      menu.classList.toggle("hidden", !willOpen);
-    });
-
-    this._updatePicker(wrap, kind, items);
-    return wrap;
+    return list;
   },
 
-  /** Sync the picker's button label + menu highlight to the active model. */
-  _updatePicker(wrap: HTMLElement, kind: string, items: ModelInfo[]): void {
-    // UI follows the saved pick (even if not installed). The header pipeline
-    // buttons disable when the picked model is missing — no silent fallback.
-    const picked = models.pickedModel(kind);
-    const sel = picked || models.selectedModel(kind);
-    const cur = items.find((m) => m.id === sel) ?? items[0];
-    if (!cur) return;
-    const label = wrap.querySelector<HTMLElement>(".model-picker-btn span");
-    if (label) label.textContent = cur.name;
-    wrap
-      .querySelectorAll<HTMLElement>(".model-picker-opt")
-      .forEach((o) => o.classList.toggle("active", o.dataset.model === sel));
-  },
-
-  /** Card describing the selected model + install controls. */
-  _descCard(kind: string, items: ModelInfo[]): HTMLElement {
+  /** Description panel for the selected model — title, description, footer. */
+  _desc(kind: string, items: ModelInfo[]): HTMLElement {
     const card = document.createElement("div");
     card.className = "model-desc";
-    card.dataset.kind = kind; // needed before attach — _updateDesc reads it
+    card.dataset.kind = kind;
 
     const head = document.createElement("div");
     head.className = "model-desc-head";
+    const title = document.createElement("div");
+    title.className = "model-desc-title";
     const name = document.createElement("div");
     name.className = "model-desc-name";
-    const meta = document.createElement("div");
-    meta.className = "model-desc-meta";
+    const rec = document.createElement("span");
+    rec.className = "model-badge model-rec";
+    rec.textContent = i18n.t("models.recommended");
+    rec.hidden = true;
     const badge = document.createElement("span");
-    badge.className = "model-badge";
-    meta.appendChild(document.createElement("span")); // size
-    meta.appendChild(badge);
-    head.appendChild(name);
-    head.appendChild(meta);
+    badge.className = "model-badge model-selected";
+    badge.textContent = i18n.t("models.selected");
+    badge.hidden = true;
+    title.append(name, rec);
+    head.append(title, badge);
 
     const text = document.createElement("p");
     text.className = "model-desc-text";
 
+    const foot = document.createElement("div");
+    foot.className = "model-desc-foot";
+    const meta = document.createElement("span");
+    meta.className = "model-desc-meta";
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "btn model-dl";
-    btn.dataset.action = "download";
-    btn.addEventListener("click", () => {
-      btn.disabled = true;
-      btn.textContent = i18n.t("models.downloading");
-      models.download([card.dataset.model || ""]).catch(() => {
-        btn.disabled = false;
-        btn.textContent = i18n.t("models.download");
-      });
-    });
+    btn.dataset.model = "";
+    btn.addEventListener("click", () =>
+      this._download(btn, btn.dataset.model || ""),
+    );
+    foot.append(meta, btn);
 
-    card.append(head, text, btn);
-    this._updateDesc(card, items);
+    card.append(head, text, foot);
     return card;
   },
 
-  /** Re-sync the description card + picker to the active model. */
-  _updateDesc(host: HTMLElement, items: ModelInfo[]): void {
-    const card = host.classList.contains("model-desc")
-      ? host
-      : host.querySelector<HTMLElement>(".model-desc");
-    const kind = host.dataset.kind || card?.dataset.kind;
-    if (!card || !kind) return;
+  /** Start a model download and disable the triggering button. */
+  _download(btn: HTMLButtonElement, modelId: string): void {
+    if (!modelId) return;
+    btn.disabled = true;
+    btn.textContent = i18n.t("models.downloading");
+    models.download([modelId]).catch(() => {
+      btn.disabled = false;
+      btn.textContent = i18n.t("models.download");
+    });
+  },
 
+  /** Re-sync list highlight + description panel to the active model. */
+  _updateAll(panel: HTMLElement, kind: string, items: ModelInfo[]): void {
+    // UI follows the saved pick (even if not installed). The header pipeline
+    // buttons disable when the picked model is missing — no silent fallback.
     const picked = models.pickedModel(kind);
     const sel = picked || models.selectedModel(kind);
+
+    panel
+      .querySelectorAll<HTMLElement>(".model-row")
+      .forEach((r) => r.classList.toggle("active", r.dataset.model === sel));
+
+    const card = panel.querySelector<HTMLElement>(".model-desc");
+    if (!card) return;
     const m = items.find((x) => x.id === sel) ?? items[0];
     if (!m) return;
 
     card.dataset.model = m.id;
     card.querySelector<HTMLElement>(".model-desc-name")!.textContent = m.name;
-    card.querySelector<HTMLElement>(".model-desc-meta span")!.textContent =
-      fmtSize(m.size);
-    const badge = card.querySelector<HTMLElement>(".model-badge")!;
-    badge.className = "model-badge " + (m.ready ? "ready" : "missing");
-    badge.textContent = i18n.t(m.ready ? "models.ready" : "models.missing");
+    card.querySelector<HTMLElement>(".model-rec")!.hidden =
+      m.id !== recommendedFor(kind);
+    const badge = card.querySelector<HTMLElement>(".model-selected")!;
+    badge.hidden = m.id !== sel;
+    badge.textContent = i18n.t("models.selected");
     const text = card.querySelector<HTMLElement>(".model-desc-text")!;
-    text.textContent = m.description || "";
-    text.hidden = !m.description;
-
+    text.textContent = m.description || i18n.t("models.noDescription");
+    card.querySelector<HTMLElement>(".model-desc-meta")!.textContent = fmtSize(
+      m.size,
+    );
     const btn = card.querySelector<HTMLButtonElement>(".model-dl")!;
+    btn.dataset.model = m.id;
     if (m.ready) {
       btn.disabled = true;
       btn.textContent = i18n.t("models.ready");
@@ -266,14 +248,15 @@ export const modelsTab = {
       '[data-panel="' + kind + '"]',
     );
     if (!panel) return;
-    const btn = panel.querySelector<HTMLButtonElement>(".model-dl");
+    // Any download button for this category (row + description panel)
+    const btns = panel.querySelectorAll<HTMLButtonElement>(".model-dl");
 
     if (p.running) {
       // Real progress bar lives in the global download toast (lib/ui.ts).
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = i18n.t("models.downloading");
-      }
+      btns.forEach((b) => {
+        b.disabled = true;
+        b.textContent = i18n.t("models.downloading");
+      });
     } else if (p.done || p.error) {
       // Re-check + re-render once the batch finishes
       this.refresh();
