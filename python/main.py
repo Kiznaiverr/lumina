@@ -54,7 +54,7 @@ def detect(req: DetectRequest):
     try:
         from services.detect import detect as run_detect
 
-        result = run_detect(req.imagePath)
+        result = run_detect(req.imagePath, model=req.model)
         return DetectResponse(
             textDetections=[TextDetection(**d) for d in result["textDetections"]],
             bubbleDetections=[BubbleDetection(**d) for d in result["bubbleDetections"]],
@@ -146,11 +146,11 @@ def inpaint(req: InpaintRequest):
 
 
 def _all_model_infos() -> list[dict]:
-    from services.detect import get_model_info as detect_info
+    from services.detect import get_models_info as detect_infos
     from services.ocr import get_models_info as ocr_infos
     from services.inpaint import get_models_info as inpaint_infos
 
-    return [detect_info()] + ocr_infos() + inpaint_infos()
+    return detect_infos() + ocr_infos() + inpaint_infos()
 
 
 @app.get("/models", response_model=ModelStatus)
@@ -193,15 +193,15 @@ def model_download(req: ModelDownloadRequest):
 
     targets: list[tuple[str, object]] = []
 
-    def _run_detect() -> None:
-        detect_service.progress_callback = _cb
-        try:
-            detect_service.download_model()
-        finally:
-            detect_service.progress_callback = None
+    if _wants("detect"):
+        detect_ids = list(detect_service.MODELS)
+    else:
+        detect_ids = [x for x in (want or []) if x in detect_service.MODELS]
+    for name in detect_ids:
+        model = detect_service.MODELS[name]
+        if not model.is_ready():
+            targets.append(("detect", lambda m=model: m.download(_cb)))
 
-    if _wants("detect") and not detect_service.is_model_ready():
-        targets.append(("detect", _run_detect))
     if _wants("ocr"):
         ocr_ids = list(ocr_service.MODELS)
     else:

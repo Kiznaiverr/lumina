@@ -48,7 +48,7 @@ export function spawnPythonBackend(): Promise<void> {
           ...process.env,
           // Force UTF-8 stdout/stderr (Japanese text in logs breaks cp1252)
           PYTHONIOENCODING: "utf-8",
-          // Model cache dir override (used by services/detect.py)
+          // Model cache dir override (used by services/detect/rtdetr.py)
           LUMINA_MODEL_DIR:
             process.env.LUMINA_MODEL_DIR || path.join(PROJECT_ROOT, "models"),
           // Keep all model weights inside <repo>/models (manga-ocr etc.)

@@ -5,6 +5,7 @@ import { ui } from "../ui";
 import { history } from "../history";
 import { canvas } from "../canvas/index";
 import { sidebar } from "../sidebar";
+import { models } from "../models";
 import type { DetectResult, PageLayer, TextDetection } from "../../types";
 import { sortReadingOrder } from "../readingOrder";
 import { defaultTypography, loadGlobalTypography } from "../../types";
@@ -34,6 +35,7 @@ export const detection = {
     try {
       const result = await window.lumina.apiPost<DetectResult>("/detect", {
         imagePath: page.filePath,
+        model: models.selectedModel("detect") || "rtdetr",
       });
       if (!result || result.error)
         throw new Error(result?.detail || "Detection failed");
@@ -121,6 +123,7 @@ export const detection = {
       try {
         const result = await window.lumina.apiPost<DetectResult>("/detect", {
           imagePath: page.filePath,
+          model: models.selectedModel("detect") || "rtdetr",
         });
         if (!result || result.error) continue;
 

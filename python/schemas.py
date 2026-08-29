@@ -30,6 +30,7 @@ class BubbleDetection(BaseModel):
 
 class DetectRequest(BaseModel):
     imagePath: str
+    model: str = "rtdetr"
 
 
 class DetectResponse(BaseModel):

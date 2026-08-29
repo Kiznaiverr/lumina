@@ -1,5 +1,5 @@
 - [x] fix auto-fit button in type section
-- [] plugable model (done partially)
+- [x] plugable model 
 - [x] model management in settings
 - [x] fix sidebar and re-design
 - [x] change original/cleaned canvas to background/mask layer
