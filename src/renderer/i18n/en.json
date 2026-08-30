@@ -43,6 +43,9 @@
   "export.allAdded": "All pages are already in the export list",
   "export.previewBusy": "Rendering preview...",
   "export.approxNote": "Size is an estimate; the actual file size depends on image content.",
+  "export.zoomIn": "Zoom in",
+  "export.zoomOut": "Zoom out",
+  "export.zoomReset": "Reset zoom",
 
   "settings.title": "Settings",
   "settings.tabGeneral": "General",

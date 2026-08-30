@@ -43,6 +43,9 @@
   "export.allAdded": "Semua halaman sudah ada di daftar ekspor",
   "export.previewBusy": "Merender pratinjau...",
   "export.approxNote": "Ukuran hanya perkiraan; ukuran file sebenarnya tergantung konten gambar.",
+  "export.zoomIn": "Perbesar",
+  "export.zoomOut": "Perkecil",
+  "export.zoomReset": "Reset zoom",
 
   "settings.title": "Pengaturan",
   "settings.tabGeneral": "Umum",

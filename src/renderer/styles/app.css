@@ -164,13 +164,10 @@ body.resizing-settings * {
 }
 
 /* ── Export modal ── */
+/* Position/size are applied inline by modalWindow helpers (drag + resize). */
 .export-modal {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   width: 940px;
-  max-width: calc(100vw - 16px);
   height: min(620px, calc(100vh - 16px));
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
 }
@@ -373,6 +370,38 @@ body.resizing-settings * {
 .export-preview-busy.hidden {
   display: none;
 }
+.export-preview-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.export-zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 2px;
+}
+.export-zoom .btn {
+  padding: 3px;
+  border-radius: 4px;
+}
+.export-zoom-val {
+  min-width: 44px;
+  text-align: center;
+  font-size: 0.65rem;
+  color: #d4d4d4;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  user-select: none;
+}
+.export-preview-host.zoom-pan {
+  cursor: grab;
+}
+.export-preview-host.zoom-pan:active {
+  cursor: grabbing;
+}
 @keyframes export-spin {
   to {
     transform: rotate(360deg);
@@ -390,6 +419,7 @@ body.resizing-settings * {
     16px;
 }
 .export-preview-host canvas {
+  position: absolute;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 .export-empty {
