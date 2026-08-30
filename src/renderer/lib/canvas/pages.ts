@@ -4,6 +4,7 @@ import * as i18n from "../i18n";
 import { ui } from "../ui";
 import { canvas } from "./index";
 import { sidebar } from "../sidebar";
+import { history } from "../history";
 import { createIcons } from "../icons";
 import type { Page } from "../../types";
 
@@ -101,11 +102,15 @@ canvas.switchPage = function (idx: number): void {
   canvas.renderPageStrip();
   ui.updatePageIndicator();
   if (sidebar && sidebar.render) sidebar.render();
+  // Each page keeps its own undo/redo stack — refresh the header buttons
+  history._updateButtons();
 };
 
 /** Remove a page */
 canvas.removePage = function (idx: number): void {
+  const removed = state.pages[idx];
   state.removePage(idx);
+  if (removed) history.forgetPage(removed);
   canvas._clearGroups();
   if (state.pages.length > 0) {
     state.activePageIdx = Math.min(idx, state.pages.length - 1);
@@ -120,6 +125,7 @@ canvas.removePage = function (idx: number): void {
   canvas.renderPageStrip();
   ui.updatePageIndicator();
   if (sidebar && sidebar.render) sidebar.render();
+  history._updateButtons();
 };
 
 /** Generate a thumbnail data URL from page (for export, future) */

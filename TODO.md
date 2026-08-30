@@ -18,7 +18,7 @@
 - [ ] caching managements
 - [x] more efficient model description
 - [ ] more efficient model loading
-- [ ] make undo/redo different per page/image
+- [x] make undo/redo different per page/image
 - [ ] add more tools
 - [ ] onnx runtime with gpu acceleration support
 - [ ] testing and hunt another bugs

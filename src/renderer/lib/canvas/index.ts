@@ -422,9 +422,14 @@ canvas._initKeyboard = function (): void {
     if (e.key === "Delete" || e.key === "Backspace") {
       const page = state.getActivePage();
       if (!page) return;
+      // Detection boxes first — free-text layers have no parallel detection,
+      // so fall back to the selected layer (created with the text tool).
       if (page._selectedTextIdx !== null) {
         e.preventDefault();
         canvas.deleteTextDetection(page._selectedTextIdx);
+      } else if (page._selectedLayerId) {
+        e.preventDefault();
+        canvas.deleteLayer(page._selectedLayerId);
       }
       return;
     }
