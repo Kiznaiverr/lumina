@@ -102,8 +102,6 @@
   "sidebar.resizeType": "Seret untuk mengubah tinggi bagian Type",
   "sidebar.noDetections": "Tidak ada deteksi",
   "sidebar.delete": "Hapus deteksi (Del)",
-  "sidebar.moveUp": "Naikkan urutan baca",
-  "sidebar.moveDown": "Turunkan urutan baca",
 
   "ctx.delete": "Hapus",
   "ctx.cycleStatus": "Ganti status",
@@ -158,6 +156,7 @@
   "layers.mask": "Masker",
   "layers.maskCount": "{{count}} tambalan",
   "layers.background": "Latar Belakang",
+  "layers.retranslate": "Terjemahkan ulang baris ini",
   "layers.sourcePlaceholder": "Teks sumber OCR…",
   "layers.translationPlaceholder": "Teks terjemahan…",
   "text.placeholder": "Lorem ipsum dolor sit amet",

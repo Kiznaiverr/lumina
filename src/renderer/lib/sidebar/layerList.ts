@@ -7,6 +7,7 @@
 import * as i18n from "../i18n";
 import { canvas } from "../canvas/index";
 import { state } from "../state";
+import { translate } from "../pipeline/translate";
 import type { Page, PageLayer } from "../../types";
 import { esc } from "./_esc";
 
@@ -92,16 +93,17 @@ function virtualRowHTML(
 
 function layerRowHTML(page: Page, layer: PageLayer): string {
   const selected = page._selectedLayerId === layer.id;
-  const idx = page.layers.indexOf(layer);
   const kindLabel = i18n.t(KIND_KEYS[layer.type]);
   const name = esc(layerName(layer));
+  const isText = layer.type === "text-dialogue" || layer.type === "text-free";
+  const canRetranslate = isText && (layer.source || "").trim().length > 0;
 
   let html =
     '<div class="layer-row' +
     (selected ? " selected" : "") +
     '" data-layer-id="' +
     esc(layer.id) +
-    '">' +
+    '" draggable="true">' +
     '<div class="layer-row-main">' +
     '<i data-lucide="type" class="layer-icon"></i>' +
     '<div class="layer-name-wrap">' +
@@ -113,21 +115,16 @@ function layerRowHTML(page: Page, layer: PageLayer): string {
     "</span>" +
     "</div>" +
     '<div class="detection-actions">' +
-    '<button class="det-btn" data-action="move-up" title="' +
-    esc(i18n.t("sidebar.moveUp")) +
-    '"' +
-    (idx === 0 ? " disabled" : "") +
-    ">↑</button>" +
-    '<button class="det-btn" data-action="move-down" title="' +
-    esc(i18n.t("sidebar.moveDown")) +
-    '"' +
-    (idx === page.layers.length - 1 ? " disabled" : "") +
-    ">↓</button>" +
-    '<button class="det-btn det-btn-danger" data-action="delete" title="' +
+    (canRetranslate
+      ? '<button class="det-btn" data-action="retranslate" draggable="false" title="' +
+        esc(i18n.t("layers.retranslate")) +
+        '"><i data-lucide="languages"></i></button>'
+      : "") +
+    '<button class="det-btn det-btn-danger" data-action="delete" draggable="false" title="' +
     esc(i18n.t("sidebar.delete")) +
     '">✕</button>' +
     "</div>" +
-    '<button class="layer-eye" data-action="toggle-visible" title="' +
+    '<button class="layer-eye" data-action="toggle-visible" draggable="false" title="' +
     esc(i18n.t("layers.toggleVisible")) +
     '">' +
     (layer.visible
@@ -147,7 +144,7 @@ function layerRowHTML(page: Page, layer: PageLayer): string {
       '<div class="layer-editor-label">' +
       esc(i18n.t("layers.source")) +
       "</div>" +
-      '<textarea class="layer-editor-textarea" data-field="source" rows="2" placeholder="' +
+      '<textarea class="layer-editor-textarea" data-field="source" rows="2" draggable="false" placeholder="' +
       esc(i18n.t("layers.sourcePlaceholder")) +
       '"></textarea>' +
       "</div>" +
@@ -155,7 +152,7 @@ function layerRowHTML(page: Page, layer: PageLayer): string {
       '<div class="layer-editor-label layer-editor-label-translation">' +
       esc(i18n.t("layers.translation")) +
       "</div>" +
-      '<textarea class="layer-editor-textarea layer-editor-translation" data-field="translation" rows="3" placeholder="' +
+      '<textarea class="layer-editor-textarea layer-editor-translation" data-field="translation" rows="3" draggable="false" placeholder="' +
       esc(i18n.t("layers.translationPlaceholder")) +
       '"></textarea>' +
       "</div>" +
@@ -189,8 +186,7 @@ export function wireEvents(): void {
         e.stopPropagation();
         const action = btn.getAttribute("data-action");
         if (action === "delete") canvas.deleteLayer(id);
-        else if (action === "move-up") canvas.moveLayer(id, -1);
-        else if (action === "move-down") canvas.moveLayer(id, 1);
+        else if (action === "retranslate") void translate.retranslateLayer(id);
         return;
       }
 
@@ -202,6 +198,100 @@ export function wireEvents(): void {
       }
     });
   });
+
+  // Drag & drop reorder (replaces the old ↑/↓ buttons).
+  // Rows only accept drops from layers of the SAME type — the dialogue
+  // block must stay ahead of free-text layers (parallel detection index).
+  let dragId: string | null = null;
+  let dragType: string | null = null;
+  function dropIndicator(): NodeListOf<HTMLElement> {
+    return document.querySelectorAll<HTMLElement>(
+      ".layer-row.drop-before, .layer-row.drop-after",
+    );
+  }
+  function clearDropIndicators(): void {
+    dropIndicator().forEach(function (r) {
+      r.classList.remove("drop-before", "drop-after");
+    });
+  }
+
+  document
+    .querySelectorAll<HTMLElement>(".layer-row[data-layer-id]")
+    .forEach(function (el) {
+      el.addEventListener("dragstart", function (e) {
+        const t = e.target as HTMLElement;
+        // Never start a drag from a button or the inline editor
+        if (t.closest("button, textarea, input")) {
+          e.preventDefault();
+          return;
+        }
+        dragId = el.getAttribute("data-layer-id");
+        const page = state.getActivePage();
+        const layer = page?.layers.find(function (l) {
+          return l.id === dragId;
+        });
+        dragType = layer ? layer.type : null;
+        el.classList.add("dragging");
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", dragId || "");
+        }
+      });
+
+      el.addEventListener("dragend", function () {
+        el.classList.remove("dragging");
+        clearDropIndicators();
+        dragId = null;
+        dragType = null;
+      });
+
+      el.addEventListener("dragover", function (e) {
+        const targetId = el.getAttribute("data-layer-id");
+        if (!dragId || dragId === targetId) return;
+        const page = state.getActivePage();
+        if (!page) return;
+        const layer = page.layers.find(function (l) {
+          return l.id === dragId;
+        });
+        const target = page.layers.find(function (l) {
+          return l.id === targetId;
+        });
+        if (!layer || !target || dragType !== target.type) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        const rect = el.getBoundingClientRect();
+        const before = e.clientY < rect.top + rect.height / 2;
+        el.classList.toggle("drop-before", before);
+        el.classList.toggle("drop-after", !before);
+      });
+
+      el.addEventListener("dragleave", function () {
+        el.classList.remove("drop-before", "drop-after");
+      });
+
+      el.addEventListener("drop", function (e) {
+        e.preventDefault();
+        const targetId = el.getAttribute("data-layer-id");
+        if (!dragId || dragId === targetId) return;
+        const page = state.getActivePage();
+        if (!page) return;
+        const layer = page.layers.find(function (l) {
+          return l.id === dragId;
+        });
+        const target = page.layers.find(function (l) {
+          return l.id === targetId;
+        });
+        if (!layer || !target || dragType !== target.type) return;
+        const rows = Array.from(
+          document.querySelectorAll<HTMLElement>(".layer-row[data-layer-id]"),
+        );
+        const idx = rows.indexOf(el);
+        const rect = el.getBoundingClientRect();
+        const before = e.clientY < rect.top + rect.height / 2;
+        canvas.moveLayerTo(dragId, before ? idx : idx + 1);
+        clearDropIndicators();
+      });
+    });
 
   // Inline editors: set initial value + commit on blur
   document

@@ -102,8 +102,6 @@
   "sidebar.resizeType": "Drag to resize Type section height",
   "sidebar.noDetections": "No detections",
   "sidebar.delete": "Delete detection (Del)",
-  "sidebar.moveUp": "Move up in reading order",
-  "sidebar.moveDown": "Move down in reading order",
 
   "ctx.delete": "Delete",
   "ctx.cycleStatus": "Cycle status",
@@ -158,6 +156,7 @@
   "layers.mask": "Mask",
   "layers.maskCount": "{{count}} patches",
   "layers.background": "Background",
+  "layers.retranslate": "Re-translate this line",
   "layers.sourcePlaceholder": "OCR source text…",
   "layers.translationPlaceholder": "Translated text…",
   "text.placeholder": "Lorem ipsum dolor sit amet",

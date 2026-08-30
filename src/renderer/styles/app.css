@@ -515,6 +515,22 @@ body.resizing-settings * {
   border: 1px solid transparent;
   transition: background 0.1s;
 }
+.layer-row[draggable="true"] {
+  cursor: grab;
+}
+.layer-row[draggable="true"]:active {
+  cursor: grabbing;
+}
+.layer-row.dragging {
+  opacity: 0.4;
+}
+/* Drop position indicator (top/bottom edge line) */
+.layer-row.drop-before {
+  box-shadow: 0 -2px 0 0 #e94560;
+}
+.layer-row.drop-after {
+  box-shadow: 0 2px 0 0 #e94560;
+}
 .layer-row:hover {
   background: #2a2a2a;
 }

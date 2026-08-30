@@ -11,14 +11,14 @@
 - [x] fix stale tools
 - [x] fix text tool
 - [x] rotation tool
-- [] per line re-translate
-- [] change reorder button in layer list to drag and drop
-- [] tree-shake lucide bundle
-- [] export and save features
-- [] caching managements
+- [x] per line re-translate
+- [x] change reorder button in layer list to drag and drop
+- [ ] tree-shake lucide bundle
+- [ ] export and save features
+- [ ] caching managements
 - [x] more efficient model description
-- [] more efficient model loading
-- [] make undo/redo different per page/image
-- [] add more tools
-- [] onnx runtime with gpu acceleration support
-- [] testing and hunt another bugs
+- [ ] more efficient model loading
+- [ ] make undo/redo different per page/image
+- [ ] add more tools
+- [ ] onnx runtime with gpu acceleration support
+- [ ] testing and hunt another bugs

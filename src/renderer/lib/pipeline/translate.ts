@@ -202,4 +202,70 @@ export const translate = {
       state.isRunning = false;
     }
   },
+
+  /** Re-translate a single layer from the layer list (per-line retranslate) */
+  retranslateLayer: async function (id: string): Promise<void> {
+    const page = state.getActivePage();
+    if (state.isRunning || !page) return;
+    const i = page.layers.findIndex(function (l) {
+      return l.id === id;
+    });
+    if (i < 0) return;
+    const layer = page.layers[i];
+    const text = (layer.source || "").trim();
+    if (!text) {
+      ui.toast(i18n.t("toast.trNoText"), "warn");
+      return;
+    }
+    state.isRunning = true;
+
+    const loadingToast = ui.toast(
+      i18n.t("toast.trRunning", { count: 1 }),
+      "running",
+      0,
+    );
+
+    try {
+      // Continuity context: nearest previous dialogue line in reading order
+      let prev = "";
+      for (let k = i - 1; k >= 0; k--) {
+        const p = page.layers[k];
+        if (p.type === "text-dialogue") {
+          prev = p.translation || p.source || "";
+          break;
+        }
+      }
+
+      const config = await translateSettings.loadWithSecrets();
+      const result = await window.lumina.apiPost<{
+        results?: Array<{ index: number; text: string }>;
+        detail?: string;
+      }>("/translate", {
+        texts: [text],
+        previousLines: [prev],
+        config: config,
+      });
+      if (!result || !result.results || !result.results[0])
+        throw new Error(result?.detail || "Translation failed");
+
+      const translated = result.results[0].text;
+      layer.translation = translated;
+      // Mirror into the parallel detection model
+      if (layer.type === "text-dialogue" && i < page.textDetections.length) {
+        page.textDetections[i].translated = translated;
+      }
+
+      canvas.render();
+      sidebar.render();
+      history.snapshot();
+      ui.dismissToast(loadingToast);
+      ui.toast(i18n.t("toast.trDone", { count: 1 }), "success", 3000);
+    } catch (err) {
+      console.error("Retranslate error:", err);
+      ui.dismissToast(loadingToast);
+      ui.toast((err as Error).message || i18n.t("toast.trFailed"), "error");
+    } finally {
+      state.isRunning = false;
+    }
+  },
 };

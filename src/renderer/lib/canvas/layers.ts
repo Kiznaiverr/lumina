@@ -101,25 +101,36 @@ canvas.deleteLayer = function (id): void {
   history.snapshot();
 };
 
-canvas.moveLayer = function (id, dir): void {
+canvas.moveLayerTo = function (id, insertAt): void {
   const page = state.getActivePage();
-  const i = _findLayer(page, id);
-  if (!page || i < 0) return;
-  const next = i + dir;
-  if (next < 0 || next >= page.layers.length) return;
-  const a = page.layers[i];
-  const b = page.layers[next];
-  // Only swap within the same type group (dialogue/free stay with their kind)
-  if (a.type !== b.type) return;
-  page.layers[i] = b;
-  page.layers[next] = a;
+  const from = _findLayer(page, id);
+  if (!page || from < 0) return;
+  const layer = page.layers[from];
+
+  // Clamp the insertion point to the layer's type group — dialogue layers
+  // must stay ahead of free-text layers (parallel detection index).
+  let groupStart = -1;
+  let groupEnd = -1;
+  page.layers.forEach(function (l, i) {
+    if (l.type === layer.type) {
+      if (groupStart < 0) groupStart = i;
+      groupEnd = i;
+    }
+  });
+  if (groupStart < 0) return;
+  const to = Math.max(groupStart, Math.min(groupEnd + 1, insertAt));
+  if (to === from || to === from + 1) return; // no-op
+
+  page.layers.splice(from, 1);
+  const insert = from < to ? to - 1 : to;
+  page.layers.splice(insert, 0, layer);
+
   // Mirror reorder in the parallel detection model
-  if (a.type === "text-dialogue") {
+  if (layer.type === "text-dialogue") {
     const dets = page.textDetections;
-    if (i < dets.length && next < dets.length) {
-      const tmp = dets[i];
-      dets[i] = dets[next];
-      dets[next] = tmp;
+    if (from < dets.length && insert < dets.length) {
+      const det = dets.splice(from, 1)[0];
+      dets.splice(insert, 0, det);
     }
   }
   canvas.render();

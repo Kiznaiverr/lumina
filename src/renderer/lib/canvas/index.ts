@@ -38,7 +38,8 @@ export interface CanvasAPI {
   setLayerText(id: string, field: "source" | "translation", text: string): void;
   toggleLayerVisible(id: string): void;
   deleteLayer(id: string): void;
-  moveLayer(id: string, dir: number): void;
+  /** Insert layer `id` before `insertAt` (clamped to its type group) */
+  moveLayerTo(id: string, insertAt: number): void;
   toggleMaskVisible(id: string): void;
   deleteMask(id: string): void;
   setMaskOpacity(id: string, opacity: number): void;
@@ -104,7 +105,7 @@ export const canvas: CanvasAPI = {
   setLayerText() {},
   toggleLayerVisible() {},
   deleteLayer() {},
-  moveLayer() {},
+  moveLayerTo() {},
   toggleMaskVisible() {},
   deleteMask() {},
   setMaskOpacity() {},
