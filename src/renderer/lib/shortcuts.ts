@@ -13,6 +13,7 @@ type ActionId =
   | "save"
   | "saveAs"
   | "export"
+  | "exportAll"
   | "toolSelect"
   | "toolLasso"
   | "toolText"
@@ -28,6 +29,7 @@ export const shortcuts = {
     save: "Ctrl+S",
     saveAs: "Ctrl+Shift+S",
     export: "Ctrl+E",
+    exportAll: "Ctrl+Shift+E",
     toolSelect: "V",
     toolLasso: "L",
     toolText: "T",
@@ -125,6 +127,9 @@ export const shortcuts = {
         },
         export: function () {
           exportModule.open();
+        },
+        exportAll: function () {
+          exportModule.openAll();
         },
         toolSelect: function () {
           tools.setActive("select");

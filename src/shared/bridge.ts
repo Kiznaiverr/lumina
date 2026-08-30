@@ -22,6 +22,8 @@ export const IPC = {
   saveProject: "save-project",
   openProject: "open-project",
   confirmDiscard: "confirm-discard",
+  requestCloseCheck: "request-close-check",
+  confirmClose: "confirm-close",
   exportImages: "export-images",
 } as const;
 
@@ -173,6 +175,10 @@ export interface LuminaAPI {
   saveProject(payload: ProjectSavePayload): Promise<ProjectSaveResult>;
   openProject(): Promise<OpenProjectResult | null>;
   confirmDiscard(message: string): Promise<DiscardChoice>;
+  /** Fired by main before the window closes — renderer must reply via confirmClose */
+  onRequestCloseCheck(cb: () => void): void;
+  /** Tell main it may (true) or must not (false) close the window */
+  confirmClose(ok: boolean): Promise<void>;
   exportImages(payload: ExportPayload): Promise<ExportResult>;
 }
 

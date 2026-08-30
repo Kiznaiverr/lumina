@@ -29,6 +29,10 @@ const api: LuminaAPI = {
   openProject: () => ipcRenderer.invoke(IPC.openProject),
   confirmDiscard: (message: string) =>
     ipcRenderer.invoke(IPC.confirmDiscard, message),
+  onRequestCloseCheck: (cb: () => void) => {
+    ipcRenderer.on(IPC.requestCloseCheck, () => cb());
+  },
+  confirmClose: (ok: boolean) => ipcRenderer.invoke(IPC.confirmClose, ok),
   exportImages: (payload) => ipcRenderer.invoke(IPC.exportImages, payload),
 };
 

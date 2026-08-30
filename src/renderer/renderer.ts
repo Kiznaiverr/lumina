@@ -23,7 +23,7 @@ import "./lib/canvas/masks";
 import { bindTextTool } from "./lib/canvas/textool";
 import { loadSystemFonts } from "./lib/fontLoader";
 import { createIcons } from "./lib/icons";
-import { project } from "./lib/project";
+import { project, handleCloseRequest } from "./lib/project";
 import * as exportModule from "./lib/export";
 import * as autosave from "./lib/autosave";
 import { isDirty, getSavePath, setDirtyListener } from "./lib/dirty";
@@ -128,9 +128,11 @@ function updateDirtyUI(): void {
   const saveBtn = document.getElementById("btn-save");
   const saveAsBtn = document.getElementById("btn-save-as");
   const exportBtn = document.getElementById("btn-export");
+  const exportAllBtn = document.getElementById("btn-export-all");
   if (saveBtn) (saveBtn as HTMLButtonElement).disabled = !hasPages;
   if (saveAsBtn) (saveAsBtn as HTMLButtonElement).disabled = !hasPages;
   if (exportBtn) (exportBtn as HTMLButtonElement).disabled = !hasPages;
+  if (exportAllBtn) (exportAllBtn as HTMLButtonElement).disabled = !hasPages;
 }
 
 // Expose for page strip "+" button
@@ -164,6 +166,11 @@ i18n.init().then(function () {
   document.getElementById("btn-export")!.addEventListener("click", function () {
     exportModule.open();
   });
+  document
+    .getElementById("btn-export-all")!
+    .addEventListener("click", function () {
+      exportModule.openAll();
+    });
 
   document.getElementById("btn-detect")!.addEventListener("click", function () {
     pipeline.runDetection();
@@ -206,6 +213,10 @@ i18n.init().then(function () {
   shortcuts.bindGlobal();
   settings.init();
   autosave.start();
+  // Photoshop-style unsaved-changes check before the window closes
+  window.lumina.onRequestCloseCheck(function () {
+    handleCloseRequest();
+  });
   document
     .getElementById("btn-settings")!
     .addEventListener("click", function () {

@@ -20,7 +20,9 @@
 - [x] more efficient model description
 - [ ] more efficient model loading
 - [x] make undo/redo different per page/image
-- [ ] re-design export window and replace warn
+- [x] warn when closing app with unsaved changes
+- [x] re-design export window and replace warn
+- [ ] fix masking bug when opening saved project
 - [ ] improve inpainting
 - [ ] re-design landing page
 - [ ] add more tools

@@ -89,6 +89,25 @@ function buildPayload(savePath: string | null): ProjectSavePayload {
   };
 }
 
+/** Photoshop-style unsaved-changes guard.
+ * Prompts Save / Don't Save / Cancel when dirty; returns true when the
+ * caller may proceed. Works even when the project was never saved (Save
+ * then shows the Save As dialog). */
+export async function guardUnsavedChanges(detail?: string): Promise<boolean> {
+  if (!isDirty()) return true;
+  const choice = await window.lumina.confirmDiscard(
+    detail ?? i18n.t("project.discardDetail"),
+  );
+  if (choice === "cancel") return false;
+  if (choice === "save") return await project.save();
+  return true;
+}
+
+/** App close requested by main — confirm, then allow/deny the close. */
+export async function handleCloseRequest(): Promise<void> {
+  window.lumina.confirmClose(await guardUnsavedChanges());
+}
+
 export const project = {
   buildPayload,
 
@@ -143,17 +162,7 @@ export const project = {
 
   /** Open a .lmi project — replaces the whole session */
   async open(): Promise<void> {
-    const hasContent = state.pages.length > 0;
-    if (hasContent && isDirty()) {
-      const choice = await window.lumina.confirmDiscard(
-        i18n.t("project.discardDetail"),
-      );
-      if (choice === "cancel") return;
-      if (choice === "save") {
-        const ok = await this.save();
-        if (!ok) return; // save dialog canceled → abort open
-      }
-    }
+    if (state.pages.length > 0 && !(await guardUnsavedChanges())) return;
 
     let result;
     try {

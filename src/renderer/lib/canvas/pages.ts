@@ -6,6 +6,7 @@ import { canvas } from "./index";
 import { sidebar } from "../sidebar";
 import { history } from "../history";
 import { createIcons } from "../icons";
+import { isDirty, markDirty } from "../dirty";
 import type { Page } from "../../types";
 
 /** Render page strip thumbnails */
@@ -106,11 +107,16 @@ canvas.switchPage = function (idx: number): void {
   history._updateButtons();
 };
 
-/** Remove a page */
-canvas.removePage = function (idx: number): void {
+/** Remove a page — confirms when the session has unsaved changes */
+canvas.removePage = async function (idx: number): Promise<void> {
+  if (isDirty()) {
+    const { guardUnsavedChanges } = await import("../project");
+    if (!(await guardUnsavedChanges(i18n.t("project.removeDetail")))) return;
+  }
   const removed = state.pages[idx];
   state.removePage(idx);
   if (removed) history.forgetPage(removed);
+  markDirty(); // removal is a mutation — keep the session dirty
   canvas._clearGroups();
   if (state.pages.length > 0) {
     state.activePageIdx = Math.min(idx, state.pages.length - 1);
