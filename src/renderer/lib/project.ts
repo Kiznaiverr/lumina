@@ -8,7 +8,7 @@
 import { state } from "./state";
 import * as i18n from "./i18n";
 import { ui } from "./ui";
-import { history } from "./history";
+import { history, hydrateMaskImages } from "./history";
 import { canvas } from "./canvas/index";
 import { sidebar } from "./sidebar";
 import { models } from "./models";
@@ -200,6 +200,9 @@ export const project = {
       });
     }
     state.pages = pages;
+    // Masks are stored as PNG paths — decode them now so the first render
+    // shows the cleaned patches instead of raw text over the original image.
+    pages.forEach((p) => hydrateMaskImages(p));
     state.activePageIdx =
       result.activePageIdx !== null && result.activePageIdx < pages.length
         ? result.activePageIdx

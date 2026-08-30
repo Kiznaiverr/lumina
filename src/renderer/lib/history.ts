@@ -69,6 +69,25 @@ interface PageSnapshot {
   }>;
 }
 
+/** Re-hydrate mask PNGs from their imagePath — decoded images are never
+ * serialized (undo stack, project files). Each load re-renders the active
+ * page so masks appear as soon as they're ready. */
+export function hydrateMaskImages(page: Page): void {
+  (page.inpaintMasks || []).forEach((m) => {
+    if (m.image) return;
+    const img = new Image();
+    img.onload = function () {
+      const live = page.inpaintMasks.find((lm) => lm.id === m.id);
+      if (live) live.image = img;
+      if (state.getActivePage() === page) canvas.render();
+    };
+    img.onerror = function () {
+      /* patch file missing — mask stays hidden */
+    };
+    img.src = _fileUrl(m.imagePath);
+  });
+}
+
 export const history = {
   _restoring: false,
 
@@ -161,18 +180,7 @@ export const history = {
     }));
     page.inpaintMasks = masks as never;
     // Re-hydrate mask images asynchronously; render again once loaded.
-    masks.forEach((m) => {
-      const img = new Image();
-      img.onload = function () {
-        const live = page.inpaintMasks.find((lm) => lm.id === m.id);
-        if (live) live.image = img;
-        if (state.getActivePage() === page) canvas.render();
-      };
-      img.onerror = function () {
-        /* patch file missing — mask stays hidden */
-      };
-      img.src = _fileUrl(m.imagePath);
-    });
+    hydrateMaskImages(page);
     canvas._clearGroups();
     canvas.render();
     if (sidebar && sidebar.render) sidebar.render();
