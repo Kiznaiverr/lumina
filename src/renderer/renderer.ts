@@ -23,6 +23,10 @@ import "./lib/canvas/masks";
 import { bindTextTool } from "./lib/canvas/textool";
 import { loadSystemFonts } from "./lib/fontLoader";
 import { createIcons } from "./lib/icons";
+import { project } from "./lib/project";
+import * as exportModule from "./lib/export";
+import * as autosave from "./lib/autosave";
+import { isDirty, getSavePath, setDirtyListener } from "./lib/dirty";
 import type { Page } from "./types";
 
 const landing = document.getElementById("landing");
@@ -109,6 +113,24 @@ async function importImages(): Promise<void> {
   ui.updatePageIndicator();
   sidebar.render();
   history.reset();
+  project.markImportedDirty();
+}
+
+// ── Project dirty indicator (status bar + window title) ──
+function updateDirtyUI(): void {
+  const el = document.getElementById("status-project");
+  const path = getSavePath();
+  const name = path ? (path.split(/[\\/]/).pop() as string) : "";
+  if (el) el.textContent = name ? (isDirty() ? name + " •" : name) : "";
+  document.title = isDirty() ? "Lumina •" : "Lumina";
+
+  const hasPages = L.state.pages.length > 0;
+  const saveBtn = document.getElementById("btn-save");
+  const saveAsBtn = document.getElementById("btn-save-as");
+  const exportBtn = document.getElementById("btn-export");
+  if (saveBtn) (saveBtn as HTMLButtonElement).disabled = !hasPages;
+  if (saveAsBtn) (saveAsBtn as HTMLButtonElement).disabled = !hasPages;
+  if (exportBtn) (exportBtn as HTMLButtonElement).disabled = !hasPages;
 }
 
 // Expose for page strip "+" button
@@ -123,6 +145,25 @@ i18n.init().then(function () {
   document
     .getElementById("btn-import")!
     .addEventListener("click", importImages);
+  document.getElementById("btn-open")!.addEventListener("click", function () {
+    project.open();
+  });
+  document
+    .getElementById("btn-open-landing")!
+    .addEventListener("click", function () {
+      project.open();
+    });
+  document.getElementById("btn-save")!.addEventListener("click", function () {
+    project.save();
+  });
+  document
+    .getElementById("btn-save-as")!
+    .addEventListener("click", function () {
+      project.saveAs();
+    });
+  document.getElementById("btn-export")!.addEventListener("click", function () {
+    exportModule.open();
+  });
 
   document.getElementById("btn-detect")!.addEventListener("click", function () {
     pipeline.runDetection();
@@ -164,6 +205,7 @@ i18n.init().then(function () {
   shortcuts.init();
   shortcuts.bindGlobal();
   settings.init();
+  autosave.start();
   document
     .getElementById("btn-settings")!
     .addEventListener("click", function () {
@@ -179,6 +221,9 @@ i18n.init().then(function () {
   canvas.initBindings();
   bindTextTool();
   sidebar.render();
+
+  setDirtyListener(updateDirtyUI);
+  updateDirtyUI();
 
   createIcons();
 

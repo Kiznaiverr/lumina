@@ -14,6 +14,7 @@ import type { DownloadProgress, ModelInfo } from "../types";
 
 let _models: ModelInfo[] = [];
 let _hasImage = false;
+let _downloading = false;
 const _progressCbs: Array<(p: DownloadProgress) => void> = [];
 
 const SELECTED_KEY = "lumina:selectedModels";
@@ -169,11 +170,17 @@ export const models = {
       if (i >= 0) _progressCbs.splice(i, 1);
     };
   },
+
+  /** True while a model download is in flight (auto-save skips). */
+  isDownloading(): boolean {
+    return _downloading;
+  },
 };
 
 // Forward backend progress events to all subscribers once, and drive the
 // global download toast (bottom-right: bar, size, speed) for visual feedback.
 window.lumina.onDownloadProgress((p) => {
+  _downloading = p.running;
   for (const cb of _progressCbs) cb(p);
   if (p.running) {
     if (!document.getElementById("dl-toast")) {

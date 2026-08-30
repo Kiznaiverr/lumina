@@ -43,6 +43,7 @@ export const shortcutsTab = {
       zoomIn: i18n.t("zoom.zoomIn"),
       zoomOut: i18n.t("zoom.zoomOut"),
       zoomFit: i18n.t("zoom.fit"),
+      export: i18n.t("export.title"),
     };
 
     (Object.keys(labels) as ActionId[]).forEach(function (action) {

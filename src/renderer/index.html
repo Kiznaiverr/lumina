@@ -41,6 +41,36 @@
       <h1 class="text-[0.85rem] text-lumina font-bold tracking-tight">
         Lumina
       </h1>
+      <div class="flex gap-1.5 items-center">
+        <button class="btn" id="btn-open" data-i18n-title="header.open">
+          <i data-lucide="folder-open" class="w-3 h-3"></i>
+        </button>
+        <button
+          class="btn"
+          id="btn-save"
+          disabled
+          data-i18n-title="header.save"
+        >
+          <i data-lucide="save" class="w-3 h-3"></i>
+        </button>
+        <button
+          class="btn"
+          id="btn-save-as"
+          disabled
+          data-i18n-title="header.saveAs"
+        >
+          <i data-lucide="file-plus" class="w-3 h-3"></i>
+        </button>
+        <button
+          class="btn"
+          id="btn-export"
+          disabled
+          data-i18n-title="header.export"
+        >
+          <i data-lucide="image-down" class="w-3 h-3"></i>
+        </button>
+      </div>
+      <span class="w-px h-4 bg-surface-3"></span>
       <div class="flex gap-1.5 ml-auto items-center">
         <button class="btn" id="btn-import" data-i18n="header.import">
           <span class="flex items-center gap-1"
@@ -144,13 +174,22 @@
             >
               Import a page to begin
             </p>
-            <button
-              class="btn primary"
-              id="btn-import-landing"
-              data-i18n="landing.import"
-            >
-              Import Image
-            </button>
+            <div class="flex gap-2 items-center">
+              <button
+                class="btn primary"
+                id="btn-import-landing"
+                data-i18n="landing.import"
+              >
+                Import Image
+              </button>
+              <button
+                class="btn"
+                id="btn-open-landing"
+                data-i18n="landing.openProject"
+              >
+                Open Project
+              </button>
+            </div>
           </div>
 
           <!-- Single Konva container -->
@@ -248,7 +287,8 @@
       <span id="status-detections" data-i18n="status.noDetections"
         >No detections</span
       >
-      <span class="ml-auto" id="status-page"></span>
+      <span id="status-project" class="ml-auto"></span>
+      <span id="status-page"></span>
     </div>
 
     <!-- Settings Modal (tab content built by lib/settings/) -->

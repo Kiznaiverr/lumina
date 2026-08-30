@@ -25,6 +25,11 @@ const api: LuminaAPI = {
     ipcRenderer.invoke(IPC.secretsSet, key, value),
   getSecret: (key: string) => ipcRenderer.invoke(IPC.secretsGet, key),
   deleteSecret: (key: string) => ipcRenderer.invoke(IPC.secretsDelete, key),
+  saveProject: (payload) => ipcRenderer.invoke(IPC.saveProject, payload),
+  openProject: () => ipcRenderer.invoke(IPC.openProject),
+  confirmDiscard: (message: string) =>
+    ipcRenderer.invoke(IPC.confirmDiscard, message),
+  exportImages: (payload) => ipcRenderer.invoke(IPC.exportImages, payload),
 };
 
 contextBridge.exposeInMainWorld("lumina", api);

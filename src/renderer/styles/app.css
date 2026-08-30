@@ -162,6 +162,119 @@ body.resizing-settings * {
   cursor: nwse-resize !important;
   user-select: none !important;
 }
+
+/* ── Export modal ── */
+.export-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 520px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+.export-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  overflow: hidden;
+}
+.export-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.export-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: var(--color-surface-1);
+}
+.export-row[draggable="true"] {
+  cursor: grab;
+}
+.export-row[draggable="true"]:active {
+  cursor: grabbing;
+}
+.export-row.dragging {
+  opacity: 0.4;
+}
+.export-row.drop-before {
+  box-shadow: 0 -2px 0 0 #e94560;
+}
+.export-row.drop-after {
+  box-shadow: 0 2px 0 0 #e94560;
+}
+.export-idx {
+  width: 22px;
+  text-align: center;
+  font-size: 0.7rem;
+  color: #969696;
+  flex-shrink: 0;
+}
+.export-thumb {
+  width: 40px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #111;
+  flex-shrink: 0;
+}
+.export-name {
+  font-size: 0.75rem;
+  color: #d4d4d4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.export-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 2px;
+}
+.export-format {
+  display: flex;
+  gap: 4px;
+}
+.export-format .btn {
+  padding: 4px 12px;
+  font-size: 0.7rem;
+}
+.export-format .btn.active {
+  background: var(--color-lumina);
+  color: #fff;
+}
+.export-quality {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  color: #969696;
+}
+.export-quality input[type="range"] {
+  width: 120px;
+}
+.export-quality-val {
+  min-width: 26px;
+  text-align: right;
+  color: #d4d4d4;
+  font-variant-numeric: tabular-nums;
+}
+.export-quality.hidden {
+  display: none;
+}
+
 /* Nested cards on the "workbench" pane — mirrors the 3-layer depth of the
    main workspace: frame (surface-1) → pane (surface-0) → section cards. */
 .settings-section {
@@ -195,6 +308,48 @@ body.resizing-settings * {
 }
 .field-select:focus {
   border-color: #e94560;
+}
+/* ── Toggle switch (settings) ── */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle .track {
+  position: absolute;
+  inset: 0;
+  background: #333;
+  border-radius: 999px;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.toggle .track::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  background: #d4d4d4;
+  border-radius: 50%;
+  transition: transform 0.15s;
+}
+.toggle input:checked + .track {
+  background: #e94560;
+}
+.toggle input:checked + .track::after {
+  transform: translateX(14px);
+}
+.toggle input:disabled + .track {
+  opacity: 0.4;
+  cursor: default;
 }
 /* Type section controls: fill their grid track and may shrink below
    intrinsic width (native selects default ~170px and overflow). */

@@ -7,6 +7,13 @@ export type {
   LuminaAPI,
   ModelCheck,
   ModelInfo,
+  DiscardChoice,
+  OpenProjectResult,
+  ProjectMaskData,
+  ProjectPageData,
+  ProjectSavePayload,
+  ProjectSaveResult,
+  ProjectSettingsData,
 } from "../shared/bridge";
 
 export type DetectionStatus = "auto" | "adjusted" | "rejected";

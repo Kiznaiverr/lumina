@@ -19,6 +19,7 @@ Subclasses only override:
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -27,13 +28,14 @@ import numpy as np
 from utils.logger import log
 from .base import BaseInpaintModel, ProgressCallback
 
-# Model + patch directories live in <repo>/models and <repo>/cache
-# (override with LUMINA_MODEL_DIR / LUMINA_CACHE_DIR env vars).
+# Models live in <repo>/models; inpaint patch files are session-scoped
+# artifacts and live in the OS temp dir (<temp>/lumina) so they never
+# accumulate in the repo. Both are overridable via env vars.
 _MODELS_DIR = Path(
     os.environ.get("LUMINA_MODEL_DIR", Path(__file__).resolve().parents[3] / "models")
 )
 _CACHE_DIR = Path(
-    os.environ.get("LUMINA_CACHE_DIR", Path(__file__).resolve().parents[3] / "cache")
+    os.environ.get("LUMINA_CACHE_DIR", Path(tempfile.gettempdir()) / "lumina")
 )
 
 

@@ -6,6 +6,7 @@
 import { state } from "./state";
 import { canvas } from "./canvas/index";
 import { sidebar } from "./sidebar";
+import { markDirty } from "./dirty";
 import type { Page } from "../types";
 
 /** Convert a Windows path to a loadable file:// URL */
@@ -104,6 +105,7 @@ export const history = {
     e.stack.push(data);
     if (e.stack.length > MAX_STACK) e.stack.shift();
     e.idx = e.stack.length - 1;
+    markDirty();
     this._updateButtons();
   },
 
@@ -113,6 +115,7 @@ export const history = {
     if (!e || !page || e.idx <= 0) return;
     e.idx--;
     this._applyPage(page, e.stack[e.idx]);
+    markDirty();
     this._updateButtons();
   },
 
@@ -122,6 +125,7 @@ export const history = {
     if (!e || !page || e.idx >= e.stack.length - 1) return;
     e.idx++;
     this._applyPage(page, e.stack[e.idx]);
+    markDirty();
     this._updateButtons();
   },
 

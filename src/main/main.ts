@@ -1,8 +1,14 @@
 import { app, BrowserWindow, Menu } from "electron";
 import * as path from "path";
-import { spawnPythonBackend, stopPythonBackend } from "./backend";
+import {
+  spawnPythonBackend,
+  stopPythonBackend,
+  prepareCacheDir,
+} from "./backend";
 import { registerIpcHandlers } from "./pipeline";
 import { registerSecretHandlers } from "./storage";
+import { registerProjectIpc } from "./project";
+import { registerExportIpc } from "./export";
 import { MAIN_DIR, PROJECT_ROOT } from "./paths";
 
 let mainWindow: BrowserWindow | null = null;
@@ -26,6 +32,8 @@ function createWindow(): void {
 
   registerIpcHandlers(mainWindow);
   registerSecretHandlers();
+  registerProjectIpc();
+  registerExportIpc();
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -35,6 +43,7 @@ function createWindow(): void {
 app.whenReady().then(async () => {
   // Remove default Electron menu bar (File/Edit/View...)
   Menu.setApplicationMenu(null);
+  prepareCacheDir();
   await spawnPythonBackend();
   createWindow();
 });

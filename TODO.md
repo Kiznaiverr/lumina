@@ -14,11 +14,15 @@
 - [x] per line re-translate
 - [x] change reorder button in layer list to drag and drop
 - [ ] tree-shake lucide bundle
-- [ ] export and save features
-- [ ] caching managements
+- [x] export and save features
+- [x] export window with PNG/JPG + reorder
+- [x] caching managements
 - [x] more efficient model description
 - [ ] more efficient model loading
 - [x] make undo/redo different per page/image
+- [ ] re-design export window and replace warn
+- [ ] improve inpainting
+- [ ] re-design landing page
 - [ ] add more tools
 - [ ] onnx runtime with gpu acceleration support
 - [ ] testing and hunt another bugs

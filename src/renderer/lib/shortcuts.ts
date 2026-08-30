@@ -3,10 +3,16 @@ import * as i18n from "./i18n";
 import { history } from "./history";
 import { tools } from "./tools";
 import { canvas } from "./canvas/index";
+import { project } from "./project";
+import * as exportModule from "./export";
 
 type ActionId =
   | "undo"
   | "redo"
+  | "openProject"
+  | "save"
+  | "saveAs"
+  | "export"
   | "toolSelect"
   | "toolLasso"
   | "toolText"
@@ -18,6 +24,10 @@ export const shortcuts = {
   defaults: {
     undo: "Ctrl+Z",
     redo: "Ctrl+Shift+Z",
+    openProject: "Ctrl+O",
+    save: "Ctrl+S",
+    saveAs: "Ctrl+Shift+S",
+    export: "Ctrl+E",
     toolSelect: "V",
     toolLasso: "L",
     toolText: "T",
@@ -103,6 +113,18 @@ export const shortcuts = {
         },
         redo: function () {
           history.redo();
+        },
+        openProject: function () {
+          project.open();
+        },
+        save: function () {
+          project.save();
+        },
+        saveAs: function () {
+          project.saveAs();
+        },
+        export: function () {
+          exportModule.open();
         },
         toolSelect: function () {
           tools.setActive("select");
