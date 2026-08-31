@@ -1,17 +1,15 @@
-"""Detection services — pluggable model registry (mirrors ``services/ocr``).
+"""Detection services — pluggable model registry.
 
-Add a new model: create ``<name>.py`` exposing a ``BaseDetectModel``
-subclass, then register it in ``MODELS``. The API surface below
-(``detect`` / ``is_model_ready`` / ``download_model``) is what
-``main.py`` and the renderer talk to.
+New model = new package under this folder (named after its registry id)
++ one entry in ``MODELS``; main.py and the renderer need no changes.
 """
 from __future__ import annotations
 
 from typing import Optional
 
 from .base import BaseDetectModel, ProgressCallback
-from .rtdetr import RTDetrModel
-from .rfdetr_seg import RfDetrSegModel
+from .rtdetr.model import RTDetrModel
+from .rfdetr_seg.model import RfDetrSegModel
 
 MODELS: dict[str, BaseDetectModel] = {
     "rtdetr": RTDetrModel(),
@@ -19,8 +17,7 @@ MODELS: dict[str, BaseDetectModel] = {
 }
 DEFAULT_MODEL = "rfdetr_seg"
 
-# Module-level progress callback — legacy main.py pattern sets this before
-# calling download_model(); model classes accept a per-call callback too.
+# Legacy: main.py can set this before download_model(); per-call callback wins.
 progress_callback: ProgressCallback = None
 
 

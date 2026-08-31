@@ -1,149 +1,33 @@
-"""Shared base for ONNX inpainting models (image + mask → patch PNGs).
+"""Shared ONNX inpaint engine (LaMa-family).
 
-Implements the generic ONNX pipeline shared by every LaMa-family export:
+crop each box with context padding -> build a text mask -> letterbox to a
+square input (aspect-preserving) -> run the graph -> scale output -> resize
+back -> one RGBA patch per box (RGB = pixels, A = feathered mask).
 
-  crop each box with context padding → build a text mask → letterbox both
-  to a square ``input_size`` (aspect-preserving) → run the graph → scale the
-  output → resize back → write one RGBA patch per box (RGB = inpainted
-  pixels, A = feathered mask).
-
-Subclasses only override:
-  - metadata: ``model_id`` / ``model_filename``
-  - preprocessing knobs: ``mask_binary``, ``output_scale``, ``input_size``,
-    ``context_pad``, ``mask_dilate``
-  - the mask strategy: ``_build_mask(crop, box_rect)`` → 0..255 mask.
-    ``box_rect`` is the detected text box relative to the crop, so a mask
-    can be constrained to the text region and never erase artwork in the
-    context margin.
-
-DirectML limitation: LaMa's FFC (Fast Fourier Convolution) blocks —
-``/model/model.5/conv1/ffc/convg2g/...`` MatMul nodes — crash at runtime
-under DmlExecutionProvider (``80070057 E_INVALIDARG``). The failure is
-inside the DML kernel, so it bypasses ``create_session``'s CPU fallback
-(which only catches session-creation errors). Inpaint therefore always
-runs on CPU regardless of GPU acceleration; detect/OCR are unaffected.
-CUDA EP handles the model correctly, so ``LUMINA_EP=cuda`` still runs
-inpaint on the GPU. Source: microsoft/onnxruntime#24744 (same FFC node
-path, reported by the lama-manga-onnx author).
+DirectML limitation: LaMa's FFC blocks crash at runtime under
+DmlExecutionProvider (microsoft/onnxruntime#24744, 80070057 E_INVALIDARG
+inside the DML kernel). `_load_session` in base.py therefore prefers CPU
+unless CUDA EP is available.
 """
 from __future__ import annotations
 
-import os
-import tempfile
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 
 from utils.logger import log
-from .base import BaseInpaintModel, ProgressCallback
-
-# Models live in <repo>/models; inpaint patch files are session-scoped
-# artifacts and live in the OS temp dir (<temp>/lumina) so they never
-# accumulate in the repo. Both are overridable via env vars.
-_MODELS_DIR = Path(
-    os.environ.get("LUMINA_MODEL_DIR", Path(__file__).resolve().parents[3] / "models")
-)
-_CACHE_DIR = Path(
-    os.environ.get("LUMINA_CACHE_DIR", Path(tempfile.gettempdir()) / "lumina")
-)
+from .base import BaseInpaintModel, _cache_dir
 
 
 class OnnxInpaintModel(BaseInpaintModel):
-    """LaMa-style ONNX inpainter: image + mask in, inpainted patch out."""
+    """LaMa-style ONNX inpainter. Subclasses only override config knobs."""
 
-    model_id: str = ""
-    model_filename: str = ""
     mask_binary: bool = True  # threshold mask to 0/1 before feeding
     output_scale: float = 1.0  # graph output range multiplier
     input_size: int = 512
     context_pad: int = 32
     mask_dilate: int = 4
-
-    def __init__(self) -> None:
-        self._session = None
-        self._path = _MODELS_DIR / self.model_filename
-
-    @property
-    def model_url(self) -> str:
-        return (
-            f"https://huggingface.co/{self.model_id}/resolve/main/"
-            f"{self.model_filename}"
-        )
-
-    def is_ready(self) -> bool:
-        return self._path.is_file()
-
-    def size(self) -> Optional[int]:
-        return self._path.stat().st_size if self.is_ready() else None
-
-    def download(self, progress_callback: ProgressCallback = None) -> None:
-        import urllib.request
-
-        if self.is_ready():
-            log.info(f"Inpaint model already present: {self._path}")
-            return
-
-        _MODELS_DIR.mkdir(parents=True, exist_ok=True)
-        tmp_path = self._path.with_suffix(".onnx.part")
-
-        log.info(f"Downloading inpaint model {self.model_url} ...")
-        last_pct = -1
-        req = urllib.request.Request(
-            self.model_url, headers={"User-Agent": "Lumina/0.1"}
-        )
-        try:
-            with urllib.request.urlopen(req) as resp, open(tmp_path, "wb") as f:
-                total = int(resp.headers.get("Content-Length", -1))
-                downloaded = 0
-                while True:
-                    chunk = resp.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if total > 0:
-                        pct = int(downloaded * 100 / total)
-                        if pct != last_pct:
-                            last_pct = pct
-                            log.debug(f"Inpaint download progress: {pct}%")
-                            if progress_callback:
-                                try:
-                                    progress_callback(pct, downloaded, total)
-                                except Exception:
-                                    pass
-        except Exception:
-            tmp_path.unlink(missing_ok=True)
-            raise
-
-        tmp_path.rename(self._path)
-        log.info(f"Inpaint model download complete: {self._path}")
-
-    def unload(self) -> None:
-        """Release the ONNX session (frees VRAM/RAM). Next call reloads."""
-        self._session = None
-
-    def _load_session(self):
-        if self._session is None:
-            from utils.runtime import create_session, make_session_options
-
-            if not self.is_ready():
-                self.download()
-
-            log.info(f"Loading inpaint ONNX model: {self._path}")
-            # LaMa FFC MatMul crashes under DirectML (see module docstring,
-            # microsoft/onnxruntime#24744) — use CPU unless CUDA is available
-            # (onnxruntime-gpu wheel), which handles the model correctly.
-            from utils.runtime import prefer_no_dml
-
-            self._session = create_session(
-                self._path, prefer=prefer_no_dml(), sess_options=make_session_options()
-            )
-            log.info(
-                f"Inpaint session ready (inputs: "
-                f"{[(i.name, i.shape) for i in self._session.get_inputs()]})"
-            )
-        return self._session
 
     def inpaint(
         self,
@@ -160,9 +44,9 @@ class OnnxInpaintModel(BaseInpaintModel):
             raise ValueError(f"Cannot read image: {image_path}")
         h, w = img.shape[:2]
 
-        # Optional model-produced full-page text mask. Cropped per box, it
-        # replaces the heuristic Otsu ``_build_mask`` (which fails on
-        # colorful/detailed pages). Falls back to Otsu when missing or empty.
+        # Optional model-produced full-page text mask; cropped per box it
+        # replaces the heuristic Otsu mask (which fails on colorful pages).
+        # Falls back to Otsu when missing or empty.
         page_mask = None
         if mask_path:
             if Path(mask_path).is_file():
@@ -181,7 +65,7 @@ class OnnxInpaintModel(BaseInpaintModel):
             import time
 
             stamp = time.strftime("%Y%m%d-%H%M%S")
-            output_dir = _CACHE_DIR / f"{src.stem}_inpaint_{stamp}"
+            output_dir = _cache_dir() / f"{src.stem}_inpaint_{stamp}"
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -197,8 +81,8 @@ class OnnxInpaintModel(BaseInpaintModel):
             crop = img[y0:y1, x0:x1]
             ch, cw = crop.shape[:2]
 
-            # Detected text box relative to the crop — subclasses use this
-            # to constrain the mask to the text region only.
+            # Detected text box relative to the crop — constrains the mask
+            # to the text region so context-margin art is never erased.
             box_rect = (
                 int(box["x"]) - x0,
                 int(box["y"]) - y0,
@@ -207,17 +91,16 @@ class OnnxInpaintModel(BaseInpaintModel):
             )
             if page_mask is not None:
                 mask = page_mask[y0:y1, x0:x1].copy()
-                # Model missed this box (no mask pixels) → heuristic fallback
+                # Model missed this box (no mask pixels) -> heuristic fallback
                 if cv.countNonZero(mask) < max(1, mask.size // 100):
                     log.debug(f"Empty model mask for box {i}, using heuristic mask")
                     mask = self._build_mask(crop, box_rect)
             else:
                 mask = self._build_mask(crop, box_rect)
 
-            # Letterbox to a square input: preserve aspect ratio, pad with
-            # replicated edge pixels (mask pads with 0). The old direct
-            # resize to 512x512 squished wide/short crops, which made LaMa
-            # hallucinate distorted art around the text.
+            # Letterbox to a square input (aspect-preserving; direct resize
+            # to 512x512 squished wide/short crops and made LaMa hallucinate
+            # distorted art). Image pads with replicated edges, mask with 0.
             s = self.input_size
             scale = s / max(cw, ch)
             nw, nh = max(1, round(cw * scale)), max(1, round(ch * scale))
@@ -267,7 +150,7 @@ class OnnxInpaintModel(BaseInpaintModel):
             result = result[pad_y : pad_y + nh, pad_x : pad_x + nw]
             result = cv.resize(result, (cw, ch), interpolation=cv.INTER_LINEAR)
 
-            # Feathered mask → alpha channel (same blur as the old compositor)
+            # Feathered mask -> alpha channel (same blur as the compositor)
             alpha = cv.GaussianBlur(mask, (0, 0), 2).astype(np.float32)
             alpha = np.clip(alpha, 0, 255).astype(np.uint8)
 
@@ -290,10 +173,9 @@ class OnnxInpaintModel(BaseInpaintModel):
     ) -> np.ndarray:
         """Default mask: glyph-precise, constrained inside the text box.
 
-        ``box_rect`` = (bx0, by0, bx1, by1) of the detected text box,
-        relative to the crop. Otsu is computed inside the box ONLY, so
-        artwork in the context margin is never erased. Dark glyphs on light
-        panels and light glyphs on dark panels are both handled.
+        Otsu is computed inside the box ONLY (box_rect = detected text box
+        relative to the crop), so context-margin art is never erased. Handles
+        dark glyphs on light panels and light glyphs on dark panels.
         """
         import cv2 as cv
 
@@ -303,7 +185,7 @@ class OnnxInpaintModel(BaseInpaintModel):
 
         mask = np.zeros(gray.shape, np.uint8)
 
-        # Flat region (no text) → nothing to inpaint.
+        # Flat region (no text) -> nothing to inpaint.
         if box_gray.size == 0 or box_gray.std() < 2:
             return mask
 
@@ -318,7 +200,7 @@ class OnnxInpaintModel(BaseInpaintModel):
         glyph = light if box_gray.mean() < 128 else dark
         mask[by0:by1, bx0:bx1] = glyph
 
-        # Near-empty result (mid-gray text, colorful art) → full box.
+        # Near-empty result (mid-gray text, colorful art) -> full box.
         if cv.countNonZero(mask) < box_gray.size * 0.01:
             mask[by0:by1, bx0:bx1] = 255
 

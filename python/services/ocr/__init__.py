@@ -1,19 +1,18 @@
-"""OCR services — pluggable model registry (mirrors ``services/inpaint``).
+"""OCR services — pluggable model registry.
 
-Add a new model: create ``<name>.py`` exposing a ``BaseOcrModel``
-subclass, then register it in ``MODELS``. The API surface below
-(``ocr_boxes`` / ``is_model_ready`` / ``download_model``) is what
-``main.py`` and the renderer talk to.
+Add a new model: create `<folder>/model.py` exposing a `BaseOcrModel`
+subclass, then register it in `MODELS`. Dispatch logic (box expansion,
+region grouping) lives here.
 """
 from __future__ import annotations
 
 from typing import Optional
 
 from .base import BaseOcrModel, ProgressCallback
-from .baberu import BaberuOcrModel
-from .manga_ocr import MangaOcrModel
-from .paddleocr_vl import PaddleOcrVlModel
-from .ppocrv6 import PPOcrV6Model
+from .baberu.model import BaberuOcrModel
+from .manga_ocr.model import MangaOcrModel
+from .paddleocr_vl.model import PaddleOcrVlModel
+from .ppocrv6.model import PPOcrV6Model
 
 MODELS: dict[str, BaseOcrModel] = {
     "manga_ocr": MangaOcrModel(),

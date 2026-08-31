@@ -1,67 +1,45 @@
-"""PaddleOCR-VL 1.6 (iaa2005/PaddleOCR-VL-1.6-ONNX) — vision-language OCR.
+"""PaddleOCR-VL 1.6 — vision-language OCR (NaViT vision + ERNIE decoder).
 
-A VLM (NaViT vision tower + ERNIE-4.5 decoder) exported as three ONNX
-graphs: a vision encoder, a token embedding table, and a KV-cache decoder.
-Unlike crop-trained models it recognizes whole regions of text at once
-(multi-language: zh / en / ru / ...), so Lumina feeds it region crops made
-of several detected boxes — see ``supports_regions`` / ``ocr_regions``.
-
-Decoding mirrors Baberu: vision encoder once per region (GPU), then an
-autoregressive prefill + KV-cache step loop (CPU — DirectML launch
-overhead dominates many tiny sequential calls).
+Recognizes whole regions of text at once (multi-language), so Lumina feeds
+it region crops made of several detected boxes — see supports_regions /
+ocr_regions. Three ONNX graphs: vision encoder (GPU), token embedding
+table (CPU), KV-cache decoder (CPU).
 
 Known int8 caveats (model card):
-  - quality degrades on long sequences → each region is capped to a few
-    boxes and oversized crops are downscaled to <= ``MAX_PATCHES``.
-  - this int8 build is FASTER on CPU than on Intel Arc iGPU → the
-    decoder is pinned to CPU.
+  - quality degrades on long sequences -> each region is capped to a few
+    boxes and oversized crops are downscaled to <= MAX_PATCHES.
+  - this int8 build is FASTER on CPU than on Intel Arc iGPU -> decoder CPU.
 
-Prompt: ``<|begin_of_sentence|>User: <|IMAGE_START|>{placeholders}<|IMAGE_END|>OCR:\\nAssistant:\\n``
-with one ``<|IMAGE_PLACEHOLDER|>`` per merged (2x2) image patch.
+Prompt: <|begin_of_sentence|>User: <|IMAGE_START|>{placeholders}<|IMAGE_END|>OCR:\nAssistant:\n
+with one <|IMAGE_PLACEHOLDER|> per merged (2x2) image patch.
 """
 from __future__ import annotations
 
 import json
 import math
-import os
 import re
-from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
 from utils.logger import log
-from .base import BaseOcrModel
+from ..base import BaseOcrModel
+from .config import (
+    DOWNLOAD_FILES,
+    MAX_NEW_TOKENS,
+    MAX_PATCHES,
+    MODEL_DIR_NAME,
+    MODEL_ID,
+    REQUIRED_FILES,
+    _EOS_FALLBACK,
+    _PATCH,
+    _PLACEHOLDER_ID,
+    _PREFIX,
+    _SUFFIX,
+)
 
 if TYPE_CHECKING:
     from onnxruntime import InferenceSession
-
-MODEL_ID = "iaa2005/PaddleOCR-VL-1.6-ONNX"
-REQUIRED_FILES = [
-    "onnx/vision_encoder_q8.onnx",
-    "onnx/decoder_q8.onnx",
-    "onnx/embedding.onnx",
-    "tokenizer.json",
-    "preprocessor_config.json",
-    "config.json",
-]
-DOWNLOAD_FILES = REQUIRED_FILES
-
-MAX_NEW_TOKENS = 256
-MAX_PATCHES = 1024  # cap on [P] after resize (int8 degrades on long seqs)
-_PLACEHOLDER_ID = 100295  # <|IMAGE_PLACEHOLDER|>; verified at load
-_EOS_FALLBACK = 100294  # <|end_of_sentence|>; verified at load
-_PREFIX = "<|begin_of_sentence|>User: <|IMAGE_START|>"
-_SUFFIX = "<|IMAGE_END|>OCR:\nAssistant:\n"
-_PATCH = 14  # NaViT patch size
-
-
-def _models_dir() -> Path:
-    return Path(
-        os.environ.get(
-            "LUMINA_MODEL_DIR", Path(__file__).resolve().parents[3] / "models"
-        )
-    )
 
 
 def _tensor_dtype(inp) -> np.dtype:
@@ -80,12 +58,11 @@ def _tensor_dtype(inp) -> np.dtype:
 
 
 class PaddleOcrVlModel(BaseOcrModel):
-    """PaddleOCR-VL 1.6 — region-based multi-language OCR via ONNX Runtime."""
-
     name = "PaddleOCR-VL 1.6 (ONNX)"
-
     model_id = MODEL_ID
-    model_dir = _models_dir() / "paddleocr-vl-1.6"
+    model_dir_name = MODEL_DIR_NAME
+    required_files = REQUIRED_FILES
+    download_files = DOWNLOAD_FILES
 
     def __init__(self) -> None:
         self._vis: Optional[InferenceSession] = None
@@ -111,69 +88,6 @@ class PaddleOcrVlModel(BaseOcrModel):
         self._logits_name = "logits"
         self._kv_feed: dict[str, str] = {}  # input name -> output name
 
-    def is_ready(self) -> bool:
-        return all((self.model_dir / f).is_file() for f in REQUIRED_FILES)
-
-    def size(self) -> Optional[int]:
-        if not self.is_ready():
-            return None
-        return sum(
-            (self.model_dir / f).stat().st_size
-            for f in REQUIRED_FILES
-            if (self.model_dir / f).is_file()
-        )
-
-    def download(self, progress_callback=None) -> None:
-        import urllib.request
-
-        self.model_dir.mkdir(parents=True, exist_ok=True)
-        base_url = f"https://huggingface.co/{self.model_id}/resolve/main/"
-
-        log.info(f"Downloading OCR model {self.model_id} ...")
-        # Files still missing (already-downloaded ones are skipped).
-        pending = [f for f in DOWNLOAD_FILES if not (self.model_dir / f).is_file()]
-
-        grand_total = 0
-        sizes: dict[str, int] = {}
-        for f in pending:
-            try:
-                req = urllib.request.Request(
-                    base_url + f + "?download=true",
-                    method="HEAD",
-                    headers={"User-Agent": "Lumina/0.1"},
-                )
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    sizes[f] = int(resp.headers.get("Content-Length", -1))
-            except Exception:
-                sizes[f] = -1
-            if sizes[f] > 0:
-                grand_total += sizes[f]
-
-        done = 0
-        for f in pending:
-            dest = self.model_dir / f
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            req = urllib.request.Request(
-                base_url + f + "?download=true", headers={"User-Agent": "Lumina/0.1"}
-            )
-            with urllib.request.urlopen(req) as resp, open(
-                dest.with_suffix(dest.suffix + ".part"), "wb"
-            ) as out:
-                total = int(resp.headers.get("Content-Length", -1))
-                if total > 0 and sizes.get(f, -1) <= 0:
-                    grand_total += total  # size discovered late
-                while True:
-                    chunk = resp.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    out.write(chunk)
-                    done += len(chunk)
-                    if progress_callback and grand_total > 0:
-                        progress_callback(
-                            int(done * 100 / grand_total), done, grand_total
-                        )
-            dest.with_suffix(dest.suffix + ".part").rename(dest)
-
     def unload(self) -> None:
         """Release all ONNX sessions + tokenizer (frees VRAM/RAM)."""
         self._vis = None
@@ -194,11 +108,11 @@ class PaddleOcrVlModel(BaseOcrModel):
 
         so = make_session_options()
         log.info("Loading PaddleOCR-VL ONNX (this takes a moment)...")
-        # The exported NaViT graph contains identity Reshape nodes (empty
-        # shape tensor) whose DML kernel fails with ERROR_INVALID_PARAMETER
-        # on EVERY adapter (AMD iGPU and NVIDIA alike — verified), so under
-        # the DML wheel these graphs must run on CPU. With the CUDA wheel
-        # installed, prefer_no_dml() returns "auto" → CUDA EP instead.
+        # The exported NaViT graph has identity Reshape nodes (empty shape
+        # tensor) whose DML kernel fails with ERROR_INVALID_PARAMETER on
+        # EVERY adapter (AMD iGPU and NVIDIA alike — verified), so these
+        # graphs must run on CPU. With the CUDA wheel installed,
+        # prefer_no_dml() returns "auto" -> CUDA EP instead.
         from utils.runtime import prefer_no_dml
 
         vis = create_session(
@@ -284,7 +198,7 @@ class PaddleOcrVlModel(BaseOcrModel):
     # ── preprocessing ────────────────────────────────────────────────────
 
     def _preprocess_region(self, crop) -> tuple[np.ndarray, np.ndarray]:
-        """NaViT-style preprocessing → pixel_values [1,P,3,14,14] + grid.
+        """NaViT-style preprocessing -> pixel_values [1,P,3,14,14] + grid.
 
         Patch counts (ph, pw) are always EVEN: the model merges 2x2 patches
         and reshapes attention tensors by grid/2 — an odd count produces a
@@ -338,7 +252,7 @@ class PaddleOcrVlModel(BaseOcrModel):
     # ── decoding ─────────────────────────────────────────────────────────
 
     def _ocr_region(self, crop) -> str:
-        """Full pipeline on one crop: vision → embed → prefill → step loop."""
+        """Full pipeline on one crop: vision -> embed -> prefill -> step loop."""
         vis, emb, dec, tok = self._vis, self._emb, self._dec, self._tok
         assert vis is not None and emb is not None and dec is not None and tok is not None
 

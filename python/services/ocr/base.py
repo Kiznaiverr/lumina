@@ -1,72 +1,121 @@
-"""Base contract for OCR models.
+"""OCR model contract + shared lifecycle.
 
-Every model module in this package exposes a class subclassing
-:class:`BaseOcrModel` and is registered in ``MODELS`` (see
-``__init__.py``). Adding a new model = drop in a new file + one registry
-entry; the API, download pipeline, and Electron frontend need no changes.
+Subclasses only set name/model_id/model_dir_name/required_files/
+download_files; download (multi-file), ready/size checks, and unload
+are inherited.
 """
 from __future__ import annotations
 
+import os
+import urllib.request
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Callable, Optional
+
+from utils.logger import log
 
 ProgressCallback = Optional[Callable[[int, int, int], None]]
 
 
+def _models_dir() -> Path:
+    return Path(
+        os.environ.get(
+            "LUMINA_MODEL_DIR", Path(__file__).resolve().parents[3] / "models"
+        )
+    )
+
+
 class BaseOcrModel(ABC):
-    """Interface for a Lumina OCR model.
-
-    Models receive the page image path plus one bbox per detected text box
-    and return one recognized string per box, positionally aligned:
-
-        ["こんにちは", "ありがとう", ...]
-    """
+    """OCR model; ocr_boxes() returns one string per box, positionally aligned."""
 
     name: str = ""
+    model_id: str = ""
+    model_dir_name: str = ""
+    required_files: list[str] = []
+    download_files: list[str] = []
 
-    @abstractmethod
+    @property
+    def model_dir(self) -> Path:
+        return _models_dir() / self.model_dir_name
+
     def is_ready(self) -> bool:
-        """True if the model weights are present on disk."""
-
-    @abstractmethod
-    def download(self, progress_callback: ProgressCallback = None) -> None:
-        """Fetch missing model weights. Blocks until done."""
+        return all((self.model_dir / f).is_file() for f in self.required_files)
 
     def size(self) -> Optional[int]:
-        """Total bytes of installed weight files; None if not installed."""
-        return None
+        if not self.is_ready():
+            return None
+        return sum(
+            (self.model_dir / f).stat().st_size
+            for f in self.required_files
+            if (self.model_dir / f).is_file()
+        )
+
+    def download(self, progress_callback: ProgressCallback = None) -> None:
+        """Fetch missing files; progress = cumulative bytes over pending files."""
+        self.model_dir.mkdir(parents=True, exist_ok=True)
+        base_url = f"https://huggingface.co/{self.model_id}/resolve/main/"
+
+        log.info(f"Downloading OCR model {self.model_id} ...")
+        pending = [f for f in self.download_files if not (self.model_dir / f).is_file()]
+
+        # Grand total = sum of HEAD Content-Length, so progress never
+        # overshoots 100% on multi-file models. ?download=true resolves xet blobs.
+        grand_total = 0
+        sizes: dict[str, int] = {}
+        for f in pending:
+            try:
+                req = urllib.request.Request(
+                    base_url + f + "?download=true",
+                    method="HEAD",
+                    headers={"User-Agent": "Lumina/0.1"},
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    sizes[f] = int(resp.headers.get("Content-Length", -1))
+            except Exception:
+                sizes[f] = -1
+            if sizes[f] > 0:
+                grand_total += sizes[f]
+
+        done = 0
+        for f in pending:
+            dest = self.model_dir / f
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            req = urllib.request.Request(
+                base_url + f + "?download=true", headers={"User-Agent": "Lumina/0.1"}
+            )
+            with urllib.request.urlopen(req) as resp, open(
+                dest.with_suffix(dest.suffix + ".part"), "wb"
+            ) as out:
+                total = int(resp.headers.get("Content-Length", -1))
+                if total > 0 and sizes.get(f, -1) <= 0:
+                    grand_total += total  # size discovered late
+                while True:
+                    chunk = resp.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    out.write(chunk)
+                    done += len(chunk)
+                    if progress_callback and grand_total > 0:
+                        progress_callback(int(done * 100 / grand_total), done, grand_total)
+            dest.with_suffix(dest.suffix + ".part").rename(dest)
+        log.info(f"OCR model download complete: {self.model_id}")
 
     def unload(self) -> None:
-        """Release loaded sessions (VRAM/RAM). No-op when nothing is loaded.
-        The model is lazily re-loaded on the next ``ocr_boxes()`` call."""
+        """Release loaded sessions (VRAM/RAM). Reloads on next ocr_boxes()."""
 
     @abstractmethod
     def ocr_boxes(self, image_path: str, boxes: list[dict]) -> list[str]:
         """Recognize text in each box; returns one string per box."""
 
     def supports_regions(self) -> bool:
-        """True when this model recognizes several boxes in one crop.
-
-        Vision-language models (e.g. PaddleOCR-VL) read a region crop made
-        of adjacent boxes at once; crop-trained models (manga-ocr, Baberu,
-        PP-OCRv6) recognize one tight line crop each and must stay
-        per-box. The ``ocr_boxes`` dispatcher uses region mode only for
-        models that opt in here.
-        """
+        """True when this model recognizes several boxes in one crop (VLM)."""
         return False
 
     def ocr_regions(self, image_path: str, regions: list[dict]) -> list[list[str]]:
-        """Region-based recognition.
+        """Region-based recognition; default = per-box fallback.
 
-        ``regions`` items: ``{"boxes": [...], "x", "y", "w", "h"}`` where
-        ``boxes`` are in reading order and the bbox covers them all.
-        Returns one list of strings per region, aligned positionally to
-        that region's ``boxes`` — the caller flattens them back into one
-        string per box.
-
-        Default implementation falls back to per-box recognition; models
-        with :meth:`supports_regions` override this and must guarantee the
-        alignment (e.g. by falling back to ``ocr_boxes`` per region when
-        the model's line count doesn't match the box count).
+        ``regions`` items: {"boxes": [...], "x", "y", "w", "h"} — boxes in
+        reading order, bbox covering them all. Returns one list of strings
+        per region aligned to that region's boxes.
         """
         return [self.ocr_boxes(image_path, r["boxes"]) for r in regions]

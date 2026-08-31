@@ -1,9 +1,7 @@
-"""Inpaint services — pluggable model registry (mirrors ``services/translate``).
+"""Inpaint services — pluggable model registry.
 
-Add a new model: create ``<name>.py`` exposing a ``BaseInpaintModel``
-subclass, then register it in ``MODELS``. The API surface below
-(``inpaint_boxes`` / ``is_model_ready`` / ``download_model``) is what
-``main.py`` and the renderer talk to.
+Add a new model: create `<folder>/model.py` exposing a `BaseInpaintModel`
+subclass, then register it in `MODELS`.
 """
 from __future__ import annotations
 
@@ -11,8 +9,8 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from .base import BaseInpaintModel, ProgressCallback
-from .lama import LamaModel
-from .lama_manga import LamaMangaModel
+from .lama.model import LamaModel
+from .lama_manga.model import LamaMangaModel
 
 MODELS: dict[str, BaseInpaintModel] = {
     "lama": LamaModel(),

@@ -1,16 +1,12 @@
-"""Baberu OCR (genshiai-daichi/baberu-ocr) — multilingual manga bubble OCR.
+"""Baberu OCR — multilingual (ja/zh/en) manga bubble recognition.
 
-A 115M vision-to-text model (frozen DINOv2 encoder + causal decoder)
-trained on manga speech-bubble crops in Japanese, Chinese, and English.
-Shipped as three ONNX graphs — vision, decoder prefill, decoder step
-(KV cache) — that run with onnxruntime alone; no PyTorch needed.
-Character-level vocab (14,630 symbols) keeps SFX and full/half-width
-mixing intact. Input is one bubble crop (runs after the text detector).
+115M vision-to-text model (DINOv2 encoder + causal decoder) shipped as
+three ONNX graphs (vision, prefill, step w/ KV cache). Char-level vocab
+(14,630 symbols) keeps SFX and full/half-width mixing intact.
 """
 from __future__ import annotations
 
 import json
-import os
 import unicodedata
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
@@ -18,36 +14,24 @@ from typing import TYPE_CHECKING, Optional
 import numpy as np
 
 from utils.logger import log
-from .base import BaseOcrModel
+from ..base import BaseOcrModel
+from .config import (
+    DOWNLOAD_FILES,
+    INPUT_SIZE,
+    MAX_CONTENT_RUN,
+    MAX_NEW_TOKENS,
+    MODEL_DIR_NAME,
+    MODEL_ID,
+    REPETITION_PENALTY,
+    REQUIRED_FILES,
+    VISION_FILE,
+    _MEAN,
+    _PAST,
+    _STD,
+)
 
 if TYPE_CHECKING:
     from onnxruntime import InferenceSession
-
-MODEL_ID = "genshiai-daichi/baberu-ocr"
-VISION_FILE = "onnx/vision_int4.onnx"  # smallest tier; fp16 available too
-REQUIRED_FILES = [
-    VISION_FILE,
-    "onnx/decoder_prefill_int8.onnx",
-    "onnx/decoder_step_int8.onnx",
-    "tokenizer/vocab.json",
-]
-DOWNLOAD_FILES = REQUIRED_FILES
-
-INPUT_SIZE = 224
-MAX_NEW_TOKENS = 128
-REPETITION_PENALTY = 1.2
-MAX_CONTENT_RUN = 12
-_MEAN = np.array([0.485, 0.456, 0.406], np.float32)
-_STD = np.array([0.229, 0.224, 0.225], np.float32)
-_PAST = [f"past_k{i}" for i in range(6)] + [f"past_v{i}" for i in range(6)]
-
-
-def _models_dir() -> Path:
-    return Path(
-        os.environ.get(
-            "LUMINA_MODEL_DIR", Path(__file__).resolve().parents[3] / "models"
-        )
-    )
 
 
 class _Vocab:
@@ -72,85 +56,17 @@ class _Vocab:
 
 
 class BaberuOcrModel(BaseOcrModel):
-    """Baberu OCR — multilingual (ja/zh/en) manga bubble recognition."""
-
     name = "Baberu OCR"
-
     model_id = MODEL_ID
-    model_dir = _models_dir() / "baberu-ocr"
+    model_dir_name = MODEL_DIR_NAME
+    required_files = REQUIRED_FILES
+    download_files = DOWNLOAD_FILES
 
     def __init__(self) -> None:
         self._vis: Optional[InferenceSession] = None
         self._pre: Optional[InferenceSession] = None
         self._stp: Optional[InferenceSession] = None
         self._vocab: Optional[_Vocab] = None
-
-    def is_ready(self) -> bool:
-        return all((self.model_dir / f).is_file() for f in REQUIRED_FILES)
-
-    def size(self) -> Optional[int]:
-        if not self.is_ready():
-            return None
-        return sum(
-            (self.model_dir / f).stat().st_size
-            for f in REQUIRED_FILES
-            if (self.model_dir / f).is_file()
-        )
-
-    def download(self, progress_callback=None) -> None:
-        import urllib.request
-
-        self.model_dir.mkdir(parents=True, exist_ok=True)
-        base_url = f"https://huggingface.co/{self.model_id}/resolve/main/"
-
-        log.info(f"Downloading OCR model {self.model_id} ...")
-        # Files still missing (already-downloaded ones are skipped).
-        pending = [f for f in DOWNLOAD_FILES if not (self.model_dir / f).is_file()]
-
-        # Grand total = sum of Content-Length of every pending file (HEAD is
-        # cheap). Without it, progress would compare cumulative bytes against
-        # the current file's size only → overshoots 100% on multi-file models.
-        # ?download=true also forces HF to serve real xet blobs, not pointers.
-        grand_total = 0
-        sizes: dict[str, int] = {}
-        for f in pending:
-            try:
-                req = urllib.request.Request(
-                    base_url + f + "?download=true",
-                    method="HEAD",
-                    headers={"User-Agent": "Lumina/0.1"},
-                )
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    sizes[f] = int(resp.headers.get("Content-Length", -1))
-            except Exception:
-                sizes[f] = -1
-            if sizes[f] > 0:
-                grand_total += sizes[f]
-
-        done = 0
-        for f in pending:
-            dest = self.model_dir / f
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            req = urllib.request.Request(
-                base_url + f + "?download=true", headers={"User-Agent": "Lumina/0.1"}
-            )
-            with urllib.request.urlopen(req) as resp, open(
-                dest.with_suffix(dest.suffix + ".part"), "wb"
-            ) as out:
-                total = int(resp.headers.get("Content-Length", -1))
-                if total > 0 and sizes.get(f, -1) <= 0:
-                    grand_total += total  # size discovered late
-                while True:
-                    chunk = resp.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    out.write(chunk)
-                    done += len(chunk)
-                    if progress_callback and grand_total > 0:
-                        progress_callback(
-                            int(done * 100 / grand_total), done, grand_total
-                        )
-            dest.with_suffix(dest.suffix + ".part").rename(dest)
 
     def unload(self) -> None:
         """Release all ONNX sessions (frees VRAM/RAM). Next call reloads."""
@@ -165,9 +81,9 @@ class BaberuOcrModel(BaseOcrModel):
 
         so = make_session_options()
         log.info("Loading Baberu OCR ONNX...")
-        # Vision is a single forward pass → GPU. The decoder prefill/step are
-        # autoregressive (many tiny sequential calls) → CPU: DirectML launch
-        # overhead would outweigh any speedup there.
+        # Vision = one forward pass -> GPU. Decoder prefill/step are
+        # autoregressive (many tiny sequential calls) -> CPU (DirectML
+        # launch overhead would outweigh any speedup there).
         self._vis = create_session(self.model_dir / VISION_FILE, sess_options=so)
         self._pre = create_session(
             self.model_dir / "onnx/decoder_prefill_int8.onnx",

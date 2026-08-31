@@ -1,117 +1,40 @@
-"""PP-OCRv6 medium rec (PaddlePaddle) — multilingual text recognition.
+"""PP-OCRv6 medium rec — multilingual text recognition (CTC, one pass).
 
-CTC recognizer (single forward pass). The character dictionary is embedded
-in ``inference.yml``, so the download is just the two inference files.
+The character dictionary lives in inference.yml, so the download is just
+the two inference files.
 """
 from __future__ import annotations
 
 import math
-import os
-from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
 from utils.logger import log
-from .base import BaseOcrModel
+from ..base import BaseOcrModel
+from .config import (
+    DOWNLOAD_FILES,
+    MAX_IMG_W,
+    MODEL_DIR_NAME,
+    MODEL_ID,
+    REC_IMAGE_SHAPE,
+    REQUIRED_FILES,
+)
 
 if TYPE_CHECKING:
     from onnxruntime import InferenceSession
 
-MODEL_ID = "PaddlePaddle/PP-OCRv6_medium_rec_onnx"
-REQUIRED_FILES = ["inference.onnx", "inference.yml"]
-DOWNLOAD_FILES = REQUIRED_FILES
-
-REC_IMAGE_SHAPE = (3, 48, 320)  # C, H, base W (PaddleX default)
-MAX_IMG_W = 3200
-
-
-def _models_dir() -> Path:
-    return Path(
-        os.environ.get(
-            "LUMINA_MODEL_DIR", Path(__file__).resolve().parents[3] / "models"
-        )
-    )
-
 
 class PPOcrV6Model(BaseOcrModel):
-    """PP-OCRv6 medium recognition model via ONNX Runtime (CTC)."""
-
     name = "PP-OCRv6 (Paddle)"
-
     model_id = MODEL_ID
-    model_dir = _models_dir() / "ppocrv6"
+    model_dir_name = MODEL_DIR_NAME
+    required_files = REQUIRED_FILES
+    download_files = DOWNLOAD_FILES
 
     def __init__(self) -> None:
         self._session: Optional[InferenceSession] = None
         self._chars: list[str] = []
-
-    def is_ready(self) -> bool:
-        return all((self.model_dir / f).is_file() for f in REQUIRED_FILES)
-
-    def size(self) -> Optional[int]:
-        if not self.is_ready():
-            return None
-        return sum(
-            (self.model_dir / f).stat().st_size
-            for f in REQUIRED_FILES
-            if (self.model_dir / f).is_file()
-        )
-
-    def download(self, progress_callback=None) -> None:
-        import urllib.request
-
-        self.model_dir.mkdir(parents=True, exist_ok=True)
-        base_url = f"https://huggingface.co/{self.model_id}/resolve/main/"
-
-        log.info(f"Downloading OCR model {self.model_id} ...")
-        # Files still missing (already-downloaded ones are skipped).
-        pending = [f for f in DOWNLOAD_FILES if not (self.model_dir / f).is_file()]
-
-        # Grand total = sum of Content-Length of every pending file (HEAD is
-        # cheap). Without it, progress would compare cumulative bytes against
-        # the current file's size only → overshoots 100% on multi-file models.
-        # ?download=true also forces HF to serve real xet blobs, not pointers.
-        grand_total = 0
-        sizes: dict[str, int] = {}
-        for f in pending:
-            try:
-                req = urllib.request.Request(
-                    base_url + f + "?download=true",
-                    method="HEAD",
-                    headers={"User-Agent": "Lumina/0.1"},
-                )
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    sizes[f] = int(resp.headers.get("Content-Length", -1))
-            except Exception:
-                sizes[f] = -1
-            if sizes[f] > 0:
-                grand_total += sizes[f]
-
-        done = 0
-        for f in pending:
-            dest = self.model_dir / f
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            req = urllib.request.Request(
-                base_url + f + "?download=true", headers={"User-Agent": "Lumina/0.1"}
-            )
-            with urllib.request.urlopen(req) as resp, open(
-                dest.with_suffix(dest.suffix + ".part"), "wb"
-            ) as out:
-                total = int(resp.headers.get("Content-Length", -1))
-                if total > 0 and sizes.get(f, -1) <= 0:
-                    grand_total += total  # size discovered late
-                while True:
-                    chunk = resp.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    out.write(chunk)
-                    done += len(chunk)
-                    if progress_callback and grand_total > 0:
-                        progress_callback(
-                            int(done * 100 / grand_total), done, grand_total
-                        )
-            dest.with_suffix(dest.suffix + ".part").rename(dest)
 
     def unload(self) -> None:
         """Release the ONNX session (frees VRAM/RAM). Next call reloads."""
@@ -150,9 +73,9 @@ class PPOcrV6Model(BaseOcrModel):
         character boxes that overlap in y — robust to columns only ~1px
         apart, where projection-based banding fails.
 
-        Returns ``(lines, vertical)``: line crops in reading order, and
-        whether the bubble was vertical. Callers join vertical columns
-        without newline (one logical line), horizontal lines with.
+        Returns (lines, vertical): line crops in reading order and whether
+        the bubble was vertical. Callers join vertical columns without
+        newline (one logical line), horizontal lines with "\n".
         """
         import cv2
 
@@ -204,11 +127,11 @@ class PPOcrV6Model(BaseOcrModel):
 
     @staticmethod
     def _preprocess(img: np.ndarray) -> np.ndarray:
-        """Mirror PaddleX RecResizeImg for one crop -> [3, 48, W] float32 in [-1, 1].
+        """Mirror PaddleX RecResizeImg -> [3, 48, W] float32 in [-1, 1].
 
         Vertical crops (h > w) are rotated 90° CCW first: the model is
         horizontal-only, and CCW rotation maps Japanese vertical reading
-        order (columns right-to-left, chars top-to-bottom) to left-to-right.
+        order (columns right-to-left, chars top-to-bottom) to LTR.
         """
         import cv2
 
@@ -271,16 +194,10 @@ class PPOcrV6Model(BaseOcrModel):
                 text, score = self._decode(out[0])
                 lh, lw = line.shape[:2]
                 # Drop low-confidence or tiny rows (bubble borders/tails).
-                if (
-                    not text
-                    or score < 0.3
-                    or (lh < 24 and lh * lw < 550)
-                ):
+                if not text or score < 0.3 or (lh < 24 and lh * lw < 550):
                     continue
                 parts.append(text)
-                log.debug(
-                    f"OCR box {i + 1}/{len(boxes)} ({score:.2f}): {text!r}"
-                )
+                log.debug(f"OCR box {i + 1}/{len(boxes)} ({score:.2f}): {text!r}")
             # Vertical columns read right-to-left as one logical line.
             texts.append("".join(parts) if vertical else "\n".join(parts))
 
