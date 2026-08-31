@@ -15,6 +15,16 @@ Subclasses only override:
     ``box_rect`` is the detected text box relative to the crop, so a mask
     can be constrained to the text region and never erase artwork in the
     context margin.
+
+DirectML limitation: LaMa's FFC (Fast Fourier Convolution) blocks —
+``/model/model.5/conv1/ffc/convg2g/...`` MatMul nodes — crash at runtime
+under DmlExecutionProvider (``80070057 E_INVALIDARG``). The failure is
+inside the DML kernel, so it bypasses ``create_session``'s CPU fallback
+(which only catches session-creation errors). Inpaint therefore always
+runs on CPU regardless of GPU acceleration; detect/OCR are unaffected.
+CUDA EP handles the model correctly, so ``LUMINA_EP=cuda`` still runs
+inpaint on the GPU. Source: microsoft/onnxruntime#24744 (same FFC node
+path, reported by the lama-manga-onnx author).
 """
 from __future__ import annotations
 
@@ -121,8 +131,11 @@ class OnnxInpaintModel(BaseInpaintModel):
                 self.download()
 
             log.info(f"Loading inpaint ONNX model: {self._path}")
+            # prefer="cpu": LaMa FFC MatMul crashes under DirectML (see
+            # module docstring, microsoft/onnxruntime#24744). CUDA is still
+            # honored via LUMINA_EP=cuda.
             self._session = create_session(
-                self._path, sess_options=make_session_options()
+                self._path, prefer="cpu", sess_options=make_session_options()
             )
             log.info(
                 f"Inpaint session ready (inputs: "
