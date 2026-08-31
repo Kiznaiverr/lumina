@@ -57,6 +57,16 @@ def translate_batch(
         raise TranslateError("LLM model not configured")
     system = build_system_instruction(config, target, source, previous_line="")
     raw = _chat(
-        base_url, api_key, model, style, system, build_batch_prompt(texts, target)
+        base_url,
+        api_key,
+        model,
+        style,
+        system,
+        build_batch_prompt(
+            texts,
+            target,
+            previous_lines=config.get("previousLines"),
+            types=config.get("types"),
+        ),
     )
     return parse_numbered_batch(raw, len(texts))

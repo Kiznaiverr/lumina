@@ -161,11 +161,22 @@ export const translate = {
         texts: withText.map(function (d) {
           return d.text;
         }),
-        // Continuity context: previous detection's text in reading order
-        previousLines: withText.map(function (_, i) {
-          if (i === 0) return "";
-          const prev = withText[i - 1];
-          return prev.translated || prev.text || "";
+        // Full continuity context per segment: ALL preceding lines in reading
+        // order (already-translated where available), so the model can complete
+        // truncated OCR text and keep names/terms consistent — not just the
+        // immediately previous line.
+        previousLines: (function () {
+          const ctx: string[] = [];
+          const acc: string[] = [];
+          withText.forEach(function (d) {
+            ctx.push(acc.join(" / "));
+            acc.push(d.translated || d.text || "");
+          });
+          return ctx;
+        })(),
+        // Segment type (dialogue vs narration) so the model can match register
+        types: withText.map(function (d) {
+          return d.type || "";
         }),
         config: config,
       });
@@ -178,11 +189,14 @@ export const translate = {
           return x.index === i;
         });
         if (!r) return;
-        det.translated = r.text;
+        // Fall back to the source text when the model skipped the index, so
+        // no text silently disappears from the page.
+        det.translated = r.text || det.text || "";
         // Mirror into the unified layer model
         const detIdx = page.textDetections.indexOf(det);
         const layer = page.layers[detIdx];
-        if (layer && layer.type === "text-dialogue") layer.translation = r.text;
+        if (layer && layer.type === "text-dialogue")
+          layer.translation = det.translated;
       });
 
       canvas.render();
@@ -226,13 +240,12 @@ export const translate = {
     );
 
     try {
-      // Continuity context: nearest previous dialogue line in reading order
-      let prev = "";
+      // Continuity context: ALL preceding dialogue lines in reading order
+      let prev: string[] = [];
       for (let k = i - 1; k >= 0; k--) {
         const p = page.layers[k];
         if (p.type === "text-dialogue") {
-          prev = p.translation || p.source || "";
-          break;
+          prev.unshift(p.translation || p.source || "");
         }
       }
 
@@ -242,7 +255,8 @@ export const translate = {
         detail?: string;
       }>("/translate", {
         texts: [text],
-        previousLines: [prev],
+        previousLines: [prev.join(" / ")],
+        types: [layer.type === "text-dialogue" ? "text_bubble" : "text_free"],
         config: config,
       });
       if (!result || !result.results || !result.results[0])

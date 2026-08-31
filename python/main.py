@@ -115,6 +115,8 @@ def translate(req: TranslateRequest):
         # Per-text continuity context (used by single-text LLM calls)
         if prev_lines:
             cfg["previousLines"] = prev_lines
+        if req.types:
+            cfg["types"] = req.types
         try:
             translated = translate_texts(req.texts, cfg)
         except TranslateError as e:

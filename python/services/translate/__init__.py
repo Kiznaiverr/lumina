@@ -67,6 +67,18 @@ def translate_texts(texts: list[str], config: dict) -> list[str]:
 
     payload = [t for _, t in non_empty]
 
+    # Re-align per-text metadata (continuity context + segment types) to the
+    # filtered payload
+    prev_lines = config.get("previousLines") or []
+    types = config.get("types") or []
+    meta: dict = {}
+    if prev_lines:
+        meta["previousLines"] = [prev_lines[i] for i, _ in non_empty]
+    if types:
+        meta["types"] = [types[i] for i, _ in non_empty]
+    if meta:
+        config = {**config, **meta}
+
     batch_fn = BATCH_PROVIDERS.get(name)
     if batch_fn is not None:
         translated = batch_fn(payload, source, target, config)
@@ -74,7 +86,15 @@ def translate_texts(texts: list[str], config: dict) -> list[str]:
         fn = PROVIDERS.get(name)
         if fn is None:
             raise TranslateError(f"Unknown translation provider: {name!r}")
-        translated = [fn(t, source, target, config) for t in payload]
+        translated = []
+        for (i, t) in non_empty:
+            seg_config = config
+            if prev_lines:
+                # Single-call mode: the provider reads previousLines[0]
+                seg_config = {**config, "previousLines": [prev_lines[i]]}
+            if types:
+                seg_config = {**seg_config, "types": [types[i]]}
+            translated.append(fn(t, source, target, seg_config))
 
     results = [""] * len(texts)
     for (i, _), tr in zip(non_empty, translated):

@@ -21,7 +21,12 @@ def translate_batch(
         raise TranslateError("Gemini API key not configured")
 
     system = build_system_instruction(config, target, source, previous_line="")
-    user = build_batch_prompt(texts, target)
+    user = build_batch_prompt(
+        texts,
+        target,
+        previous_lines=config.get("previousLines"),
+        types=config.get("types"),
+    )
 
     url = f"{_API_BASE}/models/{model}:generateContent?key={api_key}"
     body = {

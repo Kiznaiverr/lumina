@@ -81,6 +81,8 @@ class TranslateRequest(BaseModel):
     config: TranslateConfig
     # Optional per-text continuity context, aligned with texts by index
     previousLines: list[str] | None = None
+    # Optional per-text segment type (text_bubble/text_free/...), aligned by index
+    types: list[str] | None = None
 
 
 class TranslateResult(BaseModel):

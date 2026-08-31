@@ -23,9 +23,9 @@
 - [x] warn when closing app with unsaved changes
 - [x] re-design export window and replace warn
 - [x] fix masking bug when opening saved project
-- [ ] improve inpainting
+- [x] improve inpainting
 - [ ] re-design landing page
 - [ ] add more tools
 - [ ] onnx runtime with gpu acceleration support
-- [ ] (optional) change heuristic Otsu with segmentation model for better masking
+- [x] (optional) change heuristic Otsu with segmentation model for better masking
 - [ ] testing and hunt another bugs
