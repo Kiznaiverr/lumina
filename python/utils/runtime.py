@@ -29,9 +29,38 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sysconfig
+from pathlib import Path
 from typing import Any, Optional
 
 from utils.logger import log
+
+
+def _register_nvidia_dlls() -> None:
+    """Make pip-installed CUDA DLLs (nvidia-*-cu12) loadable on Windows.
+
+    ``onnxruntime-gpu`` depends on the pip ``nvidia-*`` packages, which
+    install their DLLs under ``site-packages/nvidia/<pkg>/bin``. Those dirs
+    are NOT on PATH, so CUDA EP fails at session creation with e.g.
+    "cublasLt64_12.dll which is missing". Prepending them to PATH fixes it
+    (``os.add_dll_directory`` is not honored by ORT's provider loader).
+    No-op on non-Windows or when the DLLs are absent (CPU-only or DML
+    wheel).
+    """
+    if os.name != "nt":
+        return
+    try:
+        purelib = Path(sysconfig.get_paths().get("purelib", ""))
+        bins = [str(d) for d in sorted(purelib.glob("nvidia/*/bin"))]
+        if not bins:
+            return
+        existing = os.environ.get("PATH", "")
+        os.environ["PATH"] = os.pathsep.join(bins) + os.pathsep + existing
+    except Exception:
+        pass
+
+
+_register_nvidia_dlls()
 
 try:  # pragma: no cover - import failure only on broken installs
     import onnxruntime as ort
@@ -51,6 +80,19 @@ def get_available_providers() -> list[str]:
     except Exception as e:
         log.warn(f"onnxruntime provider probe failed: {e}")
         return []
+
+
+def prefer_no_dml() -> str:
+    """Prefer GPU acceleration unless the only GPU EP available is DML.
+
+    DML crashes inside the kernel for some graphs (LaMa FFC MatMul,
+    PaddleOCR-VL identity-Reshape) — a session-creation fallback never
+    sees those errors. Models with those graphs must run on CPU under the
+    DML wheel, but can use CUDA when onnxruntime-gpu is installed:
+    return "auto" (→ CUDA) iff CUDA EP is available, else "cpu".
+    """
+    avail = get_available_providers()
+    return "auto" if "CUDAExecutionProvider" in avail else "cpu"
 
 
 def resolve_providers(prefer: Optional[str] = None) -> list[str]:
@@ -118,7 +160,7 @@ def create_session(
     if sess_options is None:
         sess_options = make_session_options()
     try:
-        return ort.InferenceSession(
+        session = ort.InferenceSession(
             str(model_path), sess_options=sess_options, providers=providers
         )
     except Exception as e:
@@ -128,11 +170,16 @@ def create_session(
             f"GPU session failed ({e}); falling back to CPU for "
             f"{os.path.basename(str(model_path))}"
         )
-        return ort.InferenceSession(
+        session = ort.InferenceSession(
             str(model_path),
             sess_options=sess_options,
             providers=["CPUExecutionProvider"],
         )
+    log.info(
+        f"ONNX session: {os.path.basename(str(model_path))} -> "
+        f"EP {session.get_providers()}"
+    )
+    return session
 
 
 def _windows_gpu_names() -> list[str]:

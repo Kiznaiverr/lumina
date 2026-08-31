@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -107,6 +108,8 @@ class PaddleOcrVlModel(BaseOcrModel):
         self._past_names: list[str] = []
         self._kv_zero_shape = (1, 2, 0, 128)
         self._dec_out_names: list[str] = []
+        self._logits_name = "logits"
+        self._kv_feed: dict[str, str] = {}  # input name -> output name
 
     def is_ready(self) -> bool:
         return all((self.model_dir / f).is_file() for f in REQUIRED_FILES)
@@ -191,16 +194,25 @@ class PaddleOcrVlModel(BaseOcrModel):
 
         so = make_session_options()
         log.info("Loading PaddleOCR-VL ONNX (this takes a moment)...")
-        # Vision = one forward pass per region → GPU. Decoder/embedding are
-        # autoregressive (many tiny sequential calls) → CPU.
+        # The exported NaViT graph contains identity Reshape nodes (empty
+        # shape tensor) whose DML kernel fails with ERROR_INVALID_PARAMETER
+        # on EVERY adapter (AMD iGPU and NVIDIA alike — verified), so under
+        # the DML wheel these graphs must run on CPU. With the CUDA wheel
+        # installed, prefer_no_dml() returns "auto" → CUDA EP instead.
+        from utils.runtime import prefer_no_dml
+
         vis = create_session(
-            self.model_dir / "onnx/vision_encoder_q8.onnx", sess_options=so
+            self.model_dir / "onnx/vision_encoder_q8.onnx",
+            prefer=prefer_no_dml(),
+            sess_options=so,
         )
         dec = create_session(
             self.model_dir / "onnx/decoder_q8.onnx",
-            prefer="cpu",
+            prefer=prefer_no_dml(),
             sess_options=so,
         )
+        # Embedding stays CPU: a 404MB token-lookup table read per token —
+        # GPU transfer would cost more than the CPU lookup itself.
         emb = create_session(
             self.model_dir / "onnx/embedding.onnx",
             prefer="cpu",
@@ -252,7 +264,16 @@ class PaddleOcrVlModel(BaseOcrModel):
         hdim = shp[3] if isinstance(shp[3], int) else 128
         self._kv_zero_shape = (1, heads, 0, hdim)
         self._kv_dtype = _tensor_dtype(kv)
+        # Decoder outputs are "present.<layer>.<key|value>" but the matching
+        # inputs are "past_key_values.<layer>.<key|value>" — map them so the
+        # step loop feeds the KV cache back under the input names.
         self._dec_out_names = [o.name for o in dec.get_outputs()]
+        self._logits_name = "logits"
+        self._kv_feed = {}
+        for on in self._dec_out_names:
+            mo = re.match(r"present\.(\d+)\.(key|value)", on)
+            if mo:
+                self._kv_feed[f"past_key_values.{mo.group(1)}.{mo.group(2)}"] = on
 
         self._vis, self._dec, self._emb, self._tok = vis, dec, emb, tok
         log.info("PaddleOCR-VL ready")
@@ -263,40 +284,49 @@ class PaddleOcrVlModel(BaseOcrModel):
     # ── preprocessing ────────────────────────────────────────────────────
 
     def _preprocess_region(self, crop) -> tuple[np.ndarray, np.ndarray]:
-        """NaViT-style preprocessing → pixel_values [1,P,3,14,14] + grid."""
+        """NaViT-style preprocessing → pixel_values [1,P,3,14,14] + grid.
+
+        Patch counts (ph, pw) are always EVEN: the model merges 2x2 patches
+        and reshapes attention tensors by grid/2 — an odd count produces a
+        size mismatch in an internal Reshape (verified on CPU:
+        {594,1152} vs {1,16,2,9,2,1152} for pw=33).
+        """
         from PIL import Image
 
         w, h = crop.size
         target = max(self._min_pixels, 1)
         r = math.sqrt(target / max(w * h, 1))
-        w2 = max(_PATCH, int(round(w * r / _PATCH)) * _PATCH)
-        h2 = max(_PATCH, int(round(h * r / _PATCH)) * _PATCH)
-        if w2 * h2 < target:  # rounding can undershoot — bump the smaller axis
-            if w2 <= h2:
-                w2 += _PATCH
-            else:
-                h2 += _PATCH
-        if self._max_pixels and w2 * h2 > self._max_pixels:
-            while w2 * h2 > self._max_pixels and w2 > _PATCH and h2 > _PATCH:
-                if w2 >= h2:
-                    w2 -= _PATCH
-                else:
-                    h2 -= _PATCH
-        # int8 caveat: keep the patch count bounded
-        while (w2 // _PATCH) * (h2 // _PATCH) > MAX_PATCHES and w2 > _PATCH and h2 > _PATCH:
-            w2 -= _PATCH
-            h2 -= _PATCH
-        # never fewer than 2x2 patches (projector merges them 2x2)
-        while (w2 // _PATCH) * (h2 // _PATCH) < 4:
-            w2 += _PATCH
-            h2 += _PATCH
+        # nearest EVEN patch count (2x2 merge requires grid/2 to be integer)
+        pw = max(2, int(round(w * r / _PATCH / 2)) * 2)
+        ph = max(2, int(round(h * r / _PATCH / 2)) * 2)
 
+        def area() -> int:
+            return pw * ph * _PATCH * _PATCH
+
+        if area() < target:  # rounding undershoot — bump the smaller axis
+            if pw <= ph:
+                pw += 2
+            else:
+                ph += 2
+        if self._max_pixels and area() > self._max_pixels:
+            while area() > self._max_pixels and pw > 2 and ph > 2:
+                if pw >= ph:
+                    pw -= 2
+                else:
+                    ph -= 2
+        # int8 caveat: keep the patch count bounded
+        while pw * ph > MAX_PATCHES and pw > 2 and ph > 2:
+            if pw >= ph:
+                pw -= 2
+            else:
+                ph -= 2
+
+        w2, h2 = pw * _PATCH, ph * _PATCH
         img = crop.resize((w2, h2), Image.Resampling.BICUBIC)
         arr = np.asarray(img, np.float32) / 255.0
         for c in range(3):
             arr[..., c] = (arr[..., c] - self._mean[c]) / self._std[c]
         arr = arr.transpose(2, 0, 1)  # [3, h2, w2]
-        ph, pw = h2 // _PATCH, w2 // _PATCH
         patches = (
             arr.reshape(3, ph, _PATCH, pw, _PATCH)
             .transpose(1, 3, 0, 2, 4)
@@ -335,16 +365,13 @@ class PaddleOcrVlModel(BaseOcrModel):
         feed = {
             "inputs_embeds": in_emb,
             "attention_mask": np.ones((1, seq_len), self._mask_dtype),
-            **{nm: np.zeros(self._kv_zero_shape, self._kv_dtype) for nm in self._past_names},
+            **{nm: np.zeros(self._kv_zero_shape, self._kv_dtype) for nm in self._kv_feed},
         }
         out = dec.run(None, feed)
-        logits = np.asarray(out[self._dec_out_names.index("logits")])[0, -1].astype(
-            np.float64
-        )
+        out_map = dict(zip(self._dec_out_names, out))
+        logits = np.asarray(out_map[self._logits_name])[0, -1].astype(np.float64)
         present = {
-            nm: np.asarray(out[i])
-            for i, nm in enumerate(self._dec_out_names)
-            if nm != "logits"
+            inp: np.asarray(out_map[oname]) for inp, oname in self._kv_feed.items()
         }
 
         toks: list[int] = []
@@ -363,13 +390,10 @@ class PaddleOcrVlModel(BaseOcrModel):
                 **present,
             }
             out = dec.run(None, feed)
-            logits = np.asarray(out[self._dec_out_names.index("logits")])[0, -1].astype(
-                np.float64
-            )
+            out_map = dict(zip(self._dec_out_names, out))
+            logits = np.asarray(out_map[self._logits_name])[0, -1].astype(np.float64)
             present = {
-                nm: np.asarray(out[i])
-                for i, nm in enumerate(self._dec_out_names)
-                if nm != "logits"
+                inp: np.asarray(out_map[oname]) for inp, oname in self._kv_feed.items()
             }
         return tok.decode(toks, skip_special_tokens=True).strip()
 

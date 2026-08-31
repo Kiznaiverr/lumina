@@ -131,11 +131,13 @@ class OnnxInpaintModel(BaseInpaintModel):
                 self.download()
 
             log.info(f"Loading inpaint ONNX model: {self._path}")
-            # prefer="cpu": LaMa FFC MatMul crashes under DirectML (see
-            # module docstring, microsoft/onnxruntime#24744). CUDA is still
-            # honored via LUMINA_EP=cuda.
+            # LaMa FFC MatMul crashes under DirectML (see module docstring,
+            # microsoft/onnxruntime#24744) — use CPU unless CUDA is available
+            # (onnxruntime-gpu wheel), which handles the model correctly.
+            from utils.runtime import prefer_no_dml
+
             self._session = create_session(
-                self._path, prefer="cpu", sess_options=make_session_options()
+                self._path, prefer=prefer_no_dml(), sess_options=make_session_options()
             )
             log.info(
                 f"Inpaint session ready (inputs: "
