@@ -191,9 +191,16 @@
 
   "tools.select": "Select",
   "tools.lasso": "Lasso",
+  "tools.rect": "Rectangle (R)",
   "tools.text": "Text",
   "tools.selectName": "Select",
   "tools.lassoName": "Lasso",
+  "tools.rectName": "Rectangle",
+
+  "selectool.title": "Selection",
+  "selectool.convert": "Convert to detection",
+  "selectool.convertAll": "Convert all to detection",
+  "selectool.clear": "Clear",
 
   "pages.remove": "Remove page",
   "pages.importMore": "Import more pages",

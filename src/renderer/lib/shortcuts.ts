@@ -16,6 +16,7 @@ type ActionId =
   | "exportAll"
   | "toolSelect"
   | "toolLasso"
+  | "toolRect"
   | "toolText"
   | "zoomIn"
   | "zoomOut"
@@ -32,6 +33,7 @@ export const shortcuts = {
     exportAll: "Ctrl+Shift+E",
     toolSelect: "V",
     toolLasso: "L",
+    toolRect: "R",
     toolText: "T",
     zoomIn: "Ctrl+=",
     zoomOut: "Ctrl+-",
@@ -136,6 +138,9 @@ export const shortcuts = {
         },
         toolLasso: function () {
           tools.setActive("lasso");
+        },
+        toolRect: function () {
+          tools.setActive("rect");
         },
         toolText: function () {
           tools.setActive("text");

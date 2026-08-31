@@ -191,9 +191,16 @@
 
   "tools.select": "Pilih (V)",
   "tools.lasso": "Lasso (L)",
+  "tools.rect": "Persegi Panjang (R)",
   "tools.text": "Teks (T)",
   "tools.selectName": "Pilih",
   "tools.lassoName": "Lasso",
+  "tools.rectName": "Persegi Panjang",
+
+  "selectool.title": "Seleksi",
+  "selectool.convert": "Jadikan deteksi",
+  "selectool.convertAll": "Jadikan semua deteksi",
+  "selectool.clear": "Bersihkan",
 
   "pages.remove": "Hapus halaman",
   "pages.importMore": "Impor halaman lagi",

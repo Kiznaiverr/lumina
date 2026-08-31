@@ -25,7 +25,10 @@
 - [x] fix masking bug when opening saved project
 - [x] improve inpainting
 - [ ] re-design landing page
-- [ ] add more tools
+- [x] lasso & rectangle selection tools (marching ants + context bar → detection + OCR)
+- [x] multi-selection refinement: Shift=add/merge, Alt=subtract, plain=single; convert undoable
 - [x] onnx runtime with gpu acceleration support
 - [x] (optional) change heuristic Otsu with segmentation model for better masking
+- [ ] fix merge selection objects bug
+- [ ] readme and documentation
 - [ ] testing and hunt another bugs

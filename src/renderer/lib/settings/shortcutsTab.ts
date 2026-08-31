@@ -39,6 +39,7 @@ export const shortcutsTab = {
       redo: i18n.t("shortcuts.redo"),
       toolSelect: i18n.t("tools.select"),
       toolLasso: i18n.t("tools.lasso"),
+      toolRect: i18n.t("tools.rect"),
       toolText: i18n.t("tools.text"),
       zoomIn: i18n.t("zoom.zoomIn"),
       zoomOut: i18n.t("zoom.zoomOut"),

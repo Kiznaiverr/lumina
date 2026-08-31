@@ -292,7 +292,7 @@ canvas._initPanDrag = function (): void {
       const container = document.getElementById("canvas-container");
       if (container)
         container.style.cursor =
-          state.activeTool === "lasso"
+          state.activeTool === "lasso" || state.activeTool === "rect"
             ? "crosshair"
             : state.activeTool === "text"
               ? "text"
@@ -315,7 +315,8 @@ function _bindHoverCursor(): void {
   _cursorBound = true;
 
   const toolCursor = function (): string {
-    if (state.activeTool === "lasso") return "crosshair";
+    if (state.activeTool === "lasso" || state.activeTool === "rect")
+      return "crosshair";
     if (state.activeTool === "text") return "text";
     return "default";
   };

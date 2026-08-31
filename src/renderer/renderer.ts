@@ -21,6 +21,7 @@ import "./lib/canvas/mutations";
 import "./lib/canvas/layers";
 import "./lib/canvas/masks";
 import { bindTextTool } from "./lib/canvas/textool";
+import { bindSelectTool } from "./lib/canvas/selectool";
 import { loadSystemFonts } from "./lib/fontLoader";
 import { createIcons } from "./lib/icons";
 import { project, handleCloseRequest } from "./lib/project";
@@ -232,6 +233,7 @@ i18n.init().then(function () {
   ui.initResize();
   canvas.initBindings();
   bindTextTool();
+  bindSelectTool();
   sidebar.render();
 
   setDirtyListener(updateDirtyUI);

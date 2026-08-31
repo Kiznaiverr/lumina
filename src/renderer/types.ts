@@ -161,7 +161,7 @@ export interface Page {
   _panY?: number;
 }
 
-export type ToolId = "select" | "lasso" | "text";
+export type ToolId = "select" | "lasso" | "rect" | "text";
 
 /** Response shape from POST /detect */
 export interface DetectResult {

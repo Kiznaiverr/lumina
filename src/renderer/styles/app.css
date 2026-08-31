@@ -1919,7 +1919,79 @@ body.resizing-row {
   font-size: 0.7rem;
 }
 
-/* Workspace: description fills all remaining space, footer pinned bottom */
+/* ── Select tool (lasso / rectangle) ── */
+/* Floating context bar anchored to the active selection */
+.selectool-bar {
+  position: absolute;
+  z-index: 40;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+}
+.selectool-bar-title {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8a8a8e;
+  padding: 0 4px;
+  user-select: none;
+}
+.selectool-bar-count {
+  min-width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(233, 69, 96, 0.2);
+  color: #ff7b92;
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+.selectool-bar-action {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 5px;
+  background: #e94560;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.selectool-bar-action:hover {
+  background: #ff5c75;
+}
+.selectool-bar-clear {
+  padding: 4px 8px;
+  border: 1px solid #3a3a3a;
+  border-radius: 5px;
+  background: transparent;
+  color: #969696;
+  font-size: 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.selectool-bar-clear:hover {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+/* Workbench: description fills all remaining space, footer pinned bottom */
 .model-desc {
   display: flex;
   flex-direction: column;

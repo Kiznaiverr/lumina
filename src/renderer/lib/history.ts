@@ -128,6 +128,26 @@ export const history = {
     this._updateButtons();
   },
 
+  /**
+   * Overwrite the NEWEST snapshot with the current state. Used when an async
+   * step completes after the last snapshot (e.g. OCR text landing on boxes
+   * added by "convert to detection") so the whole operation stays a single
+   * undo step instead of two. No-op when the newest entry is no longer on
+   * top of the stack (an undo/redo happened in between) or nothing changed.
+   */
+  replace(): void {
+    if (this._restoring) return;
+    const page = state.getActivePage();
+    if (!page) return;
+    const e = _entry(page);
+    if (e.idx !== e.stack.length - 1) return; // only the newest entry
+    const data = _serializePage(page);
+    if (e.stack[e.idx] === data) return; // no change
+    e.stack[e.idx] = data;
+    markDirty();
+    this._updateButtons();
+  },
+
   undo(): void {
     const e = this._activeEntry();
     const page = state.getActivePage();
