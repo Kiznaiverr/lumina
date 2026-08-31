@@ -280,6 +280,12 @@ class RfDetrSegModel(BaseDetectModel):
                 masks = arr
             else:
                 labels = arr
+        if dets is None or labels is None or masks is None:
+            raise ValueError(
+                "Unexpected RF-DETR output shapes; cannot map to "
+                "(dets, labels, masks): "
+                f"{[np.asarray(o).shape for o in outputs]}"
+            )
         return dets, labels, masks
 
     def detect(self, image_path: str) -> dict:
