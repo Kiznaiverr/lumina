@@ -23,6 +23,31 @@ interface HistoryEntry {
   idx: number;
 }
 
+/** JSON-safe snapshot of the selection tool's transient state (see
+ * ``setSelectionHistoryHandlers``). Undo/redo restores committed rectangle /
+ * lasso selections alongside page content. */
+export interface SelectionSnapshotState {
+  selections: unknown;
+  activeId: string | null;
+}
+
+type SelectionCapture = () => SelectionSnapshotState | null;
+type SelectionRestore = (s: SelectionSnapshotState) => void;
+
+let _captureSelections: SelectionCapture | null = null;
+let _restoreSelections: SelectionRestore | null = null;
+
+/** Register the selection tool's serializers so history snapshots include
+ * committed selections and undo/redo can bring them back (with the overlay
+ * redrawn). Pass nulls to unregister. */
+export function setSelectionHistoryHandlers(
+  capture: SelectionCapture | null,
+  restore: SelectionRestore | null,
+): void {
+  _captureSelections = capture;
+  _restoreSelections = restore;
+}
+
 const _entries = new Map<Page, HistoryEntry>();
 
 function _entry(page: Page): HistoryEntry {
@@ -51,6 +76,7 @@ function _serializePage(p: Page): string {
       opacity: m.opacity,
     })),
     backgroundVisible: p.backgroundVisible,
+    selections: _captureSelections ? _captureSelections() : null,
   });
 }
 
@@ -60,6 +86,7 @@ interface PageSnapshot {
   layers: unknown;
   _selectedLayerId: string | null;
   backgroundVisible?: boolean;
+  selections?: SelectionSnapshotState | null;
   inpaintMasks?: Array<{
     id: string;
     bbox: { x: number; y: number; w: number; h: number };
@@ -112,8 +139,12 @@ export const history = {
     this._updateButtons();
   },
 
-  /** Push a snapshot for the ACTIVE page after a mutation */
-  snapshot(): void {
+  /**
+   * Push a snapshot for the ACTIVE page after a mutation. Pass
+   * ``{ dirty: false }`` for transient UI state that must be undoable but
+   * should not mark the project modified (e.g. selection edits).
+   */
+  snapshot(opts?: { dirty?: boolean }): void {
     if (this._restoring) return;
     const page = state.getActivePage();
     if (!page) return;
@@ -124,7 +155,7 @@ export const history = {
     e.stack.push(data);
     if (e.stack.length > MAX_STACK) e.stack.shift();
     e.idx = e.stack.length - 1;
-    markDirty();
+    if (!opts || opts.dirty !== false) markDirty();
     this._updateButtons();
   },
 
@@ -201,6 +232,10 @@ export const history = {
     page.inpaintMasks = masks as never;
     // Re-hydrate mask images asynchronously; render again once loaded.
     hydrateMaskImages(page);
+    // Selections are transient but undoable — bring them back with the
+    // page so Ctrl+Z removes the rectangle/lasso that was just drawn.
+    if (snap.selections && _restoreSelections)
+      _restoreSelections(snap.selections);
     canvas._clearGroups();
     canvas.render();
     if (sidebar && sidebar.render) sidebar.render();

@@ -17,12 +17,40 @@
  *   actions/        — one file per convert action (toDetection, …)
  */
 import { canvas } from "../index";
-import { clearSelections, selections } from "./shared";
+import { history, setSelectionHistoryHandlers } from "../../history";
+import {
+  clearSelections,
+  selections,
+  activeId,
+  setActiveId,
+  type Selection,
+} from "./shared";
 import { refreshOverlay } from "./render";
 import { hideContextBar, syncContextBar } from "./contextBar";
 import { bindStageInteractions } from "./interactions";
 
 let _bound = false;
+
+// Selections are transient but undoable: history captures them in every
+// snapshot and restores them (plus the ants overlay) on undo/redo.
+setSelectionHistoryHandlers(
+  function () {
+    return {
+      selections: JSON.parse(JSON.stringify(selections)),
+      activeId: activeId,
+    };
+  },
+  function (s) {
+    selections.length = 0;
+    (s.selections as Selection[]).forEach(function (sel) {
+      selections.push(sel);
+    });
+    setActiveId(s.activeId);
+    refreshOverlay();
+    if (selections.length) syncContextBar();
+    else hideContextBar();
+  },
+);
 
 export function bindSelectTool(): void {
   if (_bound) return;
@@ -36,6 +64,8 @@ export function bindSelectTool(): void {
     clearSelections();
     refreshOverlay();
     hideContextBar();
+    // Escape deselect is undoable — Ctrl+Z brings the selections back.
+    history.snapshot({ dirty: false });
   });
 }
 

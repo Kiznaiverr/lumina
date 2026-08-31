@@ -12,6 +12,7 @@
  */
 import { state } from "../../state";
 import { canvas } from "../index";
+import { history } from "../../history";
 import {
   selections,
   activeId,
@@ -63,6 +64,8 @@ function addSelection(shape: SelectionShape): void {
   setActiveId(sel.id);
   refreshOverlay();
   syncContextBar();
+  // Every committed drag is one undo step (doesn't dirty the project).
+  history.snapshot({ dirty: false });
 }
 
 /** Shift+drag commit: union the new shape into every selection it touches. */
@@ -101,6 +104,7 @@ function addOrMerge(shape: SelectionShape): void {
   setActiveId(target.id);
   refreshOverlay();
   syncContextBar();
+  history.snapshot({ dirty: false });
 }
 
 /** Alt+drag commit: carve the shape out of every selection it touches. */
@@ -126,6 +130,7 @@ function subtractFromSelections(shape: SelectionShape): void {
   }
   refreshOverlay();
   syncContextBar();
+  history.snapshot({ dirty: false });
 }
 
 /** Alt+click: delete just that selection. */
@@ -142,6 +147,7 @@ function removeSelection(id: string): void {
   }
   refreshOverlay();
   syncContextBar();
+  history.snapshot({ dirty: false });
 }
 
 export function bindStageInteractions(): void {
@@ -254,6 +260,8 @@ export function bindStageInteractions(): void {
             clearSelections();
             refreshOverlay();
             hideContextBar();
+            // Click-empty deselect is undoable too (reselects on Ctrl+Z).
+            history.snapshot({ dirty: false });
           }
           return;
         }
