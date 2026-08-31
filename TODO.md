@@ -29,6 +29,6 @@
 - [x] multi-selection refinement: Shift=add/merge, Alt=subtract, plain=single; convert undoable
 - [x] onnx runtime with gpu acceleration support
 - [x] (optional) change heuristic Otsu with segmentation model for better masking
-- [ ] fix merge selection objects bug
+- [x] fix merge selection objects bug
 - [ ] readme and documentation
 - [ ] testing and hunt another bugs

@@ -1,14 +1,12 @@
-/* ── Select Tool — action: selection(s) → text detection + OCR ──
+/* ── Select Tool — action: selection(s) → text detection ──
  * Converts every committed selection into a text detection (axis-aligned
- * bbox, status "adjusted") plus its mirrored dialogue layer, then OCRs just
- * the new boxes — the end state matches pressing the OCR button for that
- * region: box visible with Japanese source text filled in.
+ * bbox, status "adjusted") plus its mirrored dialogue layer. No OCR — the
+ * user runs that explicitly with the OCR button when wanted.
  */
 import { state } from "../../../state";
 import { history } from "../../../history";
 import { canvas } from "../../index";
 import { sidebar } from "../../../sidebar";
-import { ocr } from "../../../pipeline/ocr";
 import { defaultTypography, loadGlobalTypography } from "../../../../types";
 import type { PageLayer, TextDetection } from "../../../../types";
 import { selections, shapeAABB, isHoleShape } from "../shared";
@@ -76,7 +74,4 @@ export function toDetection(): void {
   canvas.render();
   sidebar.render();
   history.snapshot();
-
-  // OCR the new boxes only — same endpoint/mapping as the OCR button.
-  ocr.runBoxes(newIndices);
 }
