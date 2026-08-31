@@ -43,3 +43,30 @@ class BaseOcrModel(ABC):
     @abstractmethod
     def ocr_boxes(self, image_path: str, boxes: list[dict]) -> list[str]:
         """Recognize text in each box; returns one string per box."""
+
+    def supports_regions(self) -> bool:
+        """True when this model recognizes several boxes in one crop.
+
+        Vision-language models (e.g. PaddleOCR-VL) read a region crop made
+        of adjacent boxes at once; crop-trained models (manga-ocr, Baberu,
+        PP-OCRv6) recognize one tight line crop each and must stay
+        per-box. The ``ocr_boxes`` dispatcher uses region mode only for
+        models that opt in here.
+        """
+        return False
+
+    def ocr_regions(self, image_path: str, regions: list[dict]) -> list[list[str]]:
+        """Region-based recognition.
+
+        ``regions`` items: ``{"boxes": [...], "x", "y", "w", "h"}`` where
+        ``boxes`` are in reading order and the bbox covers them all.
+        Returns one list of strings per region, aligned positionally to
+        that region's ``boxes`` — the caller flattens them back into one
+        string per box.
+
+        Default implementation falls back to per-box recognition; models
+        with :meth:`supports_regions` override this and must guarantee the
+        alignment (e.g. by falling back to ``ocr_boxes`` per region when
+        the model's line count doesn't match the box count).
+        """
+        return [self.ocr_boxes(image_path, r["boxes"]) for r in regions]

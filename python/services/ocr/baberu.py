@@ -104,32 +104,52 @@ class BaberuOcrModel(BaseOcrModel):
         base_url = f"https://huggingface.co/{self.model_id}/resolve/main/"
 
         log.info(f"Downloading OCR model {self.model_id} ...")
-        for i, f in enumerate(DOWNLOAD_FILES):
+        # Files still missing (already-downloaded ones are skipped).
+        pending = [f for f in DOWNLOAD_FILES if not (self.model_dir / f).is_file()]
+
+        # Grand total = sum of Content-Length of every pending file (HEAD is
+        # cheap). Without it, progress would compare cumulative bytes against
+        # the current file's size only → overshoots 100% on multi-file models.
+        # ?download=true also forces HF to serve real xet blobs, not pointers.
+        grand_total = 0
+        sizes: dict[str, int] = {}
+        for f in pending:
+            try:
+                req = urllib.request.Request(
+                    base_url + f + "?download=true",
+                    method="HEAD",
+                    headers={"User-Agent": "Lumina/0.1"},
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    sizes[f] = int(resp.headers.get("Content-Length", -1))
+            except Exception:
+                sizes[f] = -1
+            if sizes[f] > 0:
+                grand_total += sizes[f]
+
+        done = 0
+        for f in pending:
             dest = self.model_dir / f
-            if dest.is_file():
-                continue
             dest.parent.mkdir(parents=True, exist_ok=True)
             req = urllib.request.Request(
-                base_url + f, headers={"User-Agent": "Lumina/0.1"}
+                base_url + f + "?download=true", headers={"User-Agent": "Lumina/0.1"}
             )
             with urllib.request.urlopen(req) as resp, open(
                 dest.with_suffix(dest.suffix + ".part"), "wb"
             ) as out:
                 total = int(resp.headers.get("Content-Length", -1))
-                downloaded = 0
+                if total > 0 and sizes.get(f, -1) <= 0:
+                    grand_total += total  # size discovered late
                 while True:
                     chunk = resp.read(1024 * 1024)
                     if not chunk:
                         break
                     out.write(chunk)
-                    downloaded += len(chunk)
-                    if progress_callback and total > 0:
-                        done = sum(
-                            (self.model_dir / x).stat().st_size
-                            for x in DOWNLOAD_FILES[:i]
-                            if (self.model_dir / x).is_file()
-                        ) + downloaded
-                        progress_callback(int(done * 100 / total), int(done), int(total))
+                    done += len(chunk)
+                    if progress_callback and grand_total > 0:
+                        progress_callback(
+                            int(done * 100 / grand_total), done, grand_total
+                        )
             dest.with_suffix(dest.suffix + ".part").rename(dest)
 
     def unload(self) -> None:

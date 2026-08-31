@@ -45,4 +45,20 @@ export const OCR_DESCS: ModelDescMap = {
 • Cepat di CPU — default yang direkomendasikan untuk manga.
 • Sumber: huggingface.co/genshiai-daichi/baberu-ocr`,
   },
+  paddleocr_vl: {
+    en: `PaddleOCR-VL 1.6 (by PaddlePaddle, ONNX port by iaa2005) — a vision-language OCR model (NaViT + ERNIE-4.5 decoder) that reads whole text regions at once, in many languages (zh / en / ru / more).
+
+• Region-based: adjacent text boxes are recognized together in one pass with context — better on multi-line bubbles.
+• Multi-language, strongest on zh/en; Japanese manga typesetting is handled better by manga-ocr or Baberu.
+• Slow: roughly 10–25 s per page on CPU — a fallback model, not a daily driver.
+• ~1.2 GB download.
+• Source: huggingface.co/iaa2005/PaddleOCR-VL-1.6-ONNX`,
+    id: `PaddleOCR-VL 1.6 (oleh PaddlePaddle, port ONNX oleh iaa2005) — model OCR vision-language (NaViT + decoder ERNIE-4.5) yang membaca seluruh region teks sekaligus, multibahasa (zh / en / ru / lainnya).
+
+• Berbasis region: kotak teks yang berdekatan dikenali sekaligus dalam satu proses dengan konteks — lebih baik pada gelembung multi-baris.
+• Multibahasa, terkuat di zh/en; tata letak manga Jepang lebih baik ditangani manga-ocr atau Baberu.
+• Lambat: sekitar 10–25 detik per halaman di CPU — model cadangan, bukan untuk pemakaian harian.
+• Unduhan ±1.2 GB.
+• Sumber: huggingface.co/iaa2005/PaddleOCR-VL-1.6-ONNX`,
+  },
 };

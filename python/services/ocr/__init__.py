@@ -12,12 +12,14 @@ from typing import Optional
 from .base import BaseOcrModel, ProgressCallback
 from .baberu import BaberuOcrModel
 from .manga_ocr import MangaOcrModel
+from .paddleocr_vl import PaddleOcrVlModel
 from .ppocrv6 import PPOcrV6Model
 
 MODELS: dict[str, BaseOcrModel] = {
     "manga_ocr": MangaOcrModel(),
     "ppocrv6": PPOcrV6Model(),
     "baberu": BaberuOcrModel(),
+    "paddleocr_vl": PaddleOcrVlModel(),
 }
 DEFAULT_MODEL = "manga_ocr"
 
@@ -113,6 +115,42 @@ def _expand_boxes(boxes: list[dict]) -> list[dict]:
     return out
 
 
+# Region mode: adjacent boxes are chained into one crop for models that
+# support it (vision-language OCR). Per-box models ignore regions entirely.
+REGION_GAP = 48  # px — boxes closer than this on both axes chain together
+REGION_MAX_BOXES = 10  # safety cap: a region never spans more boxes than this
+
+
+def _group_regions(boxes: list[dict]) -> list[dict]:
+    """Chain reading-order boxes into region crops.
+
+    Greedy: boxes arrive in reading order (from detection). A box merges
+    into the current region when its AABB is within ``REGION_GAP`` of it
+    on both axes; otherwise the region closes and a new one starts. The
+    box cap keeps each region short enough for the model's sequence limit.
+    Returns ``[{"boxes": [...], "x", "y", "w", "h"}, ...]``.
+    """
+    regions: list[dict] = []
+    cur: Optional[dict] = None
+    for b in boxes:
+        if cur is not None and len(cur["boxes"]) < REGION_MAX_BOXES:
+            gx = max(cur["x"] - (b["x"] + b["w"]), b["x"] - (cur["x"] + cur["w"]), 0)
+            gy = max(cur["y"] - (b["y"] + b["h"]), b["y"] - (cur["y"] + cur["h"]), 0)
+            if gx <= REGION_GAP and gy <= REGION_GAP:
+                cur["boxes"].append(b)
+                cur["x"] = min(cur["x"], b["x"])
+                cur["y"] = min(cur["y"], b["y"])
+                cur["w"] = max(cur["x"] + cur["w"], b["x"] + b["w"]) - cur["x"]
+                cur["h"] = max(cur["y"] + cur["h"], b["y"] + b["h"]) - cur["y"]
+                continue
+        if cur is not None:
+            regions.append(cur)
+        cur = {"boxes": [b], "x": b["x"], "y": b["y"], "w": b["w"], "h": b["h"]}
+    if cur is not None:
+        regions.append(cur)
+    return regions
+
+
 def ocr_boxes(
     image_path: str,
     boxes: list[dict],
@@ -121,7 +159,14 @@ def ocr_boxes(
     """Recognize text in every box; returns one string per box."""
     if model not in MODELS:
         raise ValueError(f"Unknown OCR model: {model}")
-    return MODELS[model].ocr_boxes(image_path, _expand_boxes(boxes))
+    m = MODELS[model]
+    expanded = _expand_boxes(boxes)
+    if m.supports_regions():
+        # Vision-language models read several boxes at once (region crop).
+        # ocr_regions guarantees per-region output aligned to its boxes.
+        per_region = m.ocr_regions(image_path, _group_regions(expanded))
+        return [line for r in per_region for line in r]
+    return m.ocr_boxes(image_path, expanded)
 
 
 def unload_models() -> None:
