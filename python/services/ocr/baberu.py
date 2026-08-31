@@ -240,10 +240,6 @@ class BaberuOcrModel(BaseOcrModel):
             )
             text = self._decode(embeds)
             texts.append(text)
-            log.debug(
-                f"OCR box {i + 1}/{len(boxes)}: {text!r}"
-                .encode("ascii", "replace")
-                .decode("ascii")
-            )
+            log.debug(f"OCR box {i + 1}/{len(boxes)}: {text!r}")
 
         return texts

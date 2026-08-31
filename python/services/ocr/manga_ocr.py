@@ -178,10 +178,6 @@ class MangaOcrModel(BaseOcrModel):
             hidden = np.asarray(enc.run(None, {"pixel_values": pixel_values})[0])
             text = self._decode(hidden)
             texts.append(text)
-            log.debug(
-                f"OCR box {i + 1}/{len(boxes)}: {text!r}"
-                .encode("ascii", "replace")
-                .decode("ascii")
-            )
+            log.debug(f"OCR box {i + 1}/{len(boxes)}: {text!r}")
 
         return texts

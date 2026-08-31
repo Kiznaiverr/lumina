@@ -259,8 +259,6 @@ class PPOcrV6Model(BaseOcrModel):
                 parts.append(text)
                 log.debug(
                     f"OCR box {i + 1}/{len(boxes)} ({score:.2f}): {text!r}"
-                    .encode("ascii", "replace")
-                    .decode("ascii")
                 )
             # Vertical columns read right-to-left as one logical line.
             texts.append("".join(parts) if vertical else "\n".join(parts))
