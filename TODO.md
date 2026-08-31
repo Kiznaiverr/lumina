@@ -26,6 +26,6 @@
 - [x] improve inpainting
 - [ ] re-design landing page
 - [ ] add more tools
-- [ ] onnx runtime with gpu acceleration support
+- [x] onnx runtime with gpu acceleration support
 - [x] (optional) change heuristic Otsu with segmentation model for better masking
 - [ ] testing and hunt another bugs

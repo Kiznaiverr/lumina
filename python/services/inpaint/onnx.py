@@ -109,18 +109,20 @@ class OnnxInpaintModel(BaseInpaintModel):
         tmp_path.rename(self._path)
         log.info(f"Inpaint model download complete: {self._path}")
 
+    def unload(self) -> None:
+        """Release the ONNX session (frees VRAM/RAM). Next call reloads."""
+        self._session = None
+
     def _load_session(self):
         if self._session is None:
-            import onnxruntime as ort
+            from utils.runtime import create_session, make_session_options
 
             if not self.is_ready():
                 self.download()
 
             log.info(f"Loading inpaint ONNX model: {self._path}")
-            opts = ort.SessionOptions()
-            opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-            self._session = ort.InferenceSession(
-                str(self._path), sess_options=opts, providers=["CPUExecutionProvider"]
+            self._session = create_session(
+                self._path, sess_options=make_session_options()
             )
             log.info(
                 f"Inpaint session ready (inputs: "

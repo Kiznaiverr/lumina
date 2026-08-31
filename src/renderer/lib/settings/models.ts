@@ -8,7 +8,7 @@
 import * as i18n from "../i18n";
 import { models } from "../models";
 import { recommendedFor } from "../models/descriptions";
-import type { DownloadProgress, ModelInfo } from "../../types";
+import type { DeviceInfo, DownloadProgress, ModelInfo } from "../../types";
 
 const SECTIONS: Array<[string, string]> = [
   ["detect", "models.sectionDetect"],
@@ -53,6 +53,7 @@ export const modelsTab = {
 
   _render(pane: HTMLElement, list: ModelInfo[]): void {
     pane.innerHTML = "";
+    pane.appendChild(this._gpuCard());
     pane.appendChild(hintEl());
 
     const sections = SECTIONS.map(([kind, titleKey]) => ({
@@ -190,6 +191,82 @@ export const modelsTab = {
 
     card.append(head, text, foot);
     return card;
+  },
+
+  /** GPU acceleration card: device name + EP + on/off toggle. */
+  _gpuCard(): HTMLElement {
+    const card = document.createElement("div");
+    card.className = "model-gpu";
+
+    const info = document.createElement("div");
+    info.className = "model-gpu-info";
+    const name = document.createElement("div");
+    name.className = "model-gpu-name";
+    const ep = document.createElement("div");
+    ep.className = "model-gpu-ep";
+    info.append(name, ep);
+
+    const toggle = document.createElement("label");
+    toggle.className = "toggle";
+    toggle.title = i18n.t("settings.gpuToggleTitle");
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = models.useGpu();
+    input.addEventListener("change", () => {
+      input.disabled = true;
+      models.setUseGpu(input.checked).then(() => {
+        input.disabled = false;
+      });
+    });
+    const track = document.createElement("span");
+    track.className = "track";
+    toggle.append(input, track);
+
+    card.append(info, toggle);
+    this._renderGpuCard(card, models.device());
+    // Keep the card live when device info changes elsewhere (startup fetch,
+    // toggle from another path, backend restart).
+    models.onDeviceChange((d) => this._renderGpuCard(card, d));
+    return card;
+  },
+
+  _renderGpuCard(card: HTMLElement, dev: DeviceInfo | null): void {
+    const name = card.querySelector<HTMLElement>(".model-gpu-name")!;
+    const ep = card.querySelector<HTMLElement>(".model-gpu-ep")!;
+    const input = card.querySelector<HTMLInputElement>("input[type=checkbox]")!;
+    const accel = !!dev?.accelerated;
+
+    name.textContent =
+      dev?.gpuName || i18n.t(dev ? "settings.gpuNone" : "settings.gpuUnknown");
+    ep.textContent = dev
+      ? `${dev.ep} · onnxruntime ${dev.onnxRuntime ?? "?"}`
+      : "";
+
+    let badge = card.querySelector<HTMLElement>(".model-gpu-badge");
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "model-gpu-badge";
+      card.appendChild(badge);
+    }
+    badge.textContent = accel
+      ? i18n.t("settings.gpuActive")
+      : i18n.t("settings.gpuCpu");
+    badge.classList.toggle("on", accel);
+
+    input.checked = models.useGpu();
+
+    let hint = card.querySelector<HTMLElement>(".model-gpu-hint");
+    const showHint = models.useGpu() && !accel;
+    if (showHint) {
+      if (!hint) {
+        hint = document.createElement("p");
+        hint.className = "model-gpu-hint";
+        card.appendChild(hint);
+      }
+      hint.textContent = i18n.t("settings.gpuUnsupported");
+    } else if (hint) {
+      hint.remove();
+    }
   },
 
   /** Start a model download and disable the triggering button. */

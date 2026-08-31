@@ -33,6 +33,7 @@ const landing = document.getElementById("landing");
 
 // ── Model check on startup (CHECK ONLY — downloads are manual) ──
 function checkModels(): void {
+  models.refreshDevice();
   models.check().then(function (list) {
     if (list.length && list.some((m) => !m.ready)) {
       ui.toast(i18n.t("models.warning"), "warn", 6000);

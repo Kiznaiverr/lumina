@@ -128,3 +128,8 @@ class ModelDownloadRequest(BaseModel):
     # Empty = download every missing model. Otherwise only these ids
     # ("detect", "ocr", or inpaint registry keys like "lama").
     models: list[str] = []
+
+
+class DeviceConfigureRequest(BaseModel):
+    # False → force CPU (LUMINA_EP=cpu); True → clear override (auto).
+    useGpu: bool

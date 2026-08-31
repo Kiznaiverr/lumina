@@ -92,14 +92,21 @@ class PPOcrV6Model(BaseOcrModel):
                         progress_callback(int(done * 100 / total), int(done), int(total))
             dest.with_suffix(dest.suffix + ".part").rename(dest)
 
+    def unload(self) -> None:
+        """Release the ONNX session (frees VRAM/RAM). Next call reloads."""
+        self._session = None
+
     def _load(self) -> None:
         if self._session is not None:
             return
-        import onnxruntime as ort
+        from utils.runtime import create_session, make_session_options
+
         import yaml
 
         log.info("Loading PP-OCRv6 ONNX...")
-        self._session = ort.InferenceSession(str(self.model_dir / "inference.onnx"))
+        self._session = create_session(
+            self.model_dir / "inference.onnx", sess_options=make_session_options()
+        )
         cfg = yaml.safe_load(
             (self.model_dir / "inference.yml").read_text(encoding="utf-8")
         )

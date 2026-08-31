@@ -41,6 +41,10 @@ class BaseInpaintModel(ABC):
         """Total bytes of installed weight files; None if not installed."""
         return None
 
+    def unload(self) -> None:
+        """Release loaded sessions (VRAM/RAM). No-op when nothing is loaded.
+        The model is lazily re-loaded on the next ``inpaint()`` call."""
+
     @abstractmethod
     def inpaint(
         self,

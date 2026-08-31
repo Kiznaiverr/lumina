@@ -60,3 +60,12 @@ def detect(image_path: str, model: str = DEFAULT_MODEL) -> dict:
     if model not in MODELS:
         raise ValueError(f"Unknown detect model: {model}")
     return MODELS[model].detect(image_path)
+
+
+def unload_models() -> None:
+    """Release every loaded detect session (frees VRAM/RAM)."""
+    for m in MODELS.values():
+        try:
+            m.unload()
+        except Exception:
+            pass

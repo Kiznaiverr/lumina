@@ -12,6 +12,9 @@ const api: LuminaAPI = {
   },
   apiPost: <T = unknown>(endpoint: string, body: unknown) =>
     ipcRenderer.invoke(IPC.apiPost, endpoint, body) as Promise<T>,
+  getDevice: () => ipcRenderer.invoke(IPC.device),
+  setUseGpu: (useGpu: boolean) =>
+    ipcRenderer.invoke(IPC.deviceConfigure, useGpu),
   checkModel: () => ipcRenderer.invoke(IPC.checkModel),
   downloadModel: (models?: string[]) =>
     ipcRenderer.invoke(IPC.downloadModel, models ?? []),

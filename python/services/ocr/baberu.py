@@ -132,20 +132,33 @@ class BaberuOcrModel(BaseOcrModel):
                         progress_callback(int(done * 100 / total), int(done), int(total))
             dest.with_suffix(dest.suffix + ".part").rename(dest)
 
+    def unload(self) -> None:
+        """Release all ONNX sessions (frees VRAM/RAM). Next call reloads."""
+        self._vis = None
+        self._pre = None
+        self._stp = None
+
     def _load(self) -> None:
         if self._vis is not None:
             return
-        import onnxruntime as ort
+        from utils.runtime import create_session, make_session_options
 
+        so = make_session_options()
         log.info("Loading Baberu OCR ONNX...")
-        so = ort.SessionOptions()
-        so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-        mk = lambda p: ort.InferenceSession(
-            str(p), so, providers=["CPUExecutionProvider"]
+        # Vision is a single forward pass → GPU. The decoder prefill/step are
+        # autoregressive (many tiny sequential calls) → CPU: DirectML launch
+        # overhead would outweigh any speedup there.
+        self._vis = create_session(self.model_dir / VISION_FILE, sess_options=so)
+        self._pre = create_session(
+            self.model_dir / "onnx/decoder_prefill_int8.onnx",
+            prefer="cpu",
+            sess_options=so,
         )
-        self._vis = mk(self.model_dir / VISION_FILE)
-        self._pre = mk(self.model_dir / "onnx/decoder_prefill_int8.onnx")
-        self._stp = mk(self.model_dir / "onnx/decoder_step_int8.onnx")
+        self._stp = create_session(
+            self.model_dir / "onnx/decoder_step_int8.onnx",
+            prefer="cpu",
+            sess_options=so,
+        )
         self._vocab = _Vocab(self.model_dir / "tokenizer/vocab.json")
         log.info("Baberu OCR ready")
 

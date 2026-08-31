@@ -99,14 +99,26 @@ class MangaOcrModel(BaseOcrModel):
                         progress_callback(int(done * 100 / total), int(done), int(total))
             dest.with_suffix(dest.suffix + ".part").rename(dest)
 
+    def unload(self) -> None:
+        """Release encoder + decoder sessions (frees VRAM/RAM)."""
+        self._enc = None
+        self._dec = None
+
     def _load(self) -> None:
         if self._enc is not None:
             return
-        import onnxruntime as ort
+        from utils.runtime import create_session, make_session_options
 
+        so = make_session_options()
         log.info("Loading manga-ocr ONNX...")
-        self._enc = ort.InferenceSession(str(self.model_dir / "encoder_model.onnx"))
-        self._dec = ort.InferenceSession(str(self.model_dir / "decoder_model.onnx"))
+        # Encoder = one forward pass → GPU. Decoder is autoregressive
+        # (300 tiny sequential calls) → CPU (DirectML launch overhead).
+        self._enc = create_session(
+            self.model_dir / "encoder_model.onnx", sess_options=so
+        )
+        self._dec = create_session(
+            self.model_dir / "decoder_model.onnx", prefer="cpu", sess_options=so
+        )
         self._vocab = (
             (self.model_dir / "vocab.txt").read_text(encoding="utf-8").splitlines()
         )

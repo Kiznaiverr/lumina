@@ -122,3 +122,12 @@ def ocr_boxes(
     if model not in MODELS:
         raise ValueError(f"Unknown OCR model: {model}")
     return MODELS[model].ocr_boxes(image_path, _expand_boxes(boxes))
+
+
+def unload_models() -> None:
+    """Release every loaded OCR session (frees VRAM/RAM)."""
+    for m in MODELS.values():
+        try:
+            m.unload()
+        except Exception:
+            pass

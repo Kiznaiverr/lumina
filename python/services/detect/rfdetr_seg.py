@@ -133,20 +133,20 @@ class RfDetrSegModel(BaseDetectModel):
         tmp_path.rename(self.model_path)
         log.info(f"Detect model download complete: {self.model_path}")
 
-    def _load_session(self):
-        import onnxruntime as ort
+    def unload(self) -> None:
+        """Release the ONNX session (frees VRAM/RAM). Next call reloads."""
+        self._session = None
 
+    def _load_session(self):
         if self._session is None:
+            from utils.runtime import create_session, make_session_options
+
             if not self.is_ready():
                 self.download()
 
             log.info(f"Loading detect ONNX model: {self.model_path}")
-            opts = ort.SessionOptions()
-            opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-            self._session = ort.InferenceSession(
-                str(self.model_path),
-                sess_options=opts,
-                providers=["CPUExecutionProvider"],
+            self._session = create_session(
+                self.model_path, sess_options=make_session_options()
             )
             log.info(
                 f"Detect ONNX session ready (inputs: "

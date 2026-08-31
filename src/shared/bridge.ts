@@ -10,6 +10,8 @@ export const IPC = {
   runPipeline: "run-pipeline",
   pipelineProgress: "pipeline-progress",
   apiPost: "api-post",
+  device: "device",
+  deviceConfigure: "device-configure",
   checkModel: "check-model",
   downloadModel: "download-model",
   modelDownloadProgress: "model-download-progress",
@@ -42,6 +44,20 @@ export interface ModelInfo {
 export interface ModelCheck {
   cached: boolean;
   models: ModelInfo[];
+}
+
+/* ── Device / GPU info (GET /device) ── */
+
+export interface DeviceInfo {
+  /** "cuda" | "dml" | "cpu" */
+  provider: string;
+  /** Full ORT provider name, e.g. "DmlExecutionProvider" */
+  ep: string;
+  gpus: string[];
+  gpuName: string | null;
+  onnxRuntime: string | null;
+  /** GPU EP available in this wheel — actual per-session success is lazy */
+  accelerated: boolean;
 }
 
 export interface DownloadProgress {
@@ -163,6 +179,9 @@ export interface LuminaAPI {
   runPipeline(imagePath: string): Promise<unknown>;
   onProgress(cb: (msg: { step: string; detail?: string }) => void): void;
   apiPost<T = unknown>(endpoint: string, body: unknown): Promise<T>;
+  getDevice(): Promise<DeviceInfo>;
+  /** Toggle GPU acceleration (persisted per backend process; returns new state) */
+  setUseGpu(useGpu: boolean): Promise<DeviceInfo>;
   checkModel(): Promise<ModelCheck>;
   downloadModel(models?: string[]): Promise<void>;
   onDownloadProgress(cb: (msg: DownloadProgress) => void): void;

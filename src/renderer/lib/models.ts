@@ -10,14 +10,26 @@
 import * as i18n from "./i18n";
 import { ui } from "./ui";
 import { describe, recommendedFor } from "./models/descriptions";
-import type { DownloadProgress, ModelInfo } from "../types";
+import type { DeviceInfo, DownloadProgress, ModelInfo } from "../types";
 
 let _models: ModelInfo[] = [];
 let _hasImage = false;
 let _downloading = false;
+let _device: DeviceInfo | null = null;
 const _progressCbs: Array<(p: DownloadProgress) => void> = [];
+const _deviceCbs: Array<(d: DeviceInfo | null) => void> = [];
 
 const SELECTED_KEY = "lumina:selectedModels";
+const USE_GPU_KEY = "lumina:useGpu";
+
+/** Persisted GPU toggle — default ON. Applied to the backend at startup. */
+function useGpuSetting(): boolean {
+  try {
+    return localStorage.getItem(USE_GPU_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
 
 function loadSelected(): Record<string, string> {
   try {
@@ -108,6 +120,53 @@ export const models = {
       /* backend not ready yet — keep last state */
     }
     return _models;
+  },
+
+  /** Fetch device/GPU info once and notify subscribers. */
+  async refreshDevice(): Promise<DeviceInfo | null> {
+    try {
+      // Re-apply the persisted toggle first so a disabled GPU survives restarts.
+      if (!useGpuSetting()) {
+        _device = await window.lumina.setUseGpu(false);
+      } else {
+        _device = await window.lumina.getDevice();
+      }
+      for (const cb of _deviceCbs) cb(_device);
+    } catch {
+      _device = null;
+    }
+    return _device;
+  },
+
+  /** Last known device info (null until refreshDevice succeeds). */
+  device(): DeviceInfo | null {
+    return _device;
+  },
+
+  /** Whether the user opted into GPU acceleration (persisted). */
+  useGpu(): boolean {
+    return useGpuSetting();
+  },
+
+  /** Toggle GPU acceleration (live — no restart needed). */
+  async setUseGpu(v: boolean): Promise<DeviceInfo | null> {
+    localStorage.setItem(USE_GPU_KEY, v ? "1" : "0");
+    try {
+      _device = await window.lumina.setUseGpu(v);
+    } catch {
+      _device = null;
+    }
+    for (const cb of _deviceCbs) cb(_device);
+    return _device;
+  },
+
+  /** Subscribe to device info changes. Returns an unsubscribe fn. */
+  onDeviceChange(cb: (d: DeviceInfo | null) => void): () => void {
+    _deviceCbs.push(cb);
+    return function () {
+      const i = _deviceCbs.indexOf(cb);
+      if (i >= 0) _deviceCbs.splice(i, 1);
+    };
   },
 
   /** True when every registered model is installed. */

@@ -103,6 +103,12 @@
 
   "settings.tabModels": "Models",
   "settings.modelsHint": "Models are downloaded manually. Install what you need — missing models disable the related pipeline buttons.",
+  "settings.gpuActive": "GPU",
+  "settings.gpuCpu": "CPU",
+  "settings.gpuNone": "No GPU detected",
+  "settings.gpuUnknown": "Device info unavailable",
+  "settings.gpuToggleTitle": "Toggle GPU acceleration",
+  "settings.gpuUnsupported": "GPU acceleration unavailable — running on CPU. Update your graphics driver or reinstall the DirectML runtime.",
   "models.sectionDetect": "Text Detection",
   "models.sectionOcr": "OCR",
   "models.sectionInpaint": "Inpainting",

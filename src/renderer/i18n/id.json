@@ -103,6 +103,12 @@
 
   "settings.tabModels": "Model",
   "settings.modelsHint": "Model diunduh secara manual. Pasang yang dibutuhkan — model yang belum terpasang menonaktifkan tombol pipeline terkait.",
+  "settings.gpuActive": "GPU",
+  "settings.gpuCpu": "CPU",
+  "settings.gpuNone": "GPU tidak terdeteksi",
+  "settings.gpuUnknown": "Info perangkat tidak tersedia",
+  "settings.gpuToggleTitle": "Aktifkan/nonaktifkan akselerasi GPU",
+  "settings.gpuUnsupported": "Akselerasi GPU tidak tersedia — berjalan dengan CPU. Perbarui driver grafis atau pasang ulang runtime DirectML.",
   "models.sectionDetect": "Deteksi Teks",
   "models.sectionOcr": "OCR",
   "models.sectionInpaint": "Inpainting",

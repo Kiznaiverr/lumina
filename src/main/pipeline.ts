@@ -91,6 +91,30 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
   });
 
+  ipcMain.handle(IPC.device, async () => {
+    try {
+      return await apiGet("/device");
+    } catch {
+      // Backend unreachable — report CPU so the UI never blocks.
+      return {
+        provider: "cpu",
+        ep: "CPUExecutionProvider",
+        gpus: [],
+        gpuName: null,
+        onnxRuntime: null,
+        accelerated: false,
+      };
+    }
+  });
+
+  ipcMain.handle(IPC.deviceConfigure, async (_event, useGpu: boolean) => {
+    try {
+      return await apiPost("/device/configure", { useGpu: !!useGpu });
+    } catch (err) {
+      return { error: String(err) };
+    }
+  });
+
   ipcMain.handle(IPC.downloadModel, async (_event, models: string[] = []) => {
     try {
       // Kick off background download in Python backend (empty = all missing)

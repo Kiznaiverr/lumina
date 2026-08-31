@@ -36,6 +36,10 @@ class BaseOcrModel(ABC):
         """Total bytes of installed weight files; None if not installed."""
         return None
 
+    def unload(self) -> None:
+        """Release loaded sessions (VRAM/RAM). No-op when nothing is loaded.
+        The model is lazily re-loaded on the next ``ocr_boxes()`` call."""
+
     @abstractmethod
     def ocr_boxes(self, image_path: str, boxes: list[dict]) -> list[str]:
         """Recognize text in each box; returns one string per box."""

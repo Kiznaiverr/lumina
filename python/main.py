@@ -3,6 +3,7 @@ import os
 import sys
 import threading
 from pathlib import Path
+from typing import Callable
 
 from fastapi import FastAPI, HTTPException
 import uvicorn
@@ -15,6 +16,7 @@ from schemas import (
     ModelStatus,
     ModelInfo,
     ModelDownloadRequest,
+    DeviceConfigureRequest,
     OcrRequest,
     OcrResponse,
     OcrResult,
@@ -44,6 +46,49 @@ _download_state: dict = {
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/device")
+def device_info():
+    """Active execution provider + GPU list for the Settings → Models badge."""
+    from utils.runtime import get_device_info
+
+    return get_device_info()
+
+
+@app.post("/device/configure")
+def device_configure(req: DeviceConfigureRequest):
+    """Toggle GPU acceleration for this backend process (no restart needed)."""
+    from utils.runtime import configure
+
+    return configure(req.useGpu)
+
+
+def _keep_one_hot(kind: str) -> None:
+    """Release model sessions of every kind except ``kind`` (VRAM policy).
+
+    Only the most recently used model stays resident; the rest are unloaded
+    so VRAM usage stays flat (~1 model + transient activations) on small
+    GPUs. Lazy re-load on the next step costs 1–3 s per model.
+    Set ``LUMINA_KEEP_MODELS=1`` to disable (keep everything loaded).
+    """
+    if os.environ.get("LUMINA_KEEP_MODELS"):
+        return
+    try:
+        if kind != "detect":
+            from services.detect import unload_models as unload_detect
+
+            unload_detect()
+        if kind != "ocr":
+            from services.ocr import unload_models as unload_ocr
+
+            unload_ocr()
+        if kind != "inpaint":
+            from services.inpaint import unload_models as unload_inpaint
+
+            unload_inpaint()
+    except Exception as e:
+        log.debug(f"Model unload skipped: {e}")
 
 
 @app.post("/detect", response_model=DetectResponse)
@@ -76,6 +121,8 @@ def detect(req: DetectRequest):
 
         log.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _keep_one_hot("detect")
 
 
 @app.post("/ocr", response_model=OcrResponse)
@@ -100,6 +147,8 @@ def ocr(req: OcrRequest):
 
         log.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _keep_one_hot("ocr")
 
 
 @app.post("/translate", response_model=TranslateResponse)
@@ -159,6 +208,8 @@ def inpaint(req: InpaintRequest):
 
         log.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        _keep_one_hot("inpaint")
 
 
 def _all_model_infos() -> list[dict]:
@@ -207,7 +258,7 @@ def model_download(req: ModelDownloadRequest):
     def _wants(x: str) -> bool:
         return want is None or x in want
 
-    targets: list[tuple[str, object]] = []
+    targets: list[tuple[str, Callable[[], None]]] = []
 
     if _wants("detect"):
         detect_ids = list(detect_service.MODELS)

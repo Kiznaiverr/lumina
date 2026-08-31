@@ -2,6 +2,7 @@
 
 // IPC contract types — single source of truth in src/shared/bridge.ts
 export type {
+  DeviceInfo,
   DownloadProgress,
   FontInfo,
   LuminaAPI,

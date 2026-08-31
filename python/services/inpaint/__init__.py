@@ -72,3 +72,12 @@ def inpaint_boxes(
     if model not in MODELS:
         raise ValueError(f"Unknown inpaint model: {model}")
     return MODELS[model].inpaint(image_path, boxes, output_dir, mask_path)
+
+
+def unload_models() -> None:
+    """Release every loaded inpaint session (frees VRAM/RAM)."""
+    for m in MODELS.values():
+        try:
+            m.unload()
+        except Exception:
+            pass
