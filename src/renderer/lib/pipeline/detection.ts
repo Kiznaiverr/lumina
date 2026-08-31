@@ -35,7 +35,7 @@ export const detection = {
     try {
       const result = await window.lumina.apiPost<DetectResult>("/detect", {
         imagePath: page.filePath,
-        model: models.selectedModel("detect") || "rtdetr",
+        model: models.selectedModel("detect") || "rfdetr_seg",
       });
       if (!result || result.error)
         throw new Error(result?.detail || "Detection failed");
@@ -56,6 +56,7 @@ export const detection = {
         ),
       );
       page.textDetections = sortedTexts;
+      page.maskPath = result.maskPath ?? null;
 
       page._selectedTextIdx = null;
 
@@ -128,7 +129,7 @@ export const detection = {
       try {
         const result = await window.lumina.apiPost<DetectResult>("/detect", {
           imagePath: page.filePath,
-          model: models.selectedModel("detect") || "rtdetr",
+          model: models.selectedModel("detect") || "rfdetr_seg",
         });
         if (!result || result.error) continue;
 
@@ -141,6 +142,7 @@ export const detection = {
             status: "auto",
           }),
         );
+        page.maskPath = result.maskPath ?? null;
       } catch (err) {
         console.error("Detection error page " + (i + 1) + ":", err);
       }

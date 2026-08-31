@@ -133,6 +133,7 @@ class OnnxInpaintModel(BaseInpaintModel):
         image_path: str,
         boxes: list[dict],
         output_dir: Optional[Path] = None,
+        mask_path: Optional[str] = None,
     ) -> list[dict]:
         import cv2 as cv
 
@@ -141,6 +142,22 @@ class OnnxInpaintModel(BaseInpaintModel):
         if img is None:
             raise ValueError(f"Cannot read image: {image_path}")
         h, w = img.shape[:2]
+
+        # Optional model-produced full-page text mask. Cropped per box, it
+        # replaces the heuristic Otsu ``_build_mask`` (which fails on
+        # colorful/detailed pages). Falls back to Otsu when missing or empty.
+        page_mask = None
+        if mask_path:
+            if Path(mask_path).is_file():
+                loaded = cv.imread(mask_path, cv.IMREAD_GRAYSCALE)
+                if loaded is not None:
+                    if loaded.shape[:2] != (h, w):
+                        loaded = cv.resize(loaded, (w, h), interpolation=cv.INTER_NEAREST)
+                    page_mask = loaded
+                else:
+                    log.warn(f"mask_path unreadable, falling back to heuristic mask: {mask_path}")
+            else:
+                log.warn(f"mask_path not found, falling back to heuristic mask: {mask_path}")
 
         if output_dir is None:
             src = Path(image_path)
@@ -171,7 +188,14 @@ class OnnxInpaintModel(BaseInpaintModel):
                 int(box["x"]) + int(box["w"]) - x0,
                 int(box["y"]) + int(box["h"]) - y0,
             )
-            mask = self._build_mask(crop, box_rect)
+            if page_mask is not None:
+                mask = page_mask[y0:y1, x0:x1].copy()
+                # Model missed this box (no mask pixels) → heuristic fallback
+                if cv.countNonZero(mask) < max(1, mask.size // 100):
+                    log.debug(f"Empty model mask for box {i}, using heuristic mask")
+                    mask = self._build_mask(crop, box_rect)
+            else:
+                mask = self._build_mask(crop, box_rect)
 
             # Letterbox to a square input: preserve aspect ratio, pad with
             # replicated edge pixels (mask pads with 0). The old direct

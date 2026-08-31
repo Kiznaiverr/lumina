@@ -32,12 +32,15 @@ class BubbleDetection(BaseModel):
 
 class DetectRequest(BaseModel):
     imagePath: str
-    model: str = "rtdetr"
+    model: str = "rfdetr_seg"
 
 
 class DetectResponse(BaseModel):
     textDetections: list[TextDetection]
     bubbleDetections: list[BubbleDetection]
+    # Full-page binary text mask (model-produced, rfdetr_seg only). When
+    # present, /inpaint uses it instead of the heuristic Otsu masking.
+    maskPath: str | None = None
 
 
 class OcrRequest(BaseModel):
@@ -93,6 +96,8 @@ class InpaintRequest(BaseModel):
     imagePath: str
     boxes: list[Bbox]
     model: str = "lama"
+    # Optional full-page binary text mask from /detect — skips Otsu masking
+    maskPath: str | None = None
 
 
 class InpaintPatch(BaseModel):

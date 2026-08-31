@@ -11,11 +11,13 @@ from typing import Optional
 
 from .base import BaseDetectModel, ProgressCallback
 from .rtdetr import RTDetrModel
+from .rfdetr_seg import RfDetrSegModel
 
 MODELS: dict[str, BaseDetectModel] = {
     "rtdetr": RTDetrModel(),
+    "rfdetr_seg": RfDetrSegModel(),
 }
-DEFAULT_MODEL = "rtdetr"
+DEFAULT_MODEL = "rfdetr_seg"
 
 # Module-level progress callback — legacy main.py pattern sets this before
 # calling download_model(); model classes accept a per-call callback too.

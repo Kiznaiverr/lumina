@@ -30,7 +30,7 @@ export function describe(id: string, lang: string): string {
 
 /** Recommended model per kind — badge in the UI + default pick. */
 export const RECOMMENDED: Record<string, string> = {
-  detect: "rtdetr",
+  detect: "rfdetr_seg",
   ocr: "baberu",
   inpaint: "lama_manga",
 };

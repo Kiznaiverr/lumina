@@ -68,6 +68,7 @@ def detect(req: DetectRequest):
         return DetectResponse(
             textDetections=[TextDetection(**d) for d in texts],
             bubbleDetections=[BubbleDetection(**d) for d in result["bubbleDetections"]],
+            maskPath=result.get("maskPath"),
         )
     except Exception as e:
         log.error(f"Detect failed: {e}")
@@ -142,7 +143,10 @@ def inpaint(req: InpaintRequest):
         from services.inpaint import inpaint_boxes
 
         patches = inpaint_boxes(
-            req.imagePath, [b.model_dump() for b in req.boxes], model=req.model
+            req.imagePath,
+            [b.model_dump() for b in req.boxes],
+            model=req.model,
+            mask_path=req.maskPath,
         )
         return InpaintResponse(
             patches=[InpaintPatch(**p) for p in patches]

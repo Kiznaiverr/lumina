@@ -58,6 +58,7 @@ export const inpaint = {
         detail?: string;
       }>("/inpaint", {
         imagePath: page.filePath,
+        maskPath: page.maskPath ?? null,
         boxes: page.textDetections.map((d) => d.bbox),
         model: models.selectedModel("inpaint") || "lama_manga",
       });

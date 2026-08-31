@@ -61,8 +61,14 @@ def inpaint_boxes(
     boxes: list[dict],
     output_dir: Optional[Path] = None,
     model: str = DEFAULT_MODEL,
+    mask_path: Optional[str] = None,
 ) -> list[dict]:
-    """Inpaint every box and return per-patch RGBA PNG records."""
+    """Inpaint every box and return per-patch RGBA PNG records.
+
+    ``mask_path`` is an optional full-page binary text mask (from the
+    segmentation detect model); when provided the per-box mask is cropped
+    from it instead of the heuristic Otsu mask.
+    """
     if model not in MODELS:
         raise ValueError(f"Unknown inpaint model: {model}")
-    return MODELS[model].inpaint(image_path, boxes, output_dir)
+    return MODELS[model].inpaint(image_path, boxes, output_dir, mask_path)

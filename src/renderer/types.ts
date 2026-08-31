@@ -145,6 +145,8 @@ export interface Page {
   layers: PageLayer[];
   /** Inpaint patches — composited over the original image, one per mask layer */
   inpaintMasks: InpaintMask[];
+  /** Full-page binary text mask from /detect — passed to /inpaint to skip Otsu */
+  maskPath?: string | null;
   /** Original image visibility (the background layer in the Layers tab) */
   backgroundVisible: boolean;
   _selectedTextIdx: number | null;
@@ -171,6 +173,8 @@ export interface DetectResult {
   }>;
   /* bubbleDetections intentionally ignored by the FE — inpaint & OCR only
    * need text boxes. Backend still returns them for future use. */
+  /** Full-page binary text mask (model-produced, rfdetr_seg only) */
+  maskPath?: string | null;
   error?: string;
   detail?: string;
 }
