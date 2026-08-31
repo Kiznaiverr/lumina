@@ -191,7 +191,7 @@
 
   "tools.select": "Select",
   "tools.lasso": "Lasso",
-  "tools.rect": "Rectangle (R)",
+  "tools.rect": "Rectangle",
   "tools.text": "Text",
   "tools.selectName": "Select",
   "tools.lassoName": "Lasso",

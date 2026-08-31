@@ -189,10 +189,10 @@
 
   "sidebar.text.originalText": "Teks asli",
 
-  "tools.select": "Pilih (V)",
-  "tools.lasso": "Lasso (L)",
-  "tools.rect": "Persegi Panjang (R)",
-  "tools.text": "Teks (T)",
+  "tools.select": "Pilih",
+  "tools.lasso": "Lasso",
+  "tools.rect": "Persegi Panjang",
+  "tools.text": "Teks",
   "tools.selectName": "Pilih",
   "tools.lassoName": "Lasso",
   "tools.rectName": "Persegi Panjang",
