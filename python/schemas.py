@@ -32,7 +32,7 @@ class BubbleDetection(BaseModel):
 
 class DetectRequest(BaseModel):
     imagePath: str
-    model: str = "rfdetr_seg"
+    model: str = "rtdetr"
 
 
 class DetectResponse(BaseModel):

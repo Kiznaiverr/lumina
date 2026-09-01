@@ -67,7 +67,22 @@ export function describeGpuFromPrefer(prefer: string, lang: string): string {
   return d.en;
 }
 
-/** Recommended model per kind — badge in the UI + default pick. */
+/** Default model per kind — used when nothing is picked yet. Kept separate
+ *  from RECOMMENDED: the default is the license-safe pick (rtdetr is
+ *  Apache-2.0), while the badge still highlights the best-quality model. */
+export const DEFAULT_MODELS: Record<string, string> = {
+  detect: "rtdetr",
+  ocr: "baberu",
+  inpaint: "lama_manga",
+};
+
+/** Default model id for a kind; "" when none. */
+export function defaultFor(kind: string): string {
+  return DEFAULT_MODELS[kind] || "";
+}
+
+/** Recommended model per kind — badge in the UI (best quality, may carry
+ *  extra license terms). */
 export const RECOMMENDED: Record<string, string> = {
   detect: "rfdetr_seg",
   ocr: "baberu",

@@ -13,7 +13,6 @@
 - [x] rotation tool
 - [x] per line re-translate
 - [x] change reorder button in layer list to drag and drop
-- [ ] tree-shake lucide bundle
 - [x] export and save features
 - [x] export window with PNG/JPG + reorder
 - [x] caching managements
@@ -35,4 +34,6 @@
 - [x] LaMa error unsupported quantization type on CUDA (fixed by forcing lama to CPU-only — never runs on CUDA)
 - [ ] fix paddle family halucinating
 - [ ] readme and documentation
+- [ ] bundle for release
+- [ ] documentation website
 - [ ] testing and hunt another bugs

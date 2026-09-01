@@ -35,7 +35,7 @@ export const detection = {
     try {
       const result = await window.lumina.apiPost<DetectResult>("/detect", {
         imagePath: page.filePath,
-        model: models.selectedModel("detect") || "rfdetr_seg",
+        model: models.selectedModel("detect") || "rtdetr",
       });
       if (!result || result.error)
         throw new Error(result?.detail || "Detection failed");
@@ -129,7 +129,7 @@ export const detection = {
       try {
         const result = await window.lumina.apiPost<DetectResult>("/detect", {
           imagePath: page.filePath,
-          model: models.selectedModel("detect") || "rfdetr_seg",
+          model: models.selectedModel("detect") || "rtdetr",
         });
         if (!result || result.error) continue;
 

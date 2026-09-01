@@ -13,7 +13,7 @@ import {
   describe,
   describeGpu,
   describeGpuFromPrefer,
-  recommendedFor,
+  defaultFor,
 } from "./models/descriptions";
 import type { DeviceInfo, DownloadProgress, ModelInfo } from "../types";
 
@@ -53,16 +53,16 @@ function el(id: string): HTMLElement | null {
 }
 
 /** Effective model id for a kind: the saved pick wins (even if not installed),
- *  else the recommended model, else the first installed, else first registered. */
+ *  else the default model, else the first installed, else first registered. */
 function resolveSelected(kind: string): string {
   const sel = loadSelected();
   const list = _models.filter((m) => m.kind === kind);
   if (!list.length) return "";
   const picked = list.find((m) => m.id === sel[kind]);
   if (picked) return picked.id;
-  const rec = recommendedFor(kind);
-  const recommended = list.find((m) => m.id === rec);
-  if (recommended) return recommended.id;
+  const def = defaultFor(kind);
+  const defModel = list.find((m) => m.id === def);
+  if (defModel) return defModel.id;
   const installed = list.find((m) => m.ready);
   return installed ? installed.id : (list[0]?.id ?? "");
 }

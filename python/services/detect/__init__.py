@@ -15,7 +15,7 @@ MODELS: dict[str, BaseDetectModel] = {
     "rtdetr": RTDetrModel(),
     "rfdetr_seg": RfDetrSegModel(),
 }
-DEFAULT_MODEL = "rfdetr_seg"
+DEFAULT_MODEL = "rtdetr"
 
 # Legacy: main.py can set this before download_model(); per-call callback wins.
 progress_callback: ProgressCallback = None
