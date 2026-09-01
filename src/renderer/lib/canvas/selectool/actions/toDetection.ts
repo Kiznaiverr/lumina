@@ -10,6 +10,7 @@ import { sidebar } from "../../../sidebar";
 import { defaultTypography, loadGlobalTypography } from "../../../../types";
 import type { PageLayer, TextDetection } from "../../../../types";
 import { selections, shapeAABB, isHoleShape } from "../shared";
+import { sortReadingOrder } from "../../../readingOrder";
 
 export function toDetection(): void {
   const page = state.getActivePage();
@@ -68,8 +69,37 @@ export function toDetection(): void {
 
   if (!newIndices.length) return;
 
-  page._selectedTextIdx = newIndices[0];
-  page._selectedLayerId = page.layers[newIndices[0]]?.id ?? null;
+  // Detection list must follow manga reading order (right→left, top→bottom)
+  // exactly like detection.run — selections are committed in drawing order,
+  // which never matches how a reader encounters the bubbles. Re-sort the new
+  // detections together with their mirrored dialogue layers (positionally
+  // aligned: layers[i] is the mirror of detections[i]) while the free-text
+  // block at the end stays untouched.
+  const dialogueBlock = page.textDetections.length;
+  const freeLayers = page.layers.slice(dialogueBlock);
+  const pairs = page.textDetections.map(function (det, i) {
+    return { det: det, layer: page.layers[i], bbox: det.bbox };
+  });
+  const sortedPairs = sortReadingOrder(pairs);
+  page.textDetections = sortedPairs.map(function (p) {
+    return p.det;
+  });
+  page.layers = sortedPairs
+    .map(function (p) {
+      return p.layer;
+    })
+    .concat(freeLayers);
+
+  const firstNewId = page.textDetections[newIndices[0]]?.id ?? null;
+  page._selectedTextIdx = firstNewId
+    ? page.textDetections.findIndex(function (d) {
+        return d.id === firstNewId;
+      })
+    : null;
+  page._selectedLayerId =
+    page._selectedTextIdx === null
+      ? null
+      : (page.layers[page._selectedTextIdx]?.id ?? null);
   state.showDetBoxes = true; // fresh boxes must be visible
   canvas.render();
   sidebar.render();

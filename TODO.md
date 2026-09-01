@@ -31,8 +31,8 @@
 - [x] (optional) change heuristic Otsu with segmentation model for better masking
 - [x] more docs about excecutions provider in model descriptions
 - [x] fix merge selection objects bug
-- [ ] fix convert to detection does not follow the reading order
+- [x] fix convert to detection does not follow the reading order
 - [x] LaMa error unsupported quantization type on CUDA (fixed by forcing lama to CPU-only — never runs on CUDA)
-- [ ] fix paddle-ocr-vl-1.6 halucinating
+- [ ] fix paddle family halucinating
 - [ ] readme and documentation
 - [ ] testing and hunt another bugs
