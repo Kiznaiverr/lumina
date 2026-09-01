@@ -9,7 +9,7 @@
  */
 import * as i18n from "./i18n";
 import { ui } from "./ui";
-import { describe, recommendedFor } from "./models/descriptions";
+import { describe, describeGpu, recommendedFor } from "./models/descriptions";
 import type { DeviceInfo, DownloadProgress, ModelInfo } from "../types";
 
 let _models: ModelInfo[] = [];
@@ -114,6 +114,8 @@ export const models = {
       _models.forEach((m) => {
         const desc = describe(m.id, lang);
         if (desc) m.description = desc;
+        const gpu = describeGpu(m.id, lang);
+        if (gpu) m.gpu = gpu;
       });
       updateButtons();
     } catch {

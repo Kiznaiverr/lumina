@@ -10,9 +10,9 @@ export interface ModelDesc {
 
 export type ModelDescMap = Record<string, ModelDesc>;
 
-import { DETECT_DESCS } from "./detect";
-import { OCR_DESCS } from "./ocr";
-import { INPAINT_DESCS } from "./inpaint";
+import { DETECT_DESCS, DETECT_GPU } from "./detect";
+import { OCR_DESCS, OCR_GPU } from "./ocr";
+import { INPAINT_DESCS, INPAINT_GPU } from "./inpaint";
 
 const ALL: ModelDescMap = {
   ...DETECT_DESCS,
@@ -20,9 +20,24 @@ const ALL: ModelDescMap = {
   ...INPAINT_DESCS,
 };
 
+/** GPU-acceleration notes per model id (en/id), rendered as a badge. */
+const ALL_GPU: ModelDescMap = {
+  ...DETECT_GPU,
+  ...OCR_GPU,
+  ...INPAINT_GPU,
+};
+
 /** Description for a model id in the given language; "" when unknown. */
 export function describe(id: string, lang: string): string {
   const d = ALL[id];
+  if (!d) return "";
+  if (lang === "id") return d.id;
+  return d.en;
+}
+
+/** GPU note for a model id in the given language; "" when unknown. */
+export function describeGpu(id: string, lang: string): string {
+  const d = ALL_GPU[id];
   if (!d) return "";
   if (lang === "id") return d.id;
   return d.en;

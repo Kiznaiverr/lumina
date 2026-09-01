@@ -36,3 +36,13 @@ export const DETECT_DESCS: ModelDescMap = {
 • Sumber: huggingface.co/ShiniShiho/koharu-layout-rfdetr-seg-2xl-1152-onnx`,
   },
 };
+export const DETECT_GPU: ModelDescMap = {
+  rtdetr: {
+    en: `Supported via CUDA / DirectML when enabled.`,
+    id: `Didukung via CUDA / DirectML saat diaktifkan.`,
+  },
+  rfdetr_seg: {
+    en: `Supported via CUDA / DirectML when enabled.`,
+    id: `Didukung via CUDA / DirectML saat diaktifkan.`,
+  },
+};

@@ -40,6 +40,8 @@ export interface ModelInfo {
   size: number | null;
   /** Filled from the renderer description registry — backend doesn't send it. */
   description?: string;
+  /** GPU-acceleration note from the renderer registry — hidden when empty. */
+  gpu?: string;
 }
 
 export interface ModelCheck {

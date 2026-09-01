@@ -180,6 +180,16 @@ export const modelsTab = {
     const text = document.createElement("p");
     text.className = "model-desc-text";
 
+    const gpu = document.createElement("div");
+    gpu.className = "model-desc-gpu";
+    gpu.hidden = true;
+    const gpuLabel = document.createElement("span");
+    gpuLabel.className = "model-desc-gpu-label";
+    gpuLabel.textContent = i18n.t("models.gpuAccel");
+    const gpuValue = document.createElement("span");
+    gpuValue.className = "model-desc-gpu-value";
+    gpu.append(gpuLabel, gpuValue);
+
     const foot = document.createElement("div");
     foot.className = "model-desc-foot";
     const meta = document.createElement("span");
@@ -193,7 +203,7 @@ export const modelsTab = {
     );
     foot.append(meta, btn);
 
-    card.append(head, text, foot);
+    card.append(head, text, gpu, foot);
     return card;
   },
 
@@ -310,6 +320,10 @@ export const modelsTab = {
     badge.textContent = i18n.t("models.selected");
     const text = card.querySelector<HTMLElement>(".model-desc-text")!;
     text.textContent = m.description || i18n.t("models.noDescription");
+    const gpuEl = card.querySelector<HTMLElement>(".model-desc-gpu")!;
+    gpuEl.hidden = !m.gpu;
+    gpuEl.querySelector<HTMLElement>(".model-desc-gpu-value")!.textContent =
+      m.gpu || "";
     card.querySelector<HTMLElement>(".model-desc-meta")!.textContent = fmtSize(
       m.size,
     );

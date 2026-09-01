@@ -120,6 +120,7 @@
   "models.missingHint": "Selected model not installed — open Settings → Models",
   "models.warning": "Some models are missing — manage them in Settings → Models",
   "models.noDescription": "No description yet.",
+  "models.gpuAccel": "GPU acceleration",
   "models.recommended": "Recommended",
   "models.selected": "Selected",
   "models.dev": "In Development",

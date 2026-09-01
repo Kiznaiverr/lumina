@@ -120,6 +120,7 @@
   "models.missingHint": "Model terpilih belum terpasang — buka Settings → Model",
   "models.warning": "Beberapa model belum terpasang — kelola di Settings → Model",
   "models.noDescription": "Belum ada deskripsi.",
+  "models.gpuAccel": "Akselerasi GPU",
   "models.recommended": "Direkomendasikan",
   "models.selected": "Terpilih",
   "models.dev": "Sedang Disesuaikan",

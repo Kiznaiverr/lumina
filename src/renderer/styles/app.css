@@ -2035,6 +2035,30 @@ body.resizing-row {
   color: #9c9c9c;
   white-space: pre-line;
 }
+.model-desc-gpu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid #2d3a2d;
+  border-radius: 6px;
+  background: rgba(76, 175, 80, 0.08);
+  font-size: 0.72rem;
+}
+.model-desc-gpu-label {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #2d5a2d;
+  color: #7fe08a;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.model-desc-gpu-value {
+  color: #9c9c9c;
+}
 .model-desc-foot {
   display: flex;
   align-items: center;
