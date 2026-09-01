@@ -5,6 +5,7 @@ import numpy as np
 
 MODEL_ID = "ShiniShiho/koharu-layout-rfdetr-seg-2xl-1152-onnx"
 MODEL_FILENAME = "rfdetr-seg-2xlarge.onnx"
+PREFER = "auto"  # full auto: CUDA -> DML -> CPU
 
 INPUT_SIZE = 1152  # fixed NCHW input, stretch-resized
 MASK_SIZE = 288  # mask head output = input / 4

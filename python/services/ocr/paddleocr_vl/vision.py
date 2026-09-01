@@ -3,7 +3,7 @@
 The exported NaViT graph has identity Reshape nodes (empty shape tensor)
 whose DML kernel fails with ERROR_INVALID_PARAMETER on EVERY adapter (AMD
 iGPU and NVIDIA alike — verified), so this graph must run on CPU or CUDA.
-With the CUDA wheel installed, prefer_no_dml() returns "auto" -> CUDA EP.
+PREFER_VISION = "cuda": CUDA EP when available, else CPU — never DirectML.
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .config import VISION_FILE
+from .config import PREFER_VISION, VISION_FILE
 
 if TYPE_CHECKING:
     from onnxruntime import InferenceSession
@@ -37,11 +37,11 @@ class VisionEncoder:
     """Runs vision_encoder_q8: NaViT patches -> image embeddings."""
 
     def __init__(self, model_dir: Path) -> None:
-        from utils.runtime import create_session, make_session_options, prefer_no_dml
+        from utils.runtime import create_session, make_session_options
 
         self._session: InferenceSession = create_session(
             model_dir / VISION_FILE,
-            prefer=prefer_no_dml(),
+            prefer=PREFER_VISION,
             sess_options=make_session_options(),
         )
         inputs = {i.name: i for i in self._session.get_inputs()}

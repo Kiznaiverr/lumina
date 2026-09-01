@@ -1,7 +1,7 @@
 """Inpaint model contract + shared lifecycle.
 
-Subclasses only set name/model_id/model_filename; download, session
-loading, ready/size checks, and unload are inherited.
+Subclasses only set name/model_id/model_filename/prefer (from config);
+download, session loading, ready/size checks, and unload are inherited.
 """
 from __future__ import annotations
 
@@ -38,6 +38,7 @@ class BaseInpaintModel(ABC):
     name: str = ""
     model_id: str = ""
     model_filename: str = ""
+    prefer: Optional[str] = "auto"  # overridden per model via config PREFER
 
     def __init__(self) -> None:
         self._session = None
@@ -111,13 +112,12 @@ class BaseInpaintModel(ABC):
                 self.download()
 
             log.info(f"Loading inpaint ONNX model: {self.model_path}")
-            # LaMa FFC MatMul crashes under DirectML (microsoft/onnxruntime#24744);
-            # use CPU unless CUDA EP is available, which handles it correctly.
-            from utils.runtime import prefer_no_dml
-
+            # EP preference comes from each model's config (self.prefer):
+            # lama="cpu" (FFC crashes DML; quantized graph crashes CUDA),
+            # lama_manga="cuda" (never DirectML).
             self._session = create_session(
                 self.model_path,
-                prefer=prefer_no_dml(),
+                prefer=self.prefer,
                 sess_options=make_session_options(),
             )
             log.info(

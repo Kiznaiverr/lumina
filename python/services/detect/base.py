@@ -1,7 +1,8 @@
 """Detect model contract + shared ONNX lifecycle.
 
-Subclasses set ``name`` / ``model_id`` / ``model_filename`` and implement
-``detect()``; download, session loading, and ready/size checks are inherited.
+Subclasses set ``name`` / ``model_id`` / ``model_filename`` / ``prefer``
+and implement ``detect()``; download, session loading, and ready/size
+checks are inherited.
 """
 from __future__ import annotations
 
@@ -30,6 +31,7 @@ class BaseDetectModel(ABC):
     name: str = ""
     model_id: str = ""
     model_filename: str = ""
+    prefer: Optional[str] = "auto"  # overridden per model via config PREFER
 
     def __init__(self) -> None:
         self._session = None
@@ -109,7 +111,9 @@ class BaseDetectModel(ABC):
 
             log.info(f"Loading detect ONNX model: {self.model_path}")
             self._session = create_session(
-                self.model_path, sess_options=make_session_options()
+                self.model_path,
+                prefer=self.prefer,
+                sess_options=make_session_options(),
             )
             log.info(
                 f"Detect ONNX session ready (inputs: "

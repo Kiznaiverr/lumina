@@ -4,8 +4,8 @@ Two ONNX graphs: decoder_q8 (KV-cache decode) and embedding.onnx (a
 404MB token-lookup table). Both stay on CPU: the embedding read per token
 would cost more in GPU transfer than the CPU lookup itself, and this int8
 decoder build is FASTER on CPU than on Intel Arc iGPU. The decoder graph
-gets the same prefer_no_dml() treatment as the vision graph, so it uses
-CUDA when available.
+uses PREFER_DECODER ("cuda") like the vision graph — CUDA when available,
+else CPU, never DirectML.
 """
 from __future__ import annotations
 
@@ -20,6 +20,8 @@ from .config import (
     DECODER_FILE,
     EMBEDDING_FILE,
     MAX_NEW_TOKENS,
+    PREFER_DECODER,
+    PREFER_EMBEDDING,
     TOKENIZER_FILE,
     _EOS_FALLBACK,
     _PLACEHOLDER_ID,
@@ -56,19 +58,19 @@ class Decoder:
             raise RuntimeError(
                 "PaddleOCR-VL needs the 'tokenizers' package — run: pip install tokenizers"
             ) from e
-        from utils.runtime import create_session, make_session_options, prefer_no_dml
+        from utils.runtime import create_session, make_session_options
 
         so = make_session_options()
         dec = create_session(
             model_dir / DECODER_FILE,
-            prefer=prefer_no_dml(),
+            prefer=PREFER_DECODER,
             sess_options=so,
         )
         # Embedding stays CPU: a 404MB token-lookup table read per token —
         # GPU transfer would cost more than the CPU lookup itself.
         emb = create_session(
             model_dir / EMBEDDING_FILE,
-            prefer="cpu",
+            prefer=PREFER_EMBEDDING,
             sess_options=so,
         )
         tok = _Tk.from_file(str(model_dir / TOKENIZER_FILE))

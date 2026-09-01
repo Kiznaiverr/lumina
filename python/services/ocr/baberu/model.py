@@ -22,6 +22,9 @@ from .config import (
     MAX_NEW_TOKENS,
     MODEL_DIR_NAME,
     MODEL_ID,
+    PREFER_PREFILL,
+    PREFER_STEP,
+    PREFER_VISION,
     REPETITION_PENALTY,
     REQUIRED_FILES,
     VISION_FILE,
@@ -84,15 +87,17 @@ class BaberuOcrModel(BaseOcrModel):
         # Vision = one forward pass -> GPU. Decoder prefill/step are
         # autoregressive (many tiny sequential calls) -> CPU (DirectML
         # launch overhead would outweigh any speedup there).
-        self._vis = create_session(self.model_dir / VISION_FILE, sess_options=so)
+        self._vis = create_session(
+            self.model_dir / VISION_FILE, prefer=PREFER_VISION, sess_options=so
+        )
         self._pre = create_session(
             self.model_dir / "onnx/decoder_prefill_int8.onnx",
-            prefer="cpu",
+            prefer=PREFER_PREFILL,
             sess_options=so,
         )
         self._stp = create_session(
             self.model_dir / "onnx/decoder_step_int8.onnx",
-            prefer="cpu",
+            prefer=PREFER_STEP,
             sess_options=so,
         )
         self._vocab = _Vocab(self.model_dir / "tokenizer/vocab.json")

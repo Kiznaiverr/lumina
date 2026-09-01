@@ -3,6 +3,7 @@ from __future__ import annotations
 
 MODEL_ID = "PaddlePaddle/PP-OCRv6_medium_rec_onnx"
 MODEL_DIR_NAME = "ppocrv6"
+PREFER = "auto"  # full auto: CUDA -> DML -> CPU
 
 ONNX_FILE = "inference.onnx"
 YAML_FILE = "inference.yml"

@@ -82,19 +82,6 @@ def get_available_providers() -> list[str]:
         return []
 
 
-def prefer_no_dml() -> str:
-    """Prefer GPU acceleration unless the only GPU EP available is DML.
-
-    DML crashes inside the kernel for some graphs (LaMa FFC MatMul,
-    PaddleOCR-VL identity-Reshape) — a session-creation fallback never
-    sees those errors. Models with those graphs must run on CPU under the
-    DML wheel, but can use CUDA when onnxruntime-gpu is installed:
-    return "auto" (→ CUDA) iff CUDA EP is available, else "cpu".
-    """
-    avail = get_available_providers()
-    return "auto" if "CUDAExecutionProvider" in avail else "cpu"
-
-
 def resolve_providers(prefer: Optional[str] = None) -> list[str]:
     """Provider list for ``InferenceSession``, in priority order.
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 MODEL_ID = "mayocream/manga-ocr-onnx"
 MODEL_DIR_NAME = "manga-ocr-onnx"
+PREFER_ENC = "auto"  # one forward pass per crop -> GPU ok
+PREFER_DEC = "cpu"   # autoregressive (300 tiny calls) -> CPU
 REQUIRED_FILES = ["encoder_model.onnx", "decoder_model.onnx", "vocab.txt"]
 DOWNLOAD_FILES = REQUIRED_FILES + [
     "preprocessor_config.json",

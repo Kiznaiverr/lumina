@@ -6,7 +6,7 @@ import numpy as np
 from utils.logger import log
 
 from ..base import BaseDetectModel
-from .config import MODEL_FILENAME, MODEL_ID
+from .config import MODEL_FILENAME, MODEL_ID, PREFER
 from . import mask as mask_io
 from . import postprocess as pp
 from . import preprocess as prep
@@ -18,6 +18,7 @@ class RfDetrSegModel(BaseDetectModel):
     name = "KoharuLayout RF-DETR Seg (Text + Masks)"
     model_id = MODEL_ID
     model_filename = MODEL_FILENAME
+    prefer = PREFER
 
     def detect(self, image_path: str) -> dict:
         session = self._load_session()

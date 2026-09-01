@@ -29,10 +29,10 @@
 - [x] multi-selection refinement: Shift=add/merge, Alt=subtract, plain=single; convert undoable
 - [x] onnx runtime with gpu acceleration support
 - [x] (optional) change heuristic Otsu with segmentation model for better masking
-- [ ] more docs about excecutions provider in model descriptions
+- [x] more docs about excecutions provider in model descriptions
 - [x] fix merge selection objects bug
 - [ ] fix convert to detection does not follow the reading order
-- [ ] fix LaMa error unsuported quantization type
+- [x] LaMa error unsupported quantization type on CUDA (fixed by forcing lama to CPU-only — never runs on CUDA)
 - [ ] fix paddle-ocr-vl-1.6 halucinating
 - [ ] readme and documentation
 - [ ] testing and hunt another bugs

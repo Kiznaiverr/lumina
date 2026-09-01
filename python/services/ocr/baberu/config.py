@@ -5,6 +5,9 @@ import numpy as np
 
 MODEL_ID = "genshiai-daichi/baberu-ocr"
 MODEL_DIR_NAME = "baberu-ocr"
+PREFER_VISION = "auto"  # one forward pass -> GPU ok
+PREFER_PREFILL = "cpu"  # autoregressive prefill -> CPU
+PREFER_STEP = "cpu"     # autoregressive KV-cache step -> CPU
 VISION_FILE = "onnx/vision_int4.onnx"  # smallest tier; fp16 available too
 REQUIRED_FILES = [
     VISION_FILE,

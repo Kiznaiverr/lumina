@@ -6,7 +6,7 @@ import numpy as np
 from utils.logger import log
 
 from ..base import BaseDetectModel
-from .config import MODEL_FILENAME, MODEL_ID
+from .config import MODEL_FILENAME, MODEL_ID, PREFER
 from . import postprocess as pp
 from . import preprocess as prep
 
@@ -17,6 +17,7 @@ class RTDetrModel(BaseDetectModel):
     name = "RT-DETR Text & Bubble Detector"
     model_id = MODEL_ID
     model_filename = MODEL_FILENAME
+    prefer = PREFER
 
     def detect(self, image_path: str) -> dict:
         session = self._load_session()

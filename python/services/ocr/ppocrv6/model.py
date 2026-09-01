@@ -21,6 +21,7 @@ from .config import (
     MODEL_DIR_NAME,
     MODEL_ID,
     ONNX_FILE,
+    PREFER,
     REQUIRED_FILES,
     YAML_FILE,
 )
@@ -36,6 +37,7 @@ class PPOcrV6Model(BaseOcrModel):
     model_dir_name = MODEL_DIR_NAME
     required_files = REQUIRED_FILES
     download_files = DOWNLOAD_FILES
+    prefer = PREFER
 
     def __init__(self) -> None:
         self._session: Optional[InferenceSession] = None
@@ -54,7 +56,9 @@ class PPOcrV6Model(BaseOcrModel):
 
         log.info("Loading PP-OCRv6 ONNX...")
         self._session = create_session(
-            self.model_dir / ONNX_FILE, sess_options=make_session_options()
+            self.model_dir / ONNX_FILE,
+            prefer=self.prefer,
+            sess_options=make_session_options(),
         )
         cfg = yaml.safe_load(
             (self.model_dir / YAML_FILE).read_text(encoding="utf-8")

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 MODEL_ID = "ogkalu/comic-text-and-bubble-detector"
 MODEL_FILENAME = "detector.onnx"
+PREFER = "auto"  # full auto: CUDA -> DML -> CPU
 
 INPUT_SIZE = 640
 SCORE_THRESHOLD = 0.3

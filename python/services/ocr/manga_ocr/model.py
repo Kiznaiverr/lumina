@@ -18,6 +18,8 @@ from .config import (
     MODEL_DIR_NAME,
     MODEL_ID,
     PAD_ID,
+    PREFER_DEC,
+    PREFER_ENC,
     REQUIRED_FILES,
     SEP_ID,
 )
@@ -53,10 +55,14 @@ class MangaOcrModel(BaseOcrModel):
         # Encoder = one forward pass -> GPU. Decoder is autoregressive
         # (300 tiny sequential calls) -> CPU (DirectML launch overhead).
         self._enc = create_session(
-            self.model_dir / "encoder_model.onnx", sess_options=so
+            self.model_dir / "encoder_model.onnx",
+            prefer=PREFER_ENC,
+            sess_options=so,
         )
         self._dec = create_session(
-            self.model_dir / "decoder_model.onnx", prefer="cpu", sess_options=so
+            self.model_dir / "decoder_model.onnx",
+            prefer=PREFER_DEC,
+            sess_options=so,
         )
         self._vocab = (
             (self.model_dir / "vocab.txt").read_text(encoding="utf-8").splitlines()
