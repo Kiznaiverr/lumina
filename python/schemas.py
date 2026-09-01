@@ -118,6 +118,7 @@ class ModelInfo(BaseModel):
     status: str = "ready"  # "ready" | "dev" — dev = in development, still usable
     ready: bool
     size: int | None = None  # bytes of installed weights; None if not installed
+    prefer: str | None = None  # EP preference ("auto" | "cuda" | "cpu"); None = multi-session/composite
 
 
 class ModelStatus(BaseModel):

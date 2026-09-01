@@ -10,9 +10,9 @@ export interface ModelDesc {
 
 export type ModelDescMap = Record<string, ModelDesc>;
 
-import { DETECT_DESCS, DETECT_GPU } from "./detect";
+import { DETECT_DESCS } from "./detect";
 import { OCR_DESCS, OCR_GPU } from "./ocr";
-import { INPAINT_DESCS, INPAINT_GPU } from "./inpaint";
+import { INPAINT_DESCS } from "./inpaint";
 
 const ALL: ModelDescMap = {
   ...DETECT_DESCS,
@@ -20,11 +20,27 @@ const ALL: ModelDescMap = {
   ...INPAINT_DESCS,
 };
 
-/** GPU-acceleration notes per model id (en/id), rendered as a badge. */
+/** GPU-acceleration overrides per model id (en/id). Only multi-session OCR
+ * models that can't be expressed as one backend `prefer` value. Single-
+ * preference models derive their badge from `prefer` instead. */
 const ALL_GPU: ModelDescMap = {
-  ...DETECT_GPU,
   ...OCR_GPU,
-  ...INPAINT_GPU,
+};
+
+/** Phrase per backend EP preference value. */
+const PREFER_PHRASES: ModelDescMap = {
+  auto: {
+    en: `Supported via CUDA / DirectML when enabled.`,
+    id: `Didukung via CUDA / DirectML saat diaktifkan.`,
+  },
+  cuda: {
+    en: `CUDA only — DirectML unsupported.`,
+    id: `Hanya CUDA — DirectML tidak didukung.`,
+  },
+  cpu: {
+    en: `CPU only — GPU acceleration is ignored, the model stays on CPU.`,
+    id: `Hanya CPU — akselerasi GPU diabaikan, model tetap berjalan di CPU.`,
+  },
 };
 
 /** Description for a model id in the given language; "" when unknown. */
@@ -38,6 +54,14 @@ export function describe(id: string, lang: string): string {
 /** GPU note for a model id in the given language; "" when unknown. */
 export function describeGpu(id: string, lang: string): string {
   const d = ALL_GPU[id];
+  if (!d) return "";
+  if (lang === "id") return d.id;
+  return d.en;
+}
+
+/** GPU note derived from a backend `prefer` value; "" when unknown. */
+export function describeGpuFromPrefer(prefer: string, lang: string): string {
+  const d = PREFER_PHRASES[prefer];
   if (!d) return "";
   if (lang === "id") return d.id;
   return d.en;

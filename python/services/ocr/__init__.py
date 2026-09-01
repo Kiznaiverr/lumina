@@ -41,6 +41,7 @@ def get_models_info() -> list[dict]:
             "status": m.status,
             "ready": m.is_ready(),
             "size": m.size(),
+            "prefer": getattr(m, "prefer", None),
         }
         for name, m in MODELS.items()
     ]

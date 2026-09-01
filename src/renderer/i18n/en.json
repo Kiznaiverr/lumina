@@ -106,6 +106,7 @@
   "settings.gpuActive": "GPU",
   "settings.gpuCpu": "CPU",
   "settings.gpuNone": "No GPU detected",
+  "settings.gpuDisabled": "GPU acceleration disabled",
   "settings.gpuUnknown": "Device info unavailable",
   "settings.gpuToggleTitle": "Toggle GPU acceleration",
   "settings.gpuUnsupported": "GPU acceleration unavailable — running on CPU. Update your graphics driver or reinstall the DirectML runtime.",

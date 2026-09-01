@@ -106,6 +106,7 @@
   "settings.gpuActive": "GPU",
   "settings.gpuCpu": "CPU",
   "settings.gpuNone": "GPU tidak terdeteksi",
+  "settings.gpuDisabled": "Akselerasi GPU dinonaktifkan",
   "settings.gpuUnknown": "Info perangkat tidak tersedia",
   "settings.gpuToggleTitle": "Aktifkan/nonaktifkan akselerasi GPU",
   "settings.gpuUnsupported": "Akselerasi GPU tidak tersedia — berjalan dengan CPU. Perbarui driver grafis atau pasang ulang runtime DirectML.",

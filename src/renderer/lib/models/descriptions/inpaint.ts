@@ -34,14 +34,3 @@ export const INPAINT_DESCS: ModelDescMap = {
 • Sumber: huggingface.co/mayocream/lama-manga-onnx`,
   },
 };
-
-export const INPAINT_GPU: ModelDescMap = {
-  lama: {
-    en: `CPU only — GPU acceleration is ignored, the model stays on CPU.`,
-    id: `Hanya CPU — akselerasi GPU diabaikan, model tetap berjalan di CPU.`,
-  },
-  lama_manga: {
-    en: `Supported via CUDA only — DirectML unsupported.`,
-    id: `Didukung hanya via CUDA — DirectML tidak didukung.`,
-  },
-};

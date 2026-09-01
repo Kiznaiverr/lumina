@@ -42,6 +42,8 @@ export interface ModelInfo {
   description?: string;
   /** GPU-acceleration note from the renderer registry — hidden when empty. */
   gpu?: string;
+  /** Backend EP preference ("auto" | "cuda" | "cpu"); absent for multi-session OCR. */
+  prefer?: string;
 }
 
 export interface ModelCheck {

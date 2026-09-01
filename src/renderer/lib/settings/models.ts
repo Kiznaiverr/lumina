@@ -249,9 +249,14 @@ export const modelsTab = {
     const ep = card.querySelector<HTMLElement>(".model-gpu-ep")!;
     const input = card.querySelector<HTMLInputElement>("input[type=checkbox]")!;
     const accel = !!dev?.accelerated;
+    const useGpu = models.useGpu();
 
-    name.textContent =
-      dev?.gpuName || i18n.t(dev ? "settings.gpuNone" : "settings.gpuUnknown");
+    // When the toggle is off the backend skips GPU enumeration entirely
+    // (LUMINA_EP=cpu), so gpuName is empty — show the real reason instead
+    // of a misleading "No GPU detected".
+    name.textContent = useGpu
+      ? dev?.gpuName || i18n.t(dev ? "settings.gpuNone" : "settings.gpuUnknown")
+      : i18n.t("settings.gpuDisabled");
     ep.textContent = dev
       ? `${dev.ep} · onnxruntime ${dev.onnxRuntime ?? "?"}`
       : "";
