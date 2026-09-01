@@ -34,6 +34,10 @@
 - [x] LaMa error unsupported quantization type on CUDA (fixed by forcing lama to CPU-only — never runs on CUDA)
 - [ ] fix paddle family halucinating
 - [x] readme and documentation
-- [ ] bundle for release
+- [x] bundle for release
+- [ ] cancel download
+- [ ] tokenizers (paddleocr_vl): replace the "pip install tokenizers" error message in decoder.py, add an `is_ready()` check, and bundle the wheel to be extracted to `runtime_deps` when the user selects the paddleocr_vl download.
+- [ ] add more tools
+- [ ] installer CUDA variant? soon~
 - [ ] documentation website
 - [ ] testing and hunt another bugs

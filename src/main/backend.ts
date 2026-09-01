@@ -1,4 +1,5 @@
 import { spawn, ChildProcess } from "child_process";
+import { app } from "electron";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -91,12 +92,80 @@ loadEnvFile();
 
 let pythonProcess: ChildProcess | null = null;
 const PYTHON_PORT = parseInt(process.env.LUMINA_BACKEND_PORT || "8765", 10);
-const PYTHON_DIR = path.join(PROJECT_ROOT, "python");
-const PYTHON_ENTRY = path.join(PYTHON_DIR, "main.py");
-const PYTHON_EXECUTABLE =
-  process.platform === "win32"
-    ? path.join(PROJECT_ROOT, "venv", "Scripts", "python.exe")
-    : path.join(PROJECT_ROOT, "venv", "bin", "python");
+
+interface PythonLaunch {
+  /** Working directory for the spawned process. */
+  dir: string;
+  /** Script to execute (main.py in dev, run_backend.py in bundle). */
+  entry: string;
+  executable: string;
+  /** os.pathsep-joined extra sys.path dirs — bundle only (null in dev). */
+  pythonPath: string | null;
+}
+
+/** Writable app-private folder for runtime artifacts (deps, logs). */
+export function runtimeDir(): string {
+  return path.join(app.getPath("userData"), "runtime");
+}
+
+/**
+ * Resolve the active onnxruntime variant folder.
+ *
+ * The EP is fixed at install time (one variant is bundled per installer):
+ * bundled DML at <resources>/ort/dml (universal installer) first, then
+ * bundled CUDA at <resources>/ort/cuda (CUDA installer). Returns null when
+ * no variant is present — the backend then runs without onnxruntime
+ * (models unavailable).
+ */
+export function activeOrtDir(): string | null {
+  const bundledDml = path.join(process.resourcesPath, "ort", "dml");
+  const bundledCuda = path.join(process.resourcesPath, "ort", "cuda");
+  const has = (d: string) => fs.existsSync(path.join(d, "onnxruntime"));
+  if (has(bundledDml)) return bundledDml;
+  if (has(bundledCuda)) return bundledCuda;
+  return null;
+}
+
+/**
+ * Resolve how to launch the Python backend for this runtime mode.
+ *
+ * Dev (source checkout): venv interpreter + python/main.py, no PYTHONPATH
+ * games — exactly the current behavior.
+ *
+ * Packaged: embeddable Python at <resources>/python, backend source at
+ * <resources>/backend (real files — Python cannot read inside asar), and
+ * the active ORT variant folder prepended via LUMINA_PYTHONPATH. The
+ * embeddable's ._pth file ignores PYTHONPATH, so run_backend.py (the
+ * entry) prepends those dirs to sys.path before importing main.
+ */
+function pythonLaunch(): PythonLaunch {
+  if (app.isPackaged) {
+    const res = process.resourcesPath;
+    const pyRoot = path.join(res, "python");
+    const pyApp = path.join(res, "backend");
+    const sitePkgs = path.join(pyRoot, "Lib", "site-packages");
+    const ortDir = activeOrtDir();
+    const extra = ortDir
+      ? [runtimeDir(), ortDir, sitePkgs]
+      : [runtimeDir(), sitePkgs];
+    return {
+      dir: pyApp,
+      entry: path.join(pyApp, "run_backend.py"),
+      executable: path.join(pyRoot, "python.exe"),
+      pythonPath: extra.join(path.delimiter),
+    };
+  }
+  const dir = path.join(PROJECT_ROOT, "python");
+  return {
+    dir,
+    entry: path.join(dir, "main.py"),
+    executable:
+      process.platform === "win32"
+        ? path.join(PROJECT_ROOT, "venv", "Scripts", "python.exe")
+        : path.join(PROJECT_ROOT, "venv", "bin", "python"),
+    pythonPath: null,
+  };
+}
 
 /** Effective models directory — see resolveModelsDir() (env > config > userData). */
 function modelsDir(): string {
@@ -105,12 +174,13 @@ function modelsDir(): string {
 
 export function spawnPythonBackend(): Promise<void> {
   return new Promise((resolve, reject) => {
-    console.log(`[Lumina] Starting Python backend at ${PYTHON_ENTRY}`);
+    const launch = pythonLaunch();
+    console.log(`[Lumina] Starting Python backend at ${launch.entry}`);
     pythonProcess = spawn(
-      PYTHON_EXECUTABLE,
-      [PYTHON_ENTRY, "--port", String(PYTHON_PORT)],
+      launch.executable,
+      [launch.entry, "--port", String(PYTHON_PORT)],
       {
-        cwd: PYTHON_DIR,
+        cwd: launch.dir,
         env: {
           ...process.env,
           // Force UTF-8 stdout/stderr (Japanese text in logs breaks cp1252)
@@ -121,6 +191,10 @@ export function spawnPythonBackend(): Promise<void> {
           HF_HOME: process.env.HF_HOME || path.join(modelsDir(), "huggingface"),
           // Session artifacts (inpaint patches) -> OS temp dir
           LUMINA_CACHE_DIR: CACHE_DIR,
+          // Bundle only: extra sys.path dirs read by run_backend.py
+          ...(launch.pythonPath
+            ? { LUMINA_PYTHONPATH: launch.pythonPath }
+            : {}),
         },
       },
     );

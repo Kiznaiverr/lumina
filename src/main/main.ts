@@ -10,7 +10,7 @@ import { registerIpcHandlers } from "./pipeline";
 import { registerSecretHandlers, registerConfigHandlers } from "./storage";
 import { registerProjectIpc } from "./project";
 import { registerExportIpc } from "./export";
-import { MAIN_DIR, PROJECT_ROOT } from "./paths";
+import { MAIN_DIR } from "./paths";
 
 let mainWindow: BrowserWindow | null = null;
 /** Set once the renderer approved closing — skips the unsaved-changes check */
@@ -30,8 +30,8 @@ function createWindow(): void {
     },
   });
 
-  // From dist/main/main.js → repo root → src/renderer/index.html
-  mainWindow.loadFile(path.join(PROJECT_ROOT, "src/renderer/index.html"));
+  // dist/main/main.js → ../renderer/index.html (same layout in dev and asar)
+  mainWindow.loadFile(path.join(MAIN_DIR, "../renderer/index.html"));
 
   registerIpcHandlers(mainWindow);
   registerSecretHandlers();

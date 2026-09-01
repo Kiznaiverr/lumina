@@ -10,6 +10,7 @@ Lumina is a desktop application for manga, manhwa, and manhua translation. It au
 - [Architecture](#architecture)
 - [Models](#models)
 - [GPU Acceleration](#gpu-acceleration)
+- [Installers](#installers)
 - [Project File Format (.lmi)](#project-file-format-lmi)
 - [Development](#development)
 - [Roadmap](#roadmap)
@@ -148,6 +149,12 @@ Lumina uses ONNX Runtime with GPU support where available.
 - **One execution provider per environment.** The DirectML and CUDA wheels cannot coexist in a single Python environment. The bundled default is DirectML (works on any GPU); CUDA is an opt-in wheel.
 - **`LUMINA_EP` environment variable** overrides the runtime preference: `auto` (CUDA → DirectML → CPU, falling back per wheel), `cuda` (CUDA, falling back to CPU — never DirectML), `dml`, or `cpu`.
 - **Per-model preferences** are baked into each model's configuration. Some models cannot run on certain providers: `lama` is CPU-only (GPU acceleration is ignored when enabled), `lama_manga` and `paddleocr_vl` never use DirectML (CUDA when available, otherwise CPU), and some OCR models keep their autoregressive decoder on CPU regardless of the chosen provider.
+
+## Installers
+
+Prebuilt Windows installers ship with the DirectML runtime only (`Lumina-Setup-DML.exe`). DirectML runs on any GPU that supports DirectX 12 — including NVIDIA — and falls back to CPU on machines without a compatible GPU.
+
+A CUDA installer is not available yet. Until one is released, CUDA acceleration requires running from source: set up the Python backend with the `onnxruntime-gpu[cuda,cudnn]` wheel (see [Development](#development)) and start the app with `npm start`.
 
 ## Project File Format (.lmi)
 

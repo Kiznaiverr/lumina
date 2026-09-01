@@ -2,24 +2,28 @@
   "name": "lumina",
   "version": "0.1.0",
   "description": "Manga/Manhwa/Manhua Translation Automation Desktop App",
+  "author": "Kiznavierr",
   "type": "module",
   "main": "dist/main/main.js",
   "scripts": {
     "build": "npm run build:main && npm run build:preload && npm run build:renderer && npm run typecheck",
     "build:main": "esbuild src/main/main.ts --bundle --platform=node --format=esm --external:electron --outfile=dist/main/main.js",
     "build:preload": "esbuild src/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/preload.cjs",
-    "build:renderer": "esbuild src/renderer/renderer.ts --bundle --outfile=dist/renderer/bundle.js --format=iife --target=es2022 --loader:.html=text",
+    "build:renderer": "esbuild src/renderer/renderer.ts --bundle --outfile=dist/renderer/bundle.js --format=iife --target=es2022 --loader:.html=text && node scripts/copy-renderer-assets.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "start": "npm run build && electron dist/main/main.js",
-    "dev": "npm run build && electron dist/main/main.js"
+    "dev": "npm run build && electron dist/main/main.js",
+    "bundle": "node scripts/bundle.mjs",
+    "dist": "npm run build && npm run bundle && electron-builder --config scripts/electron-builder.config.mjs"
   },
   "dependencies": {
-    "electron": "^43.4.1",
     "konva": "^10.3.1",
     "lucide": "^1.33.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2",
     "typescript": "^5.9.3"
   }

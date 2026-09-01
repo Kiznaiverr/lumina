@@ -46,12 +46,33 @@ def _register_nvidia_dlls() -> None:
     (``os.add_dll_directory`` is not honored by ORT's provider loader).
     No-op on non-Windows or when the DLLs are absent (CPU-only or DML
     wheel).
+
+    Resolution: prefer the ``nvidia`` folder sitting NEXT TO the loaded
+    ``onnxruntime`` package (``onnxruntime.__file__``'s parent), falling
+    back to the site-packages purelib. The bundled layout ships ORT in a
+    separate folder (runtime/ort/<variant>) so ``sysconfig`` purelib does
+    NOT point at it — ``onnxruntime.__file__`` is the only reliable anchor.
     """
     if os.name != "nt":
         return
     try:
+        import onnxruntime as _ort
+
+        ort_root = Path(_ort.__file__).resolve().parent
+        # Roots that may contain a sibling `nvidia/` tree: the folder the
+        # onnxruntime package sits in, plus site-packages purelib.
+        candidates = [ort_root.parent]
         purelib = Path(sysconfig.get_paths().get("purelib", ""))
-        bins = [str(d) for d in sorted(purelib.glob("nvidia/*/bin"))]
+        if purelib not in candidates:
+            candidates.append(purelib)
+        bins = sorted(
+            {
+                str(d)
+                for root in candidates
+                for d in root.glob("nvidia/*/bin")
+                if root.is_dir()
+            }
+        )
         if not bins:
             return
         existing = os.environ.get("PATH", "")

@@ -1,0 +1,15 @@
+# Backend dependencies for the packaged Python runtime (build/bundle/python).
+# These get extracted into Lib/site-packages.
+#
+# onnxruntime + its transitive deps (numpy, protobuf, flatbuffers, ...) are
+# deliberately NOT here — they are pinned in requirements-ort.txt and extracted
+# separately (ort/dml), so the tested versions win.
+fastapi>=0.100.0
+uvicorn>=0.23.0
+numpy>=1.24.0
+PyYAML>=6.0.0
+Pillow>=10.0.0
+opencv-python-headless>=4.8.0
+openai>=3.5.0
+anthropic>=1.2.0
+tokenizers>=0.15.0

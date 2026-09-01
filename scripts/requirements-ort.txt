@@ -1,0 +1,10 @@
+# onnxruntime-directml + the dependency set it needs at runtime, pinned to the
+# exact versions that were tested (cp313 win_amd64). Downloaded by
+# scripts/bundle.mjs into build/wheels, then extracted into ort/dml.
+onnxruntime-directml==1.24.4
+flatbuffers==25.12.19
+mpmath==1.3.0
+numpy==2.5.2
+packaging==26.3
+protobuf==7.36.1
+sympy==1.14.0

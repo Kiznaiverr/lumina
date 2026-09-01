@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import http from "http";
 import { IPC } from "../shared/bridge";
-import { PROJECT_ROOT } from "./paths";
+import { backendSourceDir, MAIN_DIR } from "./paths";
 
 const PYTHON_PORT = 8765;
 
@@ -65,8 +65,8 @@ function translateText(text: string): string {
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // i18n: load translation JSON files from disk
   ipcMain.handle(IPC.loadTranslations, async () => {
-    const rendererDir = path.join(PROJECT_ROOT, "src/renderer");
-    const i18nDir = path.join(rendererDir, "i18n");
+    // dist/main/main.js → ../renderer/i18n (same layout in dev and asar)
+    const i18nDir = path.join(MAIN_DIR, "../renderer/i18n");
     const result: Record<string, Record<string, string>> = {};
     try {
       for (const name of fs.readdirSync(i18nDir)) {
@@ -444,7 +444,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // Load default LLM instruction from prompts/translate-default.md
   ipcMain.handle(IPC.loadDefaultInstruction, async () => {
     try {
-      const p = path.join(PROJECT_ROOT, "python/prompts/translate-default.md");
+      const p = path.join(backendSourceDir(), "prompts/translate-default.md");
       return fs.readFileSync(p, "utf-8");
     } catch {
       return "";
