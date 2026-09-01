@@ -31,6 +31,8 @@
 - [x] (optional) change heuristic Otsu with segmentation model for better masking
 - [ ] more docs about excecutions provider in model descriptions
 - [x] fix merge selection objects bug
+- [ ] fix convert to detection does not follow the reading order
+- [ ] fix LaMa error unsuported quantization type
 - [ ] fix paddle-ocr-vl-1.6 halucinating
 - [ ] readme and documentation
 - [ ] testing and hunt another bugs
