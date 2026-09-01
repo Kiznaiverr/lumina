@@ -102,6 +102,9 @@
   "progress.preparing": "Preparing model...",
 
   "settings.tabModels": "Models",
+  "settings.modelsDir": "Models directory",
+  "settings.modelsOpen": "Change…",
+  "settings.modelsDirChanged": "Models directory updated — restart to apply",
   "settings.modelsHint": "Models are downloaded manually. Install what you need — missing models disable the related pipeline buttons.",
   "settings.gpuActive": "GPU",
   "settings.gpuCpu": "CPU",

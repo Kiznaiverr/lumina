@@ -8,6 +8,7 @@ export type {
   LuminaAPI,
   ModelCheck,
   ModelInfo,
+  ModelsPathState,
   DiscardChoice,
   OpenProjectResult,
   ProjectMaskData,

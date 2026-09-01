@@ -28,6 +28,10 @@ const api: LuminaAPI = {
     ipcRenderer.invoke(IPC.secretsSet, key, value),
   getSecret: (key: string) => ipcRenderer.invoke(IPC.secretsGet, key),
   deleteSecret: (key: string) => ipcRenderer.invoke(IPC.secretsDelete, key),
+  getModelsPath: () => ipcRenderer.invoke(IPC.modelsPathGet),
+  setModelsPath: (value: string) =>
+    ipcRenderer.invoke(IPC.modelsPathSet, value),
+  chooseModelsPath: () => ipcRenderer.invoke(IPC.modelsPathChoose),
   saveProject: (payload) => ipcRenderer.invoke(IPC.saveProject, payload),
   openProject: () => ipcRenderer.invoke(IPC.openProject),
   confirmDiscard: (message: string) =>

@@ -118,13 +118,15 @@ lumina/
 │   ├── main.py        FastAPI entry point
 │   ├── services/      Pluggable model registries (detect / ocr / inpaint / translate)
 │   └── prompts/       Default translation instructions
-├── models/            Model files (downloaded via the app or manually)
+├── models/            Model files for local development (see Models section)
 └── cache/             Runtime cache (patches, extracted projects)
 ```
 
 ## Models
 
-Models are managed in Settings → Models. They are not bundled with the app; each one is downloaded on demand or placed manually in `models/`.
+Models are managed in Settings → Models. They are not bundled with the app; each one is downloaded on demand or placed manually in a models directory.
+
+The models directory is resolved in this order: the `LUMINA_MODEL_DIR` environment variable, the location saved in Settings → Models (via the “Models directory” card), or the platform default `userData/models` (`%APPDATA%\Lumina\models` on Windows). In a source checkout, set `LUMINA_MODEL_DIR` in `.env` (see [.env.example](.env.example)) to keep using the repo's `models/` folder.
 
 | Category | Model          | Status          | Execution                        |
 | -------- | -------------- | --------------- | -------------------------------- |
@@ -160,7 +162,7 @@ A `.lmi` file is a zip archive containing a `project.json` manifest plus the pag
 - A GPU execution provider, if GPU acceleration is wanted:
   - NVIDIA: CUDA-enabled driver plus the `onnxruntime-gpu[cuda,cudnn]` wheel
   - Otherwise: the `onnxruntime-directml` wheel (any GPU) or plain CPU
-- Model files placed in `models/` (or downloaded through Settings → Models once the app runs)
+- Model files placed in the models directory (or downloaded through Settings → Models once the app runs)
 
 ### Setup
 

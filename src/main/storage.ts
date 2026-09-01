@@ -3,10 +3,11 @@
  * Keychain on macOS, libsecret on Linux) and persisted to
  * <userData>/secrets.json. Values survive restarts for the same OS user.
  */
-import { app, ipcMain, safeStorage } from "electron";
+import { app, dialog, BrowserWindow, ipcMain, safeStorage } from "electron";
 import fs from "fs";
 import path from "path";
 import { IPC } from "../shared/bridge";
+import type { ModelsPathState } from "../shared/bridge";
 
 const FILE_NAME = "secrets.json";
 
@@ -92,4 +93,75 @@ export function registerSecretHandlers(): void {
   ipcMain.handle(IPC.secretsDelete, (_e, key: string) =>
     deleteSecret(String(key)),
   );
+}
+
+/* ── Lumina App Config — plain JSON key/value store ──
+ * Non-secret settings (e.g. the custom models directory) persisted to
+ * <userData>/config.json. Unlike secrets, values are stored in plain text
+ * so they survive reinstall and are easy to inspect.
+ */
+const CONFIG_FILE = "config.json";
+
+interface AppConfig {
+  modelsPath: string;
+}
+
+const DEFAULT_CONFIG: AppConfig = {
+  modelsPath: "",
+};
+
+function configFilePath(): string {
+  return path.join(app.getPath("userData"), CONFIG_FILE);
+}
+
+export function readConfig(): AppConfig {
+  try {
+    return {
+      ...DEFAULT_CONFIG,
+      ...JSON.parse(fs.readFileSync(configFilePath(), "utf-8")),
+    };
+  } catch {
+    return { ...DEFAULT_CONFIG };
+  }
+}
+
+export function writeConfig(patch: Partial<AppConfig>): AppConfig {
+  const config = { ...readConfig(), ...patch };
+  const file = configFilePath();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = file + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(config, null, 2), "utf-8");
+  fs.renameSync(tmp, file);
+  return config;
+}
+
+/** Effective models directory: env override > saved config > userData default.
+ *  Shared by the Settings UI (IPC) and backend spawn (LUMINA_MODEL_DIR). */
+export function resolveModelsDir(): ModelsPathState {
+  const env = process.env.LUMINA_MODEL_DIR;
+  if (env) return { path: env, envOverride: true };
+  const saved = readConfig().modelsPath;
+  if (saved) return { path: saved, envOverride: false };
+  return {
+    path: path.join(app.getPath("userData"), "models"),
+    envOverride: false,
+  };
+}
+
+export function registerConfigHandlers(): void {
+  ipcMain.handle(IPC.modelsPathGet, () => resolveModelsDir());
+  ipcMain.handle(IPC.modelsPathSet, (_e, value: string) => {
+    const v = String(value ?? "").trim();
+    writeConfig({ modelsPath: v });
+    return resolveModelsDir();
+  });
+  ipcMain.handle(IPC.modelsPathChoose, async (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender) ?? undefined;
+    const result = await dialog.showOpenDialog(win!, {
+      title: "Choose models directory",
+      properties: ["openDirectory", "createDirectory"],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  });
 }

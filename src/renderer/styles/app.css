@@ -1780,6 +1780,41 @@ body.resizing-row {
   line-height: 1.35;
   margin: 0;
 }
+/* Models directory location card */
+.model-loc {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--color-surface-1);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+.model-loc-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.model-loc-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.model-loc-value {
+  font-size: 0.65rem;
+  color: #969696;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.model-loc-value.env {
+  color: #e0a35e;
+}
+.model-loc-open {
+  flex-shrink: 0;
+}
 /* Segmented tab bar switching between task categories */
 .model-tabs {
   display: flex;

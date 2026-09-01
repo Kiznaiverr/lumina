@@ -4,6 +4,7 @@ import os from "os";
 import path from "path";
 import http from "http";
 import { PROJECT_ROOT } from "./paths";
+import { resolveModelsDir } from "./storage";
 
 export const CACHE_DIR = path.join(os.tmpdir(), "lumina");
 
@@ -97,6 +98,11 @@ const PYTHON_EXECUTABLE =
     ? path.join(PROJECT_ROOT, "venv", "Scripts", "python.exe")
     : path.join(PROJECT_ROOT, "venv", "bin", "python");
 
+/** Effective models directory — see resolveModelsDir() (env > config > userData). */
+function modelsDir(): string {
+  return resolveModelsDir().path;
+}
+
 export function spawnPythonBackend(): Promise<void> {
   return new Promise((resolve, reject) => {
     console.log(`[Lumina] Starting Python backend at ${PYTHON_ENTRY}`);
@@ -109,16 +115,10 @@ export function spawnPythonBackend(): Promise<void> {
           ...process.env,
           // Force UTF-8 stdout/stderr (Japanese text in logs breaks cp1252)
           PYTHONIOENCODING: "utf-8",
-          // Model cache dir override (used by services/detect/rtdetr.py)
-          LUMINA_MODEL_DIR:
-            process.env.LUMINA_MODEL_DIR || path.join(PROJECT_ROOT, "models"),
-          // Keep all model weights inside <repo>/models (manga-ocr etc.)
-          HF_HOME:
-            process.env.HF_HOME ||
-            path.join(
-              process.env.LUMINA_MODEL_DIR || path.join(PROJECT_ROOT, "models"),
-              "huggingface",
-            ),
+          // Model dir: env override > saved config > userData/models
+          LUMINA_MODEL_DIR: modelsDir(),
+          // Keep all model weights inside the models dir (manga-ocr etc.)
+          HF_HOME: process.env.HF_HOME || path.join(modelsDir(), "huggingface"),
           // Session artifacts (inpaint patches) -> OS temp dir
           LUMINA_CACHE_DIR: CACHE_DIR,
         },

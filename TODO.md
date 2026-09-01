@@ -33,7 +33,7 @@
 - [x] fix convert to detection does not follow the reading order
 - [x] LaMa error unsupported quantization type on CUDA (fixed by forcing lama to CPU-only — never runs on CUDA)
 - [ ] fix paddle family halucinating
-- [ ] readme and documentation
+- [x] readme and documentation
 - [ ] bundle for release
 - [ ] documentation website
 - [ ] testing and hunt another bugs

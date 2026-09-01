@@ -102,6 +102,9 @@
   "progress.preparing": "Menyiapkan model...",
 
   "settings.tabModels": "Model",
+  "settings.modelsDir": "Direktori model",
+  "settings.modelsOpen": "Ubah…",
+  "settings.modelsDirChanged": "Direktori model diperbarui — mulai ulang agar berlaku",
   "settings.modelsHint": "Model diunduh secara manual. Pasang yang dibutuhkan — model yang belum terpasang menonaktifkan tombol pipeline terkait.",
   "settings.gpuActive": "GPU",
   "settings.gpuCpu": "CPU",

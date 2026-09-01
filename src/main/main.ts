@@ -7,7 +7,7 @@ import {
   prepareCacheDir,
 } from "./backend";
 import { registerIpcHandlers } from "./pipeline";
-import { registerSecretHandlers } from "./storage";
+import { registerSecretHandlers, registerConfigHandlers } from "./storage";
 import { registerProjectIpc } from "./project";
 import { registerExportIpc } from "./export";
 import { MAIN_DIR, PROJECT_ROOT } from "./paths";
@@ -35,6 +35,7 @@ function createWindow(): void {
 
   registerIpcHandlers(mainWindow);
   registerSecretHandlers();
+  registerConfigHandlers();
   registerProjectIpc();
   registerExportIpc();
 

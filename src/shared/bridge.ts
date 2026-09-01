@@ -21,6 +21,9 @@ export const IPC = {
   secretsSet: "secrets-set",
   secretsGet: "secrets-get",
   secretsDelete: "secrets-delete",
+  modelsPathGet: "models-path-get",
+  modelsPathSet: "models-path-set",
+  modelsPathChoose: "models-path-choose",
   saveProject: "save-project",
   openProject: "open-project",
   confirmDiscard: "confirm-discard",
@@ -74,6 +77,16 @@ export interface DownloadProgress {
   error?: string | null;
   /** Which model is downloading: "detect" | "ocr" | "inpaint" */
   model?: string | null;
+}
+
+/* ── Models directory (Settings → Models → location) ── */
+
+/** Resolved state for the models directory UI. */
+export interface ModelsPathState {
+  /** Effective directory: env override > saved config > userData/models */
+  path: string;
+  /** Whether the effective path comes from the LUMINA_MODEL_DIR env var */
+  envOverride: boolean;
 }
 
 /* ── Project save/open (.lmi = zip) ── */
@@ -196,6 +209,12 @@ export interface LuminaAPI {
   setSecret(key: string, value: string): Promise<void>;
   getSecret(key: string): Promise<string | null>;
   deleteSecret(key: string): Promise<void>;
+  /** Resolved models directory + whether it's an env override */
+  getModelsPath(): Promise<ModelsPathState>;
+  /** Persist a custom models directory; returns the new state */
+  setModelsPath(value: string): Promise<ModelsPathState>;
+  /** Native folder picker — returns the chosen path or null */
+  chooseModelsPath(): Promise<string | null>;
   saveProject(payload: ProjectSavePayload): Promise<ProjectSaveResult>;
   openProject(): Promise<OpenProjectResult | null>;
   confirmDiscard(message: string): Promise<DiscardChoice>;

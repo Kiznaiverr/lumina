@@ -8,7 +8,13 @@
 import * as i18n from "../i18n";
 import { models } from "../models";
 import { recommendedFor } from "../models/descriptions";
-import type { DeviceInfo, DownloadProgress, ModelInfo } from "../../types";
+import { ui } from "../ui";
+import type {
+  DeviceInfo,
+  DownloadProgress,
+  ModelInfo,
+  ModelsPathState,
+} from "../../types";
 
 const SECTIONS: Array<[string, string]> = [
   ["detect", "models.sectionDetect"],
@@ -54,6 +60,7 @@ export const modelsTab = {
   _render(pane: HTMLElement, list: ModelInfo[]): void {
     pane.innerHTML = "";
     pane.appendChild(this._gpuCard());
+    pane.appendChild(this._locationCard());
     pane.appendChild(hintEl());
 
     const sections = SECTIONS.map(([kind, titleKey]) => ({
@@ -286,6 +293,60 @@ export const modelsTab = {
     } else if (hint) {
       hint.remove();
     }
+  },
+
+  /** Models directory card: path + open / change buttons. */
+  _locationCard(): HTMLElement {
+    const card = document.createElement("div");
+    card.className = "model-loc";
+
+    const info = document.createElement("div");
+    info.className = "model-loc-info";
+    const label = document.createElement("div");
+    label.className = "model-loc-label";
+    label.dataset.i18n = "settings.modelsDir";
+    label.textContent = i18n.t("settings.modelsDir");
+    const value = document.createElement("div");
+    value.className = "model-loc-value";
+    info.append(label, value);
+
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "btn model-loc-open";
+    open.textContent = i18n.t("settings.modelsOpen");
+    open.addEventListener("click", () => {
+      open.disabled = true;
+      this._setLocation()
+        .catch(() => {})
+        .finally(() => {
+          open.disabled = false;
+        });
+    });
+
+    card.append(info, open);
+    this._renderLocation(card);
+    return card;
+  },
+
+  _renderLocation(card: HTMLElement): void {
+    window.lumina.getModelsPath().then((state: ModelsPathState) => {
+      const value = card.querySelector<HTMLElement>(".model-loc-value");
+      if (!value) return;
+      value.textContent = state.path;
+      value.title = state.path;
+      value.classList.toggle("env", !!state.envOverride);
+    });
+  },
+
+  /** Native picker → persist → re-render. Returns the new state. */
+  async _setLocation(): Promise<ModelsPathState> {
+    const picked = await window.lumina.chooseModelsPath();
+    if (!picked) return window.lumina.getModelsPath();
+    const state = await window.lumina.setModelsPath(picked);
+    const card = document.querySelector<HTMLElement>(".model-loc");
+    if (card) this._renderLocation(card);
+    ui.toast(i18n.t("settings.modelsDirChanged"), "success");
+    return state;
   },
 
   /** Start a model download and disable the triggering button. */
