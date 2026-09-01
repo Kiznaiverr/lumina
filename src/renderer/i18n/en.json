@@ -122,6 +122,7 @@
   "models.noDescription": "No description yet.",
   "models.recommended": "Recommended",
   "models.selected": "Selected",
+  "models.dev": "In Development",
 
   "status.noDetections": "No detections",
   "status.selected": "{{type}}#{{index}} selected",

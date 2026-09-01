@@ -38,6 +38,7 @@ def get_models_info() -> list[dict]:
             "id": name,
             "name": m.name,
             "kind": "ocr",
+            "status": m.status,
             "ready": m.is_ready(),
             "size": m.size(),
         }

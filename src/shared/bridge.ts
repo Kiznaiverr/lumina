@@ -35,6 +35,7 @@ export interface ModelInfo {
   id: string;
   name: string;
   kind: string; // "detect" | "ocr" | "inpaint"
+  status?: string; // "ready" | "dev" — dev = in development, still usable
   ready: boolean;
   size: number | null;
   /** Filled from the renderer description registry — backend doesn't send it. */

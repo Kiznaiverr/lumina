@@ -20,12 +20,16 @@ export const OCR_DESCS: ModelDescMap = {
 • Sumber: huggingface.co/mayocream/manga-ocr-onnx`,
   },
   ppocrv6: {
-    en: `PP-OCRv6 medium by PaddlePaddle — recognition for 50+ languages including Japanese. Very fast on CPU (~5 ms/line).
+    en: `In development — integration is still being tuned; the app works with it, but output may be unreliable.
+
+PP-OCRv6 medium by PaddlePaddle — recognition for 50+ languages including Japanese. Very fast on CPU (~5 ms/line).
 
 • ⚠ Not recommended — in this app's testing the output was unreliable/inaccurate (likely a setup/config issue in the integration).
 • For manga, prefer Baberu OCR (recommended) or manga-ocr.
 • Source: huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx`,
-    id: `PP-OCRv6 medium oleh PaddlePaddle — pengenalan untuk 50+ bahasa termasuk Jepang. Sangat cepat di CPU (~5 ms/baris).
+    id: `Sedang disesuaikan — integrasinya masih dituning; aplikasi tetap bisa memakainya, tapi hasilnya mungkin belum akurat.
+
+PP-OCRv6 medium oleh PaddlePaddle — pengenalan untuk 50+ bahasa termasuk Jepang. Sangat cepat di CPU (~5 ms/baris).
 
 • ⚠ Tidak direkomendasikan — pada pengujian di aplikasi ini hasilnya kurang akurat/tidak konsisten (kemungkinan masalah setting atau setup kode integrasinya).
 • Untuk manga, pilih Baberu OCR (direkomendasikan) atau manga-ocr.
@@ -46,14 +50,18 @@ export const OCR_DESCS: ModelDescMap = {
 • Sumber: huggingface.co/genshiai-daichi/baberu-ocr`,
   },
   paddleocr_vl: {
-    en: `PaddleOCR-VL 1.6 (by PaddlePaddle, ONNX port by iaa2005) — a vision-language OCR model (NaViT + ERNIE-4.5 decoder) that reads whole text regions at once, in many languages (zh / en / ru / more).
+    en: `In development — integration is still being tuned; the app works with it, but output may be unreliable.
+
+PaddleOCR-VL 1.6 (by PaddlePaddle, ONNX port by iaa2005) — a vision-language OCR model (NaViT + ERNIE-4.5 decoder) that reads whole text regions at once, in many languages (zh / en / ru / more).
 
 • Region-based: adjacent text boxes are recognized together in one pass with context — better on multi-line bubbles.
 • Multi-language, strongest on zh/en; Japanese manga typesetting is handled better by manga-ocr or Baberu.
 • Slow: roughly 10–25 s per page on CPU — a fallback model, not a daily driver.
 • ~1.2 GB download.
 • Source: huggingface.co/iaa2005/PaddleOCR-VL-1.6-ONNX`,
-    id: `PaddleOCR-VL 1.6 (oleh PaddlePaddle, port ONNX oleh iaa2005) — model OCR vision-language (NaViT + decoder ERNIE-4.5) yang membaca seluruh region teks sekaligus, multibahasa (zh / en / ru / lainnya).
+    id: `Sedang disesuaikan — integrasinya masih dituning; aplikasi tetap bisa memakainya, tapi hasilnya mungkin belum akurat.
+
+PaddleOCR-VL 1.6 (oleh PaddlePaddle, port ONNX oleh iaa2005) — model OCR vision-language (NaViT + decoder ERNIE-4.5) yang membaca seluruh region teks sekaligus, multibahasa (zh / en / ru / lainnya).
 
 • Berbasis region: kotak teks yang berdekatan dikenali sekaligus dalam satu proses dengan konteks — lebih baik pada gelembung multi-baris.
 • Multibahasa, terkuat di zh/en; tata letak manga Jepang lebih baik ditangani manga-ocr atau Baberu.

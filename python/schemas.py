@@ -115,6 +115,7 @@ class ModelInfo(BaseModel):
     id: str  # "detect" | "ocr" | inpaint registry key ("lama")
     name: str  # display name
     kind: str  # "detect" | "ocr" | "inpaint"
+    status: str = "ready"  # "ready" | "dev" — dev = in development, still usable
     ready: bool
     size: int | None = None  # bytes of installed weights; None if not installed
 

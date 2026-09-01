@@ -44,6 +44,7 @@ from .vision import VisionEncoder
 
 class PaddleOcrVlModel(BaseOcrModel):
     name = "PaddleOCR-VL 1.6 (ONNX)"
+    status = "dev"  # in development — integration still being tuned
     model_id = MODEL_ID
     model_dir_name = MODEL_DIR_NAME
     required_files = REQUIRED_FILES

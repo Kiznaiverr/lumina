@@ -122,6 +122,7 @@
   "models.noDescription": "Belum ada deskripsi.",
   "models.recommended": "Direkomendasikan",
   "models.selected": "Terpilih",
+  "models.dev": "Sedang Disesuaikan",
 
   "status.noDetections": "Tidak ada deteksi",
   "status.selected": "{{type}}#{{index}} dipilih",

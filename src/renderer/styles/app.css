@@ -1909,6 +1909,10 @@ body.resizing-row {
   background: rgba(122, 162, 247, 0.15);
   color: #7aa2f7;
 }
+.model-badge.model-dev {
+  background: rgba(187, 134, 252, 0.15);
+  color: #bb86fc;
+}
 .model-badge.model-selected {
   background: rgba(77, 208, 225, 0.15);
   color: #4dd0e1;

@@ -29,6 +29,7 @@ class BaseOcrModel(ABC):
     """OCR model; ocr_boxes() returns one string per box, positionally aligned."""
 
     name: str = ""
+    status: str = "ready"  # "ready" | "dev" — dev = in development, still usable
     model_id: str = ""
     model_dir_name: str = ""
     required_files: list[str] = []

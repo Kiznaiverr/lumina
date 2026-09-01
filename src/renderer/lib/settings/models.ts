@@ -162,6 +162,10 @@ export const modelsTab = {
     title.className = "model-desc-title";
     const name = document.createElement("div");
     name.className = "model-desc-name";
+    const devBadge = document.createElement("span");
+    devBadge.className = "model-badge model-dev";
+    devBadge.textContent = i18n.t("models.dev");
+    devBadge.hidden = true;
     const rec = document.createElement("span");
     rec.className = "model-badge model-rec";
     rec.textContent = i18n.t("models.recommended");
@@ -170,7 +174,7 @@ export const modelsTab = {
     badge.className = "model-badge model-selected";
     badge.textContent = i18n.t("models.selected");
     badge.hidden = true;
-    title.append(name, rec);
+    title.append(name, devBadge, rec);
     head.append(title, badge);
 
     const text = document.createElement("p");
@@ -298,6 +302,7 @@ export const modelsTab = {
 
     card.dataset.model = m.id;
     card.querySelector<HTMLElement>(".model-desc-name")!.textContent = m.name;
+    card.querySelector<HTMLElement>(".model-dev")!.hidden = m.status !== "dev";
     card.querySelector<HTMLElement>(".model-rec")!.hidden =
       m.id !== recommendedFor(kind);
     const badge = card.querySelector<HTMLElement>(".model-selected")!;
