@@ -6,3 +6,4 @@ venv/
 .env
 /models/
 cache/
+build
