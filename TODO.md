@@ -35,7 +35,10 @@
 - [ ] fix paddle family halucinating
 - [x] readme and documentation
 - [x] bundle for release
+- [ ] register file extension
 - [ ] cancel download
+- [ ] update checker
+- [ ] custom NSIS uninstaller
 - [ ] tokenizers (paddleocr_vl): replace the "pip install tokenizers" error message in decoder.py, add an `is_ready()` check, and bundle the wheel to be extracted to `runtime_deps` when the user selects the paddleocr_vl download.
 - [ ] add more tools
 - [ ] installer CUDA variant? soon~
