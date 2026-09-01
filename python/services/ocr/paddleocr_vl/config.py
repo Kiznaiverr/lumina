@@ -22,6 +22,7 @@ DOWNLOAD_FILES = REQUIRED_FILES
 
 MAX_NEW_TOKENS = 256
 MAX_PATCHES = 1024  # cap on [P] after resize (int8 degrades on long seqs)
+REGION_PAD_PX = 16  # default pad when growing crop windows to ~min_pixels
 _PLACEHOLDER_ID = 100295  # <|IMAGE_PLACEHOLDER|>; verified at load
 _EOS_FALLBACK = 100294  # <|end_of_sentence|>; verified at load
 _PREFIX = "<|begin_of_sentence|>User: <|IMAGE_START|>"

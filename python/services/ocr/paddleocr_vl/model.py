@@ -15,11 +15,17 @@ with one <|IMAGE_PLACEHOLDER|> per merged (2x2) image patch.
 
 Split: preprocess.py (NaViT patchify), vision.py (vision encoder session),
 decoder.py (embedding + KV-cache decode). This module only orchestrates.
+
+Crops below min_pixels are grown with surrounding page content (native
+resolution) instead of being upscaled — matches how the HF demo reads
+blocks and avoids the blur that makes the int8 model hallucinate.
 """
 from __future__ import annotations
 
 import json
 from typing import Optional
+
+import numpy as np
 
 from utils.logger import log
 from ..base import BaseOcrModel
@@ -28,6 +34,7 @@ from .config import (
     MODEL_DIR_NAME,
     MODEL_ID,
     PREPROCESSOR_FILE,
+    REGION_PAD_PX,
     REQUIRED_FILES,
 )
 from .decoder import Decoder
@@ -79,10 +86,48 @@ class PaddleOcrVlModel(BaseOcrModel):
 
     # ── inference ────────────────────────────────────────────────────────
 
-    def _ocr_region(self, crop) -> str:
+    def _expand_window(
+        self, img, x0: int, y0: int, x1: int, y1: int
+    ) -> tuple[int, int, int, int]:
+        """Grow a crop window to ~min_pixels of NATIVE page content.
+
+        Small tight crops (a box or two) are below min_pixels; upscaling
+        them blurs glyphs and makes the int8 model hallucinate. Instead we
+        enlarge the window with surrounding page content so the model sees
+        a native-resolution block — the same regime it was demoed in.
+        """
+        target = self._min_pixels * 1.5
+        for _ in range(64):
+            w, h = x1 - x0, y1 - y0
+            if w * h >= target or (w >= img.width and h >= img.height):
+                break
+            if w >= img.width:
+                y0 = max(0, y0 - (h // 2))
+                y1 = min(img.height, y1 + (h // 2))
+            elif h >= img.height:
+                x0 = max(0, x0 - (w // 2))
+                x1 = min(img.width, x1 + (w // 2))
+            else:
+                x0 = max(0, x0 - (w // 4))
+                x1 = min(img.width, x1 + (w // 4))
+                y0 = max(0, y0 - (h // 4))
+                y1 = min(img.height, y1 + (h // 4))
+        return x0, y0, x1, y1
+
+    def _crop_for_ocr(self, img, box: dict, pad: int = REGION_PAD_PX):
+        """Window for one crop: box + pad, then grown to ~min_pixels."""
+        x0 = max(0, int(box["x"]) - pad)
+        y0 = max(0, int(box["y"]) - pad)
+        x1 = min(img.width, x0 + max(1, int(box["w"])) + pad)
+        y1 = min(img.height, y0 + max(1, int(box["h"])) + pad)
+        x0, y0, x1, y1 = self._expand_window(img, x0, y0, x1, y1)
+        return img.crop((x0, y0, x1, y1))
+
+    def _ocr_region(self, img, box: dict) -> str:
         """Full pipeline on one crop: vision -> prefill -> step loop."""
         vis, dec = self._vis, self._dec
         assert vis is not None and dec is not None
+        crop = self._crop_for_ocr(img, box)
         pixel_values, grid = preprocess_region(
             crop,
             min_pixels=self._min_pixels,
@@ -103,11 +148,7 @@ class PaddleOcrVlModel(BaseOcrModel):
         img = Image.open(image_path).convert("RGB")
         texts: list[str] = []
         for i, b in enumerate(boxes):
-            x0 = max(0, int(b["x"]))
-            y0 = max(0, int(b["y"]))
-            x1 = min(img.width, x0 + max(1, int(b["w"])))
-            y1 = min(img.height, y0 + max(1, int(b["h"])))
-            text = self._ocr_region(img.crop((x0, y0, x1, y1)))
+            text = self._ocr_region(img, b)
             texts.append(text)
             log.debug(f"OCR box {i + 1}/{len(boxes)}: {text!r}")
         return texts
@@ -128,7 +169,18 @@ class PaddleOcrVlModel(BaseOcrModel):
             y0 = max(0, int(region["y"]) - pad)
             x1 = min(img.width, int(region["x"] + region["w"]) + pad)
             y1 = min(img.height, int(region["y"] + region["h"]) + pad)
-            text = self._ocr_region(img.crop((x0, y0, x1, y1)))
+            crop = img.crop((x0, y0, x1, y1))
+            if crop.width * crop.height < self._min_pixels:
+                x0, y0, x1, y1 = self._expand_window(img, x0, y0, x1, y1)
+                crop = img.crop((x0, y0, x1, y1))
+            pixel_values, grid = preprocess_region(
+                crop,
+                min_pixels=self._min_pixels,
+                max_pixels=self._max_pixels,
+                mean=self._mean,
+                std=self._std,
+            )
+            text = self._dec.decode(self._vis.encode(pixel_values, grid))
             lines = [ln.strip() for ln in text.split("\n")]
             lines = [ln for ln in lines if ln]
             if lines and len(lines) == len(boxes):
