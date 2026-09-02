@@ -192,6 +192,9 @@
 
   "toast.modelDownloading": "Mengunduh model {{model}}...",
   "toast.modelDownloaded": "Model selesai diunduh",
+  "toast.cancelDownload": "Batalkan unduhan",
+  "toast.cancellingDownload": "Membatalkan…",
+  "toast.downloadCancelled": "Unduhan dibatalkan",
 
   "sidebar.text.originalText": "Teks asli",
 

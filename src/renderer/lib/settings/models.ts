@@ -419,7 +419,7 @@ export const modelsTab = {
         b.disabled = true;
         b.textContent = i18n.t("models.downloading");
       });
-    } else if (p.done || p.error) {
+    } else if (p.done || p.error || p.cancelled) {
       // Re-check + re-render once the batch finishes
       this.refresh();
     }

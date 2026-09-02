@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Optional
 
+from utils.download import DownloadCancelled, is_cancelled
 from utils.logger import log
 
 ProgressCallback = Optional[Callable[[int, int, int], None]]
@@ -84,6 +85,8 @@ class BaseDetectModel(ABC):
                 total = int(resp.headers.get("Content-Length", -1))
                 downloaded = 0
                 while True:
+                    if is_cancelled():
+                        raise DownloadCancelled()
                     chunk = resp.read(1024 * 1024)
                     if not chunk:
                         break
@@ -91,6 +94,10 @@ class BaseDetectModel(ABC):
                     downloaded += len(chunk)
                     if total > 0:
                         _report(int(downloaded * 100 / total), downloaded, total)
+        except DownloadCancelled:
+            tmp_path.unlink(missing_ok=True)
+            log.info(f"Detect model download cancelled — removed {tmp_path.name}")
+            raise
         except Exception:
             tmp_path.unlink(missing_ok=True)
             raise

@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Optional
 
+from utils.download import DownloadCancelled, is_cancelled
 from utils.logger import log
 
 ProgressCallback = Optional[Callable[[int, int, int], None]]
@@ -78,6 +79,8 @@ class BaseInpaintModel(ABC):
                 total = int(resp.headers.get("Content-Length", -1))
                 downloaded = 0
                 while True:
+                    if is_cancelled():
+                        raise DownloadCancelled()
                     chunk = resp.read(1024 * 1024)
                     if not chunk:
                         break
@@ -93,6 +96,10 @@ class BaseInpaintModel(ABC):
                                     progress_callback(pct, downloaded, total)
                                 except Exception:
                                     pass
+        except DownloadCancelled:
+            tmp_path.unlink(missing_ok=True)
+            log.info(f"Inpaint model download cancelled — removed {tmp_path.name}")
+            raise
         except Exception:
             tmp_path.unlink(missing_ok=True)
             raise

@@ -190,8 +190,9 @@ export const ui = {
   },
 
   /** Bottom-right download notification with progress bar.
-   *  Returns element; update via updateDownloadToast(). */
-  downloadToast(msg: string): HTMLElement {
+   *  Returns element; update via updateDownloadToast().
+   *  Pass onCancel to show a cancel button in the bar. */
+  downloadToast(msg: string, onCancel?: () => void): HTMLElement {
     // Remove stale download toast if any
     const old = document.getElementById("dl-toast");
     if (old) old.remove();
@@ -219,12 +220,30 @@ export const ui = {
       msg +
       "</span>" +
       '<span id="dl-pct" style="color:#569cd6;font-variant-numeric:tabular-nums;flex-shrink:0;">0%</span>' +
+      (onCancel
+        ? '<button id="dl-cancel" title="' +
+          i18n.t("toast.cancelDownload") +
+          '" style="flex-shrink:0;display:flex;align-items:center;background:transparent;border:none;color:#888;cursor:pointer;padding:2px;border-radius:4px;">' +
+          '<i data-lucide="x" style="width:14px;height:14px;"></i></button>'
+        : "") +
       "</div>" +
       '<div style="height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">' +
       '<div id="dl-bar" style="height:100%;width:0%;background:#569cd6;border-radius:3px;transition:width 0.3s ease;"></div>' +
       "</div>" +
       '<div id="dl-size" style="margin-top:5px;font-size:0.68rem;color:#888;display:flex;justify-content:space-between;">' +
       '<span id="dl-progress-size"></span><span id="dl-speed"></span></div>';
+    if (onCancel) {
+      const btn = el.querySelector<HTMLButtonElement>("#dl-cancel");
+      if (btn) {
+        btn.addEventListener("mouseenter", () => (btn.style.color = "#fff"));
+        btn.addEventListener("mouseleave", () => (btn.style.color = "#888"));
+        btn.addEventListener("click", () => {
+          btn.disabled = true;
+          btn.textContent = i18n.t("toast.cancellingDownload");
+          onCancel();
+        });
+      }
+    }
     container.appendChild(el);
     createIcons({ nameAttr: "data-lucide", attrs: {}, root: el });
     requestAnimationFrame(() => {

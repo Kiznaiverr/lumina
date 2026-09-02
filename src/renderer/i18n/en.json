@@ -192,6 +192,9 @@
 
   "toast.modelDownloading": "Downloading {{model}} model...",
   "toast.modelDownloaded": "Model downloaded",
+  "toast.cancelDownload": "Cancel download",
+  "toast.cancellingDownload": "Cancelling…",
+  "toast.downloadCancelled": "Download cancelled",
 
   "sidebar.text.originalText": "Original text",
 

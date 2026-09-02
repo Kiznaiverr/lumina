@@ -137,6 +137,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
             total: number;
             done: boolean;
             error: string | null;
+            cancelled?: boolean;
             model?: string | null;
           };
           send(p);
@@ -149,6 +150,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
         }
       }, 500);
     });
+  });
+
+  ipcMain.handle(IPC.cancelDownload, async () => {
+    try {
+      await apiPost("/model/cancel", {});
+    } catch (err) {
+      return { error: String(err) };
+    }
   });
 
   ipcMain.handle(IPC.importImage, async () => {

@@ -14,6 +14,7 @@ export const IPC = {
   deviceConfigure: "device-configure",
   checkModel: "check-model",
   downloadModel: "download-model",
+  cancelDownload: "cancel-download",
   modelDownloadProgress: "model-download-progress",
   getFonts: "get-fonts",
   loadTranslations: "load-translations",
@@ -75,6 +76,8 @@ export interface DownloadProgress {
   total: number;
   done: boolean;
   error?: string | null;
+  /** True when the user cancelled the in-flight download */
+  cancelled?: boolean;
   /** Which model is downloading: "detect" | "ocr" | "inpaint" */
   model?: string | null;
 }
@@ -202,6 +205,8 @@ export interface LuminaAPI {
   setUseGpu(useGpu: boolean): Promise<DeviceInfo>;
   checkModel(): Promise<ModelCheck>;
   downloadModel(models?: string[]): Promise<void>;
+  /** Cancel the in-flight model download (temp .part files are removed) */
+  cancelDownload(): Promise<void>;
   onDownloadProgress(cb: (msg: DownloadProgress) => void): void;
   getFonts(): Promise<FontInfo[]>;
   loadTranslations(): Promise<Record<string, Record<string, string>>>;

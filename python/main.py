@@ -29,6 +29,12 @@ from schemas import (
 )
 
 from utils.logger import log
+from utils.download import (
+    DownloadCancelled,
+    cancel as _dl_cancel,
+    is_cancelled as _dl_cancelled,
+    reset as _dl_reset,
+)
 
 app = FastAPI(title="Lumina Backend", version="0.1.0")
 
@@ -40,7 +46,29 @@ _download_state: dict = {
     "total": 0,
     "done": False,
     "error": None,
+    "cancelled": False,
 }
+
+
+def _cleanup_stale_parts() -> None:
+    """Remove leftover ``*.part`` files from interrupted/cancelled downloads."""
+    try:
+        from services.detect.base import _models_dir
+
+        removed = 0
+        for p in _models_dir().rglob("*.part"):
+            try:
+                p.unlink(missing_ok=True)
+                removed += 1
+            except OSError:
+                pass
+        if removed:
+            log.info(f"Removed {removed} stale .part download file(s)")
+    except Exception as e:
+        log.debug(f"Stale .part cleanup skipped: {e}")
+
+
+_cleanup_stale_parts()
 
 
 @app.get("/health")
@@ -290,17 +318,25 @@ def model_download(req: ModelDownloadRequest):
     if not targets:
         return {"status": "ok", "alreadyPresent": True}
 
+    _dl_reset()
     _download_state.update(
-        {"running": True, "progress": 0, "downloaded": 0, "total": 0, "done": False, "error": None, "model": None}
+        {"running": True, "progress": 0, "downloaded": 0, "total": 0, "done": False, "error": None, "model": None, "cancelled": False}
     )
 
     def _worker() -> None:
         try:
             for label, fn in targets:
+                if _dl_cancelled():
+                    break
                 _download_state["model"] = label
                 fn()
-            _download_state["done"] = True
-            _download_state["progress"] = 100
+            if _dl_cancelled():
+                _download_state["cancelled"] = True
+            else:
+                _download_state["done"] = True
+                _download_state["progress"] = 100
+        except DownloadCancelled:
+            _download_state["cancelled"] = True
         except Exception as e:
             log.error(f"Model download failed: {e}")
             import traceback
@@ -309,6 +345,7 @@ def model_download(req: ModelDownloadRequest):
             _download_state["error"] = str(e)
         finally:
             _download_state["running"] = False
+            _dl_reset()
 
     threading.Thread(target=_worker, daemon=True).start()
     return {"status": "started"}
@@ -318,6 +355,13 @@ def model_download(req: ModelDownloadRequest):
 def model_progress():
     """Poll download progress: {running, progress, downloaded, total, done, error}."""
     return dict(_download_state)
+
+
+@app.post("/model/cancel")
+def model_cancel():
+    """Cancel the in-flight model download; temp .part files are removed."""
+    _dl_cancel()
+    return {"status": "ok"}
 
 
 def main():

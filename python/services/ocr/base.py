@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Optional
 
+from utils.download import DownloadCancelled, is_cancelled
 from utils.logger import log
 
 ProgressCallback = Optional[Callable[[int, int, int], None]]
@@ -64,6 +65,8 @@ class BaseOcrModel(ABC):
         grand_total = 0
         sizes: dict[str, int] = {}
         for f in pending:
+            if is_cancelled():
+                raise DownloadCancelled()
             try:
                 req = urllib.request.Request(
                     base_url + f + "?download=true",
@@ -79,26 +82,37 @@ class BaseOcrModel(ABC):
 
         done = 0
         for f in pending:
+            if is_cancelled():
+                raise DownloadCancelled()
             dest = self.model_dir / f
             dest.parent.mkdir(parents=True, exist_ok=True)
+            part = dest.with_suffix(dest.suffix + ".part")
             req = urllib.request.Request(
                 base_url + f + "?download=true", headers={"User-Agent": "Lumina/0.1"}
             )
-            with urllib.request.urlopen(req) as resp, open(
-                dest.with_suffix(dest.suffix + ".part"), "wb"
-            ) as out:
-                total = int(resp.headers.get("Content-Length", -1))
-                if total > 0 and sizes.get(f, -1) <= 0:
-                    grand_total += total  # size discovered late
-                while True:
-                    chunk = resp.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    out.write(chunk)
-                    done += len(chunk)
-                    if progress_callback and grand_total > 0:
-                        progress_callback(int(done * 100 / grand_total), done, grand_total)
-            dest.with_suffix(dest.suffix + ".part").rename(dest)
+            try:
+                with urllib.request.urlopen(req) as resp, open(part, "wb") as out:
+                    total = int(resp.headers.get("Content-Length", -1))
+                    if total > 0 and sizes.get(f, -1) <= 0:
+                        grand_total += total  # size discovered late
+                    while True:
+                        if is_cancelled():
+                            raise DownloadCancelled()
+                        chunk = resp.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        out.write(chunk)
+                        done += len(chunk)
+                        if progress_callback and grand_total > 0:
+                            progress_callback(int(done * 100 / grand_total), done, grand_total)
+            except DownloadCancelled:
+                part.unlink(missing_ok=True)
+                log.info(f"OCR model download cancelled — removed {part.name}")
+                raise
+            except Exception:
+                part.unlink(missing_ok=True)
+                raise
+            part.rename(dest)
         log.info(f"OCR model download complete: {self.model_id}")
 
     def unload(self) -> None:

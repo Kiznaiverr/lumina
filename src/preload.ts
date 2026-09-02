@@ -18,6 +18,7 @@ const api: LuminaAPI = {
   checkModel: () => ipcRenderer.invoke(IPC.checkModel),
   downloadModel: (models?: string[]) =>
     ipcRenderer.invoke(IPC.downloadModel, models ?? []),
+  cancelDownload: () => ipcRenderer.invoke(IPC.cancelDownload),
   onDownloadProgress: (cb) => {
     ipcRenderer.on(IPC.modelDownloadProgress, (_e, msg) => cb(msg));
   },

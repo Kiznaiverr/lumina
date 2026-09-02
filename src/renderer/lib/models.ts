@@ -257,12 +257,19 @@ window.lumina.onDownloadProgress((p) => {
       const kindLabel = p.model
         ? i18n.t("models.section" + p.model[0].toUpperCase() + p.model.slice(1))
         : "";
-      ui.downloadToast(i18n.t("toast.modelDownloading", { model: kindLabel }));
+      ui.downloadToast(
+        i18n.t("toast.modelDownloading", { model: kindLabel }),
+        () => {
+          void window.lumina.cancelDownload().catch(() => {});
+        },
+      );
     }
     ui.updateDownloadToast(p.progress || 0, p.downloaded || 0, p.total || 0);
-  } else if (p.done || p.error) {
+  } else if (p.done || p.error || p.cancelled) {
     const el = document.getElementById("dl-toast");
     if (el) el.remove();
     if (p.done) ui.toast(i18n.t("toast.modelDownloaded"), "success", 3000);
+    else if (p.cancelled)
+      ui.toast(i18n.t("toast.downloadCancelled"), "info", 3000);
   }
 });
