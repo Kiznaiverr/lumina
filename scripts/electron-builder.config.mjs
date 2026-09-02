@@ -43,7 +43,7 @@ const config = {
     oneClick: false,
     perMachine: false,
     allowToChangeInstallationDirectory: true,
-    artifactName: "Lumina-Setup-DML.exe",
+    artifactName: "Lumina-Setup-DML-${version}.exe",
   },
 };
 

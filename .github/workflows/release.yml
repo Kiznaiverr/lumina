@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Read version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Check if release already exists
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          if (gh release view "v${{ steps.version.outputs.version }}" --repo ${{ github.repository }}) { echo "skipped=true" >> $env:GITHUB_OUTPUT } else { echo "skipped=false" >> $env:GITHUB_OUTPUT }
+
+      - name: Install dependencies
+        if: steps.check.outputs.skipped == 'false'
+        run: npm ci
+
+      - name: Build & bundle installer
+        if: steps.check.outputs.skipped == 'false'
+        env:
+          # Signing deferred — no cert discovery in CI
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run dist
+
+      - name: Create draft release
+        if: steps.check.outputs.skipped == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $pre = ""
+          if ("${{ steps.version.outputs.version }}" -match "-") { $pre = "--prerelease" }
+          gh release create "v${{ steps.version.outputs.version }}" "dist/Lumina-Setup-DML-${{ steps.version.outputs.version }}.exe" --repo ${{ github.repository }} --draft $pre --generate-notes --title "Lumina v${{ steps.version.outputs.version }}"
