@@ -172,6 +172,16 @@ async function ensureEmbeddedPython() {
   await fetchFile(EMBED_URL, EMBED_ZIP, 8 * 1024 * 1024);
 }
 
+/** Resolve a Python that can run `pip download`. Dev machines have venv/;
+ * CI runners don't (venv/ is gitignored), but any host Python with pip can
+ * cross-download win_amd64 wheels via --platform/--python-version — no need
+ * for an actual cp313 interpreter. */
+function pipCmd() {
+  const venv = path.join(ROOT, "venv", "Scripts", "python.exe");
+  if (existsSync(venv)) return [venv, "-m", "pip"];
+  return ["python", "-m", "pip"];
+}
+
 function downloadBackendWheels() {
   const existing = listWheels(WHEELS_BACKEND);
   if (existing.length > 0) {
@@ -181,10 +191,9 @@ function downloadBackendWheels() {
     return;
   }
   mkdirSync(WHEELS_BACKEND, { recursive: true });
-  const pip = path.join(ROOT, "venv", "Scripts", "python.exe");
+  const [pip, ...pipArgs] = pipCmd();
   sh(pip, [
-    "-m",
-    "pip",
+    ...pipArgs,
     "download",
     "-r",
     REQ_BACKEND,
@@ -206,12 +215,11 @@ function downloadOrtWheels() {
     return;
   }
   mkdirSync(WHEELS, { recursive: true });
-  const pip = path.join(ROOT, "venv", "Scripts", "python.exe");
+  const [pip, ...pipArgs] = pipCmd();
   // --no-deps: requirements-ort.txt pins the full set, so nothing else
   // should be pulled in.
   sh(pip, [
-    "-m",
-    "pip",
+    ...pipArgs,
     "download",
     "-r",
     REQ_ORT,

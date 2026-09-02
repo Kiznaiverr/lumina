@@ -20,6 +20,9 @@ const config = {
   },
   files: ["dist/**"],
   asar: true,
+  // CI has GITHUB_TOKEN injected into every step; null keeps electron-builder
+  // from auto-publishing to GitHub (the workflow uploads the draft itself).
+  publish: null,
   extraResources: [
     {
       from: path.join(ROOT, "build", "bundle"),

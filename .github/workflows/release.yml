@@ -15,19 +15,24 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Read version
         id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Check if release already exists
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: pwsh
+        shell: bash
         run: |
-          if (gh release view "v${{ steps.version.outputs.version }}" --repo ${{ github.repository }}) { echo "skipped=true" >> $env:GITHUB_OUTPUT } else { echo "skipped=false" >> $env:GITHUB_OUTPUT }
+          if gh release view "v${{ steps.version.outputs.version }}" --repo ${{ github.repository }} >/dev/null 2>&1; then
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skipped=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install dependencies
         if: steps.check.outputs.skipped == 'false'
@@ -44,8 +49,11 @@ jobs:
         if: steps.check.outputs.skipped == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: pwsh
+        shell: bash
         run: |
-          $pre = ""
-          if ("${{ steps.version.outputs.version }}" -match "-") { $pre = "--prerelease" }
-          gh release create "v${{ steps.version.outputs.version }}" "dist/Lumina-Setup-DML-${{ steps.version.outputs.version }}.exe" --repo ${{ github.repository }} --draft $pre --generate-notes --title "Lumina v${{ steps.version.outputs.version }}"
+          PRE=""
+          if [[ "${{ steps.version.outputs.version }}" == *-* ]]; then PRE="--prerelease"; fi
+          gh release create "v${{ steps.version.outputs.version }}" \
+            "dist/Lumina-Setup-DML-${{ steps.version.outputs.version }}.exe" \
+            --repo "${{ github.repository }}" --draft $PRE --generate-notes \
+            --title "Lumina v${{ steps.version.outputs.version }}"
