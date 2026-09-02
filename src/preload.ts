@@ -34,7 +34,12 @@ const api: LuminaAPI = {
     ipcRenderer.invoke(IPC.modelsPathSet, value),
   chooseModelsPath: () => ipcRenderer.invoke(IPC.modelsPathChoose),
   saveProject: (payload) => ipcRenderer.invoke(IPC.saveProject, payload),
-  openProject: () => ipcRenderer.invoke(IPC.openProject),
+  openProject: (path?: string) =>
+    ipcRenderer.invoke(IPC.openProject, path ?? undefined),
+  getPendingOpenPath: () => ipcRenderer.invoke(IPC.pendingOpenPath),
+  onOpenProjectRequest: (cb: (path: string) => void) => {
+    ipcRenderer.on(IPC.openProjectRequest, (_e, p: string) => cb(p));
+  },
   confirmDiscard: (message: string) =>
     ipcRenderer.invoke(IPC.confirmDiscard, message),
   onRequestCloseCheck: (cb: () => void) => {

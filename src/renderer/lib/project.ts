@@ -160,13 +160,15 @@ export const project = {
     history.reset();
   },
 
-  /** Open a .lmi project — replaces the whole session */
-  async open(): Promise<void> {
+  /** Open a .lmi project — replaces the whole session.
+   *  With `path`, opens that file directly (file association /
+   *  second-instance launch); without it, shows the native Open dialog. */
+  async open(path?: string): Promise<void> {
     if (state.pages.length > 0 && !(await guardUnsavedChanges())) return;
 
     let result;
     try {
-      result = await window.lumina.openProject();
+      result = await window.lumina.openProject(path);
     } catch (e) {
       console.error("[Lumina] Open failed:", e);
       ui.toast(i18n.t("project.openError"), "error", 4000);

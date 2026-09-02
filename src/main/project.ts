@@ -120,15 +120,19 @@ async function _handleSave(
 
 async function _handleOpen(
   event: IpcMainInvokeEvent,
+  explicitPath?: string,
 ): Promise<OpenProjectResult | null> {
-  const res = await dialog.showOpenDialog(_window(event)!, {
-    title: "Open Project",
-    properties: ["openFile"],
-    filters: [{ name: "Lumina Project", extensions: ["lmi"] }],
-  });
-  if (res.canceled || !res.filePaths[0]) return null;
+  let zipPath = explicitPath;
+  if (!zipPath) {
+    const res = await dialog.showOpenDialog(_window(event)!, {
+      title: "Open Project",
+      properties: ["openFile"],
+      filters: [{ name: "Lumina Project", extensions: ["lmi"] }],
+    });
+    if (res.canceled || !res.filePaths[0]) return null;
+    zipPath = res.filePaths[0];
+  }
 
-  const zipPath = res.filePaths[0];
   const entries = zipRead(fs.readFileSync(zipPath));
   const raw = entries.get("project.json");
   if (!raw) throw new Error("Invalid project file: missing project.json");
@@ -204,4 +208,9 @@ export function registerProjectIpc(): void {
   ipcMain.handle(IPC.saveProject, _handleSave);
   ipcMain.handle(IPC.openProject, _handleOpen);
   ipcMain.handle(IPC.confirmDiscard, _handleConfirmDiscard);
+}
+
+/** True when the given arg is a real .lmi file path (not a flag/value). */
+export function isLumiFileArg(arg: string): boolean {
+  return !!arg && arg.trim().toLowerCase().endsWith(".lmi");
 }

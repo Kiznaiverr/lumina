@@ -8,13 +8,27 @@ import {
 } from "./backend";
 import { registerIpcHandlers } from "./pipeline";
 import { registerSecretHandlers, registerConfigHandlers } from "./storage";
-import { registerProjectIpc } from "./project";
+import { registerProjectIpc, isLumiFileArg } from "./project";
 import { registerExportIpc } from "./export";
 import { MAIN_DIR } from "./paths";
 
 let mainWindow: BrowserWindow | null = null;
 /** Set once the renderer approved closing — skips the unsaved-changes check */
 let _allowClose = false;
+/** First .lmi path passed at launch — pulled once by the renderer */
+let _pendingOpenPath: string | null = null;
+
+/** Finds a .lmi path in a command-line arg list (skips flags/values). */
+function _findLumiPath(args: string[]): string | null {
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (!a || a.startsWith("-")) continue;
+    // "--flag=value" style
+    if (a.startsWith("--") && a.includes("=")) continue;
+    if (isLumiFileArg(a)) return a;
+  }
+  return null;
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -38,6 +52,10 @@ function createWindow(): void {
   registerConfigHandlers();
   registerProjectIpc();
   registerExportIpc();
+
+  // First .lmi path at launch — pulled once by the renderer
+  ipcMain.removeHandler(IPC.pendingOpenPath);
+  ipcMain.handle(IPC.pendingOpenPath, () => _pendingOpenPath);
 
   // Ask the renderer to confirm unsaved changes before closing (Photoshop-style).
   ipcMain.removeHandler(IPC.confirmClose);
@@ -64,6 +82,27 @@ function createWindow(): void {
 app.whenReady().then(async () => {
   // Remove default Electron menu bar (File/Edit/View...)
   Menu.setApplicationMenu(null);
+
+  // Single-instance: a second launch forwards its .lmi path to this window.
+  const gotLock = app.requestSingleInstanceLock();
+  if (!gotLock) {
+    app.quit();
+    return;
+  }
+  app.on("second-instance", (_e, argv) => {
+    const p = _findLumiPath(argv);
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+      if (p) mainWindow.webContents.send(IPC.openProjectRequest, p);
+    } else if (p) {
+      _pendingOpenPath = p;
+    }
+  });
+
+  // First launch with a .lmi file → open it once the window is ready
+  _pendingOpenPath = _findLumiPath(process.argv.slice(1));
+
   prepareCacheDir();
   await spawnPythonBackend();
   createWindow();

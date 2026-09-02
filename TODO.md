@@ -35,7 +35,7 @@
 - [ ] fix paddle family halucinating
 - [x] readme and documentation
 - [x] bundle for release
-- [ ] register file extension
+- [x] register file extension
 - [x] cancel download
 - [ ] update checker
 - [ ] custom NSIS uninstaller

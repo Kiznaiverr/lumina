@@ -252,6 +252,19 @@ i18n.init().then(function () {
 
   // ── Model check on startup ──
   setTimeout(checkModels, 1500);
+
+  // ── .lmi file association: open projects handed over by the OS ──
+  // Second instance launched while the app is running → main pushes the path
+  window.lumina.onOpenProjectRequest(function (p) {
+    void project.open(p);
+  });
+  // First launch launched with a .lmi path → pull it once
+  window.lumina
+    .getPendingOpenPath()
+    .then(function (p) {
+      if (p) void project.open(p);
+    })
+    .catch(function () {});
 });
 
 // ── Language picker removed — interface language is set in Settings → General ──

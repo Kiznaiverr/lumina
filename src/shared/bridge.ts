@@ -27,6 +27,10 @@ export const IPC = {
   modelsPathChoose: "models-path-choose",
   saveProject: "save-project",
   openProject: "open-project",
+  /** Renderer pulls the .lmi path that launched (or was passed to) the app */
+  pendingOpenPath: "pending-open-path",
+  /** Main pushes a .lmi path to an already-running app (second instance) */
+  openProjectRequest: "open-project-request",
   confirmDiscard: "confirm-discard",
   requestCloseCheck: "request-close-check",
   confirmClose: "confirm-close",
@@ -221,7 +225,12 @@ export interface LuminaAPI {
   /** Native folder picker — returns the chosen path or null */
   chooseModelsPath(): Promise<string | null>;
   saveProject(payload: ProjectSavePayload): Promise<ProjectSaveResult>;
-  openProject(): Promise<OpenProjectResult | null>;
+  /** path → open directly (no dialog); omit → native Open dialog */
+  openProject(path?: string): Promise<OpenProjectResult | null>;
+  /** First .lmi path the app was launched with, if any (pull once) */
+  getPendingOpenPath(): Promise<string | null>;
+  /** Push a .lmi path from main while the app is already running */
+  onOpenProjectRequest(cb: (path: string) => void): void;
   confirmDiscard(message: string): Promise<DiscardChoice>;
   /** Fired by main before the window closes — renderer must reply via confirmClose */
   onRequestCloseCheck(cb: () => void): void;
