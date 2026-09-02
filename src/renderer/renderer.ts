@@ -174,6 +174,31 @@ i18n.init().then(function () {
       exportModule.openAll();
     });
 
+  // ── Minimal update checker: show an update button when a newer
+  //    version is published. Clicking opens the release page (browser).
+  const btnUpdate = document.getElementById("btn-update");
+  const badge = btnUpdate?.querySelector("span");
+  if (btnUpdate) {
+    btnUpdate.addEventListener("click", function () {
+      const url = (btnUpdate as HTMLButtonElement).dataset.url;
+      if (url) void window.lumina.openUpdateUrl(url);
+    });
+  }
+  window.lumina
+    .checkForUpdates()
+    .then(function (res) {
+      if (!res.available) return;
+      if (btnUpdate && badge) {
+        btnUpdate.hidden = false;
+        (btnUpdate as HTMLButtonElement).dataset.url = res.url || "";
+        badge.title = i18n.t("update.available", { version: res.latest || "" });
+        btnUpdate.title = i18n.t("update.available", {
+          version: res.latest || "",
+        });
+      }
+    })
+    .catch(function () {});
+
   document.getElementById("btn-detect")!.addEventListener("click", function () {
     pipeline.runDetection();
   });

@@ -14,6 +14,8 @@
   "header.saveAs": "Simpan proyek sebagai (Ctrl+Shift+S)",
   "header.export": "Ekspor halaman aktif (Ctrl+E)",
   "header.exportAll": "Ekspor semua halaman (Ctrl+Shift+E)",
+  "header.update": "Versi baru tersedia",
+  "update.available": "Update tersedia: v{{version}}",
 
   "export.title": "Ekspor",
   "export.titleAll": "Ekspor semua",

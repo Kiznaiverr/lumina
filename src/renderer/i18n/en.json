@@ -14,6 +14,8 @@
   "header.saveAs": "Save project as (Ctrl+Shift+S)",
   "header.export": "Export current page (Ctrl+E)",
   "header.exportAll": "Export all pages (Ctrl+Shift+E)",
+  "header.update": "A new version is available",
+  "update.available": "Update available: v{{version}}",
 
   "export.title": "Export",
   "export.titleAll": "Export all",

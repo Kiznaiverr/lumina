@@ -37,7 +37,8 @@
 - [x] bundle for release
 - [x] register file extension
 - [x] cancel download
-- [ ] update checker
+- [x] minimal update checker
+- [ ] setup electron updater
 - [ ] custom NSIS uninstaller
 - [ ] tokenizers (paddleocr_vl): replace the "pip install tokenizers" error message in decoder.py, add an `is_ready()` check, and bundle the wheel to be extracted to `runtime_deps` when the user selects the paddleocr_vl download.
 - [x] auto clear selection tool when it converted

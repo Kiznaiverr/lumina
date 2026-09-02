@@ -47,6 +47,8 @@ const api: LuminaAPI = {
   },
   confirmClose: (ok: boolean) => ipcRenderer.invoke(IPC.confirmClose, ok),
   exportImages: (payload) => ipcRenderer.invoke(IPC.exportImages, payload),
+  checkForUpdates: () => ipcRenderer.invoke(IPC.checkForUpdates),
+  openUpdateUrl: (url: string) => ipcRenderer.invoke(IPC.openUpdateUrl, url),
 };
 
 contextBridge.exposeInMainWorld("lumina", api);

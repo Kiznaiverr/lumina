@@ -35,6 +35,8 @@ export const IPC = {
   requestCloseCheck: "request-close-check",
   confirmClose: "confirm-close",
   exportImages: "export-images",
+  checkForUpdates: "check-for-updates",
+  openUpdateUrl: "open-update-url",
 } as const;
 
 /* ── Model registry ── */
@@ -196,6 +198,16 @@ export interface FontInfo {
   italic: boolean;
 }
 
+/* ── Update check result (minimal checker) ── */
+
+export interface CheckUpdateResult {
+  available: boolean;
+  current?: string;
+  latest?: string;
+  url?: string;
+  error?: string;
+}
+
 /* ── window.lumina API exposed by preload.ts ── */
 
 export interface LuminaAPI {
@@ -237,6 +249,10 @@ export interface LuminaAPI {
   /** Tell main it may (true) or must not (false) close the window */
   confirmClose(ok: boolean): Promise<void>;
   exportImages(payload: ExportPayload): Promise<ExportResult>;
+  /** Minimal updater: GitHub latest-release check (never downloads) */
+  checkForUpdates(): Promise<CheckUpdateResult>;
+  /** Open the release page in the default browser */
+  openUpdateUrl(url: string): Promise<void>;
 }
 
 declare global {
