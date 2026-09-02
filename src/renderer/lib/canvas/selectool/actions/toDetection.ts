@@ -7,9 +7,12 @@ import { state } from "../../../state";
 import { history } from "../../../history";
 import { canvas } from "../../index";
 import { sidebar } from "../../../sidebar";
+import { tools } from "../../../tools";
 import { defaultTypography, loadGlobalTypography } from "../../../../types";
 import type { PageLayer, TextDetection } from "../../../../types";
-import { selections, shapeAABB, isHoleShape } from "../shared";
+import { selections, clearSelections, shapeAABB, isHoleShape } from "../shared";
+import { refreshOverlay } from "../render";
+import { hideContextBar } from "../contextBar";
 import { sortReadingOrder } from "../../../readingOrder";
 
 export function toDetection(): void {
@@ -104,4 +107,11 @@ export function toDetection(): void {
   canvas.render();
   sidebar.render();
   history.snapshot();
+
+  // Selection is transient: clear it right after conversion and drop back to
+  // the select tool so the fresh boxes are immediately draggable/resizable.
+  clearSelections();
+  refreshOverlay();
+  hideContextBar();
+  tools.setActive("select");
 }
