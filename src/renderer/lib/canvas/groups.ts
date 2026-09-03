@@ -2,9 +2,12 @@
 import Konva from "konva";
 import { state, CONST } from "../state";
 import { canvas } from "./index";
-import { contextMenu } from "../contextMenu";
+import { contextMenu, type MenuItem } from "../contextMenu";
 import { history } from "../history";
 import { sidebar } from "../sidebar";
+import { models } from "../models";
+import { ocr } from "../pipeline/ocr";
+import * as i18n from "../i18n";
 import type { BBox, TextDetection } from "../../types";
 import { groupRegistry } from "./groupRegistry";
 import { applyTextSelection } from "./selection";
@@ -14,6 +17,30 @@ import { applyTextSelection } from "./selection";
 canvas._setTextTransformer = function (t) {
   groupRegistry.setTextTransformer(t);
 };
+
+// ── Re-OCR submenu children: one row per installed OCR model ──
+
+/** Children for the "Re-OCR" menu item — run OCR on detection `idx` with a
+ *  chosen model. Missing models are greyed out (downloadable in settings). */
+function _ocrReRunItems(idx: number): MenuItem[] {
+  const current = models.selectedModel("ocr");
+  return models
+    .list()
+    .filter(function (m) {
+      return m.kind === "ocr";
+    })
+    .map(function (m): MenuItem {
+      return {
+        label: m.name,
+        title: m.ready ? undefined : i18n.t("models.missing"),
+        checked: m.id === current,
+        disabled: !m.ready,
+        action: function () {
+          void ocr.runBoxes([idx], m.id);
+        },
+      };
+    });
+}
 
 // ── Helpers ──
 
@@ -149,6 +176,7 @@ canvas._createTextGroup = function (
     canvas.selectTextDetection(idx);
     const page = state.getActivePage();
     if (!page) return;
+    const reOcrItems = _ocrReRunItems(idx);
     contextMenu.show(e.evt.clientX, e.evt.clientY, [
       {
         labelKey: "ctx.delete",
@@ -172,6 +200,15 @@ canvas._createTextGroup = function (
           history.snapshot();
         },
       },
+      ...(reOcrItems.length
+        ? [
+            {
+              labelKey: "ctx.reOcr",
+              separatorBefore: true,
+              children: reOcrItems,
+            },
+          ]
+        : []),
       {
         labelKey: "ctx.deselect",
         separatorBefore: true,

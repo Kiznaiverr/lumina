@@ -70,10 +70,13 @@ export const ocr = {
     }
   },
 
-  /** Run OCR on a subset of text detections (by index) — used by the
-   * selection tool's "convert to detection" so the result matches pressing
-   * the OCR button for just those boxes. Same endpoint + layer mapping. */
-  runBoxes: async function (indices: number[]): Promise<void> {
+  /** Run OCR on a subset of text detections (by index) — used by the box
+   * context menu's "re-OCR" to re-run recognition on one box. Same endpoint
+   * + layer mapping as run(); `modelId` overrides the selected OCR model. */
+  runBoxes: async function (
+    indices: number[],
+    modelId?: string,
+  ): Promise<void> {
     const page = state.getActivePage();
     if (!page || !indices.length || state.isRunning) return;
     const boxes = indices
@@ -108,7 +111,7 @@ export const ocr = {
       }>("/ocr", {
         imagePath: page.filePath,
         boxes: boxes,
-        model: models.selectedModel("ocr") || "manga_ocr",
+        model: modelId || models.selectedModel("ocr") || "manga_ocr",
       });
       if (!result || !result.results)
         throw new Error(result?.detail || "OCR failed");
@@ -132,10 +135,8 @@ export const ocr = {
 
       canvas.render();
       sidebar.render();
-      // Boxes were already snapshotted by the caller (toDetection) — fold
-      // the freshly OCR'd text into that same entry so undo removes the
-      // whole convert in ONE step.
-      history.replace();
+      // Standalone edit — its own undo step restores the previous text.
+      history.snapshot();
       ui.dismissToast(loadingToast);
       ui.toast(
         i18n.t("toast.ocrDone", { count: (result.results || []).length }),

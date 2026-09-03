@@ -1481,6 +1481,10 @@ body.resizing-row {
   display: flex;
 }
 .ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
   text-align: left;
   padding: 6px 12px;
   font-size: 0.75rem;
@@ -1488,21 +1492,58 @@ body.resizing-row {
   border-radius: 4px;
   white-space: nowrap;
 }
-.ctx-item:hover {
+.ctx-item:not(:disabled):hover {
   background: #2f2f2f;
   color: #fff;
 }
 .ctx-danger {
   color: #ff6666;
 }
-.ctx-danger:hover {
+.ctx-danger:not(:disabled):hover {
   background: #3d1a1a;
   color: #ff8888;
+}
+.ctx-check {
+  width: 12px;
+  flex: none;
+  color: #7bd88f;
+  font-size: 0.65rem;
+}
+.ctx-caret {
+  margin-left: auto;
+  flex: none;
+  opacity: 0.5;
+  font-size: 0.6rem;
+}
+.ctx-item.ctx-disabled {
+  opacity: 0.45;
+}
+.ctx-item.ctx-disabled:hover {
+  background: transparent;
+  color: #d4d4d4;
+  cursor: default;
 }
 .ctx-sep {
   height: 1px;
   background: #3a3a3a;
   margin: 4px 0;
+}
+
+/* Fly-out submenu — its own popup next to the hovered parent row */
+.ctx-sub {
+  position: fixed;
+  z-index: 200;
+  min-width: 170px;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  display: none;
+  flex-direction: column;
+}
+.ctx-sub.show {
+  display: flex;
 }
 
 /* ── Progress / download overlay ── */
