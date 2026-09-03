@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 class PPOcrV6Model(BaseOcrModel):
     name = "PP-OCRv6 (Paddle)"
-    status = "dev"  # in development — integration still being tuned
+    status = "ready"
     model_id = MODEL_ID
     model_dir_name = MODEL_DIR_NAME
     required_files = REQUIRED_FILES

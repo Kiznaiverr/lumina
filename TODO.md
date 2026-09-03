@@ -32,7 +32,7 @@
 - [x] fix merge selection objects bug
 - [x] fix convert to detection does not follow the reading order
 - [x] LaMa error unsupported quantization type on CUDA (fixed by forcing lama to CPU-only — never runs on CUDA)
-- [ ] fix paddle family halucinating
+- [x] fix paddle family halucinating (ppocrv6: tall multi-line crop misdetected as vertical and rotated 90° CCW; now orientation-aware line splitting) — paddleocr_vl still pending: see tokenizers item
 - [x] readme and documentation
 - [x] bundle for release
 - [x] register file extension
@@ -40,6 +40,7 @@
 - [x] minimal update checker
 - [ ] ~~fix trimmed or unfinished baberu-ocr result when text too long~~ (model limitation)
 - [x] setup electron updater
+- [ ] add option in context menu to re ocr a box with different model
 - [ ] custom NSIS uninstaller
 - [ ] tokenizers (paddleocr_vl): replace the "pip install tokenizers" error message in decoder.py, add an `is_ready()` check, and bundle the wheel to be extracted to `runtime_deps` when the user selects the paddleocr_vl download.
 - [x] auto clear selection tool when it converted

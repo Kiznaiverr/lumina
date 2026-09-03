@@ -20,19 +20,17 @@ export const OCR_DESCS: ModelDescMap = {
 • Sumber: huggingface.co/mayocream/manga-ocr-onnx`,
   },
   ppocrv6: {
-    en: `In development — integration is still being tuned; the app works with it, but output may be unreliable.
+    en: `PP-OCRv6 medium by PaddlePaddle — recognition for 50+ languages including Japanese. Very fast on CPU (~5 ms/line).
 
-PP-OCRv6 medium by PaddlePaddle — recognition for 50+ languages including Japanese. Very fast on CPU (~5 ms/line).
-
-• ⚠ Not recommended — in this app's testing the output was unreliable/inaccurate (likely a setup/config issue in the integration).
-• For manga, prefer Baberu OCR (recommended) or manga-ocr.
+• Reads whole lines at once — handles long / multi-line horizontal text better than Baberu OCR.
+• For Japanese manga typesetting, manga-ocr or Baberu OCR are still the better choice.
+• ⚠ Model limitation: not trained on manga text rendered at an angle, so rotated / skewed text is rarely recognized accurately. When in doubt, try manga-ocr or Baberu OCR.
 • Source: huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx`,
-    id: `Sedang disesuaikan — integrasinya masih dituning; aplikasi tetap bisa memakainya, tapi hasilnya mungkin belum akurat.
+    id: `PP-OCRv6 medium oleh PaddlePaddle — pengenalan untuk 50+ bahasa termasuk Jepang. Sangat cepat di CPU (~5 ms/baris).
 
-PP-OCRv6 medium oleh PaddlePaddle — pengenalan untuk 50+ bahasa termasuk Jepang. Sangat cepat di CPU (~5 ms/baris).
-
-• ⚠ Tidak direkomendasikan — pada pengujian di aplikasi ini hasilnya kurang akurat/tidak konsisten (kemungkinan masalah setting atau setup kode integrasinya).
-• Untuk manga, pilih Baberu OCR (direkomendasikan) atau manga-ocr.
+• Membaca seluruh baris sekaligus — menangani teks horizontal panjang / multi-baris lebih baik daripada Baberu OCR.
+• Untuk tata letak manga Jepang, manga-ocr atau Baberu OCR tetap pilihan yang lebih baik.
+• ⚠ Keterbatasan model: tidak dilatih pada teks manga yang dirender miring/berotasi, jadi teks miring jarang terbaca akurat. Jika ragu, coba manga-ocr atau Baberu OCR.
 • Sumber: huggingface.co/PaddlePaddle/PP-OCRv6_medium_rec_onnx`,
   },
   baberu: {
@@ -41,14 +39,14 @@ PP-OCRv6 medium oleh PaddlePaddle — pengenalan untuk 50+ bahasa termasuk Jepan
 • Trained on real manga typesetting: vertical text, horizontal text, and sound effects (SFX).
 • Understands stylized bubble layouts better than general-purpose OCR.
 • Runs fast on CPU — the recommended default for manga.
-• ⚠ Model limitation: long text can be cut off mid-word (e.g. "workhorse" → "wo"). Bubble-level accuracy is strong, but very long bubbles lose the tail end. The translation step can usually reconstruct the missing text from context.
+• ⚠ Model limitation: long text can be cut off mid-word (e.g. "workhorse" → "wo"). Bubble-level accuracy is strong, but very long bubbles lose the tail end. The translation step can usually reconstruct the missing text from context. For very long bubbles, try PP-OCRv6 instead.
 • Source: huggingface.co/genshiai-daichi/baberu-ocr`,
     id: `Baberu OCR (oleh genshiai-daichi) — model multibahasa 115M parameter (Jepang / Cina / Inggris) yang dirancang khusus untuk gelembung ucapan manga.
 
 • Dilatih pada tata letak manga asli: teks vertikal, teks horizontal, dan efek suara (SFX).
 • Lebih memahami layout gelembung yang bergaya daripada OCR tujuan umum.
 • Cepat di CPU — default yang direkomendasikan untuk manga.
-• ⚠ Keterbatasan model: teks yang terlalu panjang bisa terpotong di tengah kata (contoh: "workhorse" jadi "wo"). Akurasi per-gelembung kuat, tapi gelembung yang sangat panjang kehilangan bagian akhirnya. Langkah penerjemahan biasanya bisa merekonstruksi teks yang hilang dari konteks.
+• ⚠ Keterbatasan model: teks yang terlalu panjang bisa terpotong di tengah kata (contoh: "workhorse" jadi "wo"). Akurasi per-gelembung kuat, tapi gelembung yang sangat panjang kehilangan bagian akhirnya. Langkah penerjemahan biasanya bisa merekonstruksi teks yang hilang dari konteks. Untuk gelembung yang sangat panjang, coba PP-OCRv6 sebagai alternatif.
 • Sumber: huggingface.co/genshiai-daichi/baberu-ocr`,
   },
   paddleocr_vl: {

@@ -13,6 +13,52 @@ def to_bgr(crop) -> np.ndarray:
     return np.asarray(crop)[:, :, ::-1]
 
 
+def _looks_vertical(img: np.ndarray) -> bool:
+    """True if the crop is laid out as vertical columns.
+
+    The plain h > w heuristic misfires on tall multi-line horizontal
+    bubbles (e.g. a 241x407 crop of 10 stacked lines): it rotates 90°
+    CCW and the recognizer hallucinates garbage. Real vertical text has
+    narrow single-character columns, so each row band (one glyph) covers
+    only a small fraction of the crop width. Multi-line horizontal text
+    has full words per row band — much higher coverage.
+    """
+    h, w = img.shape[:2]
+    if h <= w:
+        return False  # wide crop -> horizontal
+    import cv2
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, bin_ = cv2.threshold(
+        gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
+    ink = bin_ > 0
+    rows = ink.any(axis=1)
+
+    # Per row band, measure the fraction of columns the band's ink spans
+    # (union of touched columns over all rows in the band).
+    covs: list[float] = []
+    run = 0
+    band = np.zeros(w, dtype=bool)
+    for i, v in enumerate(rows):
+        if v:
+            band |= ink[i]
+            run += 1
+        else:
+            if run >= 3:
+                covs.append(float(band.mean()))
+            band[:] = False
+            run = 0
+    if run >= 3:
+        covs.append(float(band.mean()))
+
+    # Multi-line horizontal text: several row bands, each spanning most of
+    # the crop width (0.65 vs 0.35 measured on real vs vertical samples).
+    if len(covs) >= 2 and np.mean(covs) >= 0.5:
+        return False
+    return True
+
+
 def split_lines(img: np.ndarray) -> tuple[list[np.ndarray], bool]:
     """Split a bubble crop into line-level crops for recognition.
 
@@ -28,8 +74,7 @@ def split_lines(img: np.ndarray) -> tuple[list[np.ndarray], bool]:
     """
     import cv2
 
-    h, w = img.shape[:2]
-    vertical = h > w
+    vertical = _looks_vertical(img)
     if vertical:
         img = np.rot90(img)  # CCW
     h, w = img.shape[:2]
