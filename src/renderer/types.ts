@@ -16,6 +16,9 @@ export type {
   ProjectSavePayload,
   ProjectSaveResult,
   ProjectSettingsData,
+  RecentEntry,
+  RecentKind,
+  RecentsData,
 } from "../shared/bridge";
 
 export type DetectionStatus = "auto" | "adjusted" | "rejected";

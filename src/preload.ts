@@ -37,6 +37,8 @@ const api: LuminaAPI = {
   openProject: (path?: string) =>
     ipcRenderer.invoke(IPC.openProject, path ?? undefined),
   getPendingOpenPath: () => ipcRenderer.invoke(IPC.pendingOpenPath),
+  getRecents: () => ipcRenderer.invoke(IPC.recentsList),
+  removeRecent: (path: string) => ipcRenderer.invoke(IPC.recentsRemove, path),
   onOpenProjectRequest: (cb: (path: string) => void) => {
     ipcRenderer.on(IPC.openProjectRequest, (_e, p: string) => cb(p));
   },

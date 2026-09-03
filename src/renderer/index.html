@@ -177,40 +177,8 @@
           class="card card-raised flex-1 relative overflow-hidden bg-surface-0"
           id="canvas-area"
         >
-          <!-- Landing -->
-          <div
-            id="landing"
-            class="absolute inset-0 flex flex-col items-center justify-center bg-surface-0 z-10"
-          >
-            <h2
-              class="text-text-primary text-sm mb-1"
-              data-i18n="landing.title"
-            >
-              Manga Translation Editor
-            </h2>
-            <p
-              class="text-text-muted text-xs mb-5"
-              data-i18n="landing.subtitle"
-            >
-              Import a page to begin
-            </p>
-            <div class="flex gap-2 items-center">
-              <button
-                class="btn primary"
-                id="btn-import-landing"
-                data-i18n="landing.import"
-              >
-                Import Image
-              </button>
-              <button
-                class="btn"
-                id="btn-open-landing"
-                data-i18n="landing.openProject"
-              >
-                Open Project
-              </button>
-            </div>
-          </div>
+          <!-- Landing (welcome screen — content built by lib/landing.ts) -->
+          <div id="landing" class="z-10"></div>
 
           <!-- Single Konva container -->
           <div id="canvas-container" class="absolute inset-0"></div>

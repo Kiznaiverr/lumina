@@ -27,10 +27,9 @@ import { createIcons } from "./lib/icons";
 import { project, handleCloseRequest } from "./lib/project";
 import * as exportModule from "./lib/export";
 import * as autosave from "./lib/autosave";
+import * as landing from "./lib/landing";
 import { isDirty, getSavePath, setDirtyListener } from "./lib/dirty";
 import type { Page } from "./types";
-
-const landing = document.getElementById("landing");
 
 // ── Model check on startup (CHECK ONLY — downloads are manual) ──
 function checkModels(): void {
@@ -93,7 +92,11 @@ async function importImages(): Promise<void> {
   }
 
   if (!filePaths || filePaths.length === 0) return;
+  await openImagePaths(filePaths);
+}
 
+/** Load already-chosen image paths as pages (dialog flow and recent clicks) */
+async function openImagePaths(filePaths: string[]): Promise<void> {
   for (const fp of filePaths) {
     const page = await _loadImageAsPage(fp);
     if (page) {
@@ -106,7 +109,7 @@ async function importImages(): Promise<void> {
     L.state.setActivePage(0);
   }
 
-  landing!.style.display = "none";
+  landing.hide();
   models.setHasImage(true);
 
   canvas._clearGroups();
@@ -142,21 +145,20 @@ setRendererImport(importImages);
 
 // ── Init modules ──
 i18n.init().then(function () {
+  // ── Landing welcome screen (recents + quick actions) ──
+  landing.init({
+    importImages: () => importImages(),
+    openProject: (path?: string) => project.open(path),
+    openImagePath: (path: string) => openImagePaths([path]),
+  });
+
   // ── Wire buttons ──
-  document
-    .getElementById("btn-import-landing")!
-    .addEventListener("click", importImages);
   document
     .getElementById("btn-import")!
     .addEventListener("click", importImages);
   document.getElementById("btn-open")!.addEventListener("click", function () {
     project.open();
   });
-  document
-    .getElementById("btn-open-landing")!
-    .addEventListener("click", function () {
-      project.open();
-    });
   document.getElementById("btn-save")!.addEventListener("click", function () {
     project.save();
   });

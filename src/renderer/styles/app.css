@@ -2180,3 +2180,134 @@ body.resizing-row {
 .model-desc .model-dl {
   padding: 5px 16px;
 }
+
+/* ── Landing (minimal centered welcome) ── */
+#landing {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  background: var(--color-surface-0);
+  z-index: 10;
+}
+.landing-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(520px, 92%);
+  padding: 32px 0;
+}
+.landing-title {
+  margin: 0 0 4px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+.landing-subtitle {
+  margin: 0 0 24px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+.landing-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+.landing-actions .btn {
+  padding: 5px 14px;
+  font-size: 0.78rem;
+}
+.landing-recent {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--color-surface-3);
+  border-radius: 8px;
+  background: var(--color-surface-1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.landing-section-title {
+  margin-bottom: 10px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-dim);
+}
+.landing-group {
+  margin-bottom: 12px;
+}
+.landing-group:last-child {
+  margin-bottom: 0;
+}
+.landing-group-label {
+  margin-bottom: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.landing-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.landing-row:hover {
+  background: var(--color-surface-2);
+}
+.landing-row-main {
+  flex: 1;
+  min-width: 0;
+}
+.landing-row-name {
+  font-size: 0.78rem;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.landing-row:hover .landing-row-name {
+  color: #fff;
+}
+.landing-row-path {
+  font-size: 0.66rem;
+  color: var(--color-text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.landing-row-remove {
+  flex: none;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.landing-row-remove:hover {
+  background: rgba(233, 69, 96, 0.18);
+  color: #ff7b92;
+}
+.landing-row-remove i[data-lucide] {
+  width: 12px;
+  height: 12px;
+}
+.landing-row:hover .landing-row-remove {
+  display: inline-flex;
+}
+.landing-empty {
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  color: var(--color-text-dim);
+}

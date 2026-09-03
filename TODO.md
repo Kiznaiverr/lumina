@@ -23,7 +23,7 @@
 - [x] re-design export window and replace warn
 - [x] fix masking bug when opening saved project
 - [x] improve inpainting
-- [ ] re-design landing page
+- [x] re-design landing page
 - [x] lasso & rectangle selection tools (marching ants + context bar → detection + OCR)
 - [x] multi-selection refinement: Shift=add/merge, Alt=subtract, plain=single; convert undoable
 - [x] onnx runtime with gpu acceleration support

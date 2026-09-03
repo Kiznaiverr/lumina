@@ -11,6 +11,7 @@ import { registerSecretHandlers, registerConfigHandlers } from "./storage";
 import { registerProjectIpc, isLumiFileArg } from "./project";
 import { registerExportIpc } from "./export";
 import { registerUpdaterIpc } from "./updater";
+import { registerRecentsIpc } from "./recents";
 import { MAIN_DIR } from "./paths";
 
 let mainWindow: BrowserWindow | null = null;
@@ -54,6 +55,7 @@ function createWindow(): void {
   registerProjectIpc();
   registerExportIpc();
   registerUpdaterIpc(mainWindow);
+  registerRecentsIpc();
 
   // First .lmi path at launch — pulled once by the renderer
   ipcMain.removeHandler(IPC.pendingOpenPath);

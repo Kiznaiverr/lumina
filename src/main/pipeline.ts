@@ -4,6 +4,7 @@ import fs from "fs";
 import http from "http";
 import { IPC } from "../shared/bridge";
 import { backendSourceDir, MAIN_DIR } from "./paths";
+import { recordRecent } from "./recents";
 
 const PYTHON_PORT = 8765;
 
@@ -169,7 +170,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       properties: ["openFile"],
     });
     if (result.canceled || result.filePaths.length === 0) return null;
-    return result.filePaths[0];
+    const filePath = result.filePaths[0];
+    recordRecent("image", filePath);
+    return filePath;
   });
 
   ipcMain.handle(IPC.importImages, async () => {
@@ -181,6 +184,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       properties: ["openFile", "multiSelections"],
     });
     if (result.canceled || result.filePaths.length === 0) return [];
+    // Manual imports only — pages extracted from a .lmi stay out of recents
+    result.filePaths.forEach((p) => recordRecent("image", p));
     return result.filePaths;
   });
 

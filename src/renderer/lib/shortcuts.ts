@@ -6,7 +6,7 @@ import { canvas } from "./canvas/index";
 import { project } from "./project";
 import * as exportModule from "./export";
 
-type ActionId =
+export type ActionId =
   | "undo"
   | "redo"
   | "openProject"

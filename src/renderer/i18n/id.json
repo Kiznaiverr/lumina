@@ -92,6 +92,12 @@
   "landing.subtitle": "Impor halaman untuk mulai",
   "landing.import": "Impor Gambar",
   "landing.openProject": "Buka Proyek",
+  "landing.recent": "Terbaru",
+  "landing.projects": "Proyek",
+  "landing.images": "Gambar",
+  "landing.emptyProjects": "Belum ada proyek — buka atau simpan proyek .lmi",
+  "landing.emptyImages": "Belum ada gambar — impor halaman untuk mulai",
+  "landing.remove": "Hapus dari terbaru",
 
   "project.saved": "Tersimpan",
   "project.saveError": "Gagal menyimpan proyek",

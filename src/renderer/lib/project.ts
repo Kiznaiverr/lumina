@@ -13,6 +13,7 @@ import { canvas } from "./canvas/index";
 import { sidebar } from "./sidebar";
 import { models } from "./models";
 import { translateSettings } from "./pipeline/translate";
+import * as landing from "./landing";
 import type { TranslateConfig } from "./pipeline/translate";
 import {
   getSavePath,
@@ -149,8 +150,7 @@ export const project = {
 
   /** Rebuild the UI after pages/savePath changed (open/import) */
   _rebuildUI(): void {
-    const landing = document.getElementById("landing");
-    if (landing) landing.style.display = "none";
+    landing.hide();
     models.setHasImage(true);
     canvas._clearGroups();
     canvas.render();
@@ -221,8 +221,7 @@ export const project = {
 
     if (pages.length === 0) {
       // Empty project — go back to the landing screen
-      const landing = document.getElementById("landing");
-      if (landing) landing.style.display = "flex";
+      landing.show();
       state.activePageIdx = null;
       sidebar.render();
       ui.updatePageIndicator();

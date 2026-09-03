@@ -19,6 +19,7 @@ import {
   type ProjectSaveResult,
 } from "../shared/bridge";
 import { zipRead, zipWrite } from "./zip";
+import { recordRecent } from "./recents";
 
 /** Session extraction root — wiped with the rest of the cache on app close */
 const EXTRACT_ROOT = path.join(os.tmpdir(), "lumina");
@@ -115,6 +116,7 @@ async function _handleSave(
   console.log(
     `[Lumina] Project saved: ${savePath} (${pages.length} page(s), ${entries.length} file(s))`,
   );
+  recordRecent("project", savePath);
   return { path: savePath, canceled: false };
 }
 
@@ -172,6 +174,7 @@ async function _handleOpen(
   });
 
   console.log(`[Lumina] Project opened: ${zipPath} (${pages.length} page(s))`);
+  recordRecent("project", zipPath);
   return {
     projectPath: zipPath,
     activePageIdx: proj.activePageIdx,

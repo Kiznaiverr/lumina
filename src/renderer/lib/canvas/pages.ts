@@ -6,6 +6,7 @@ import { canvas } from "./index";
 import { sidebar } from "../sidebar";
 import { history } from "../history";
 import { createIcons } from "../icons";
+import * as landing from "../landing";
 import { isDirty, markDirty } from "../dirty";
 import type { Page } from "../../types";
 
@@ -123,8 +124,7 @@ canvas.removePage = async function (idx: number): Promise<void> {
     canvas.render();
   } else {
     // No pages left — show landing
-    const landing = document.getElementById("landing");
-    if (landing) landing.classList.remove("hidden");
+    landing.show();
     const stage = canvas.getStage();
     if (stage) stage.destroy();
   }

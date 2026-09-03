@@ -92,6 +92,12 @@
   "landing.subtitle": "Import a page to begin",
   "landing.import": "Import Image",
   "landing.openProject": "Open Project",
+  "landing.recent": "Recent",
+  "landing.projects": "Projects",
+  "landing.images": "Images",
+  "landing.emptyProjects": "No recent projects — open or save a .lmi project",
+  "landing.emptyImages": "No recent images — import a page to start",
+  "landing.remove": "Remove from recent",
 
   "project.saved": "Saved",
   "project.saveError": "Failed to save project",

@@ -31,6 +31,8 @@ export const IPC = {
   pendingOpenPath: "pending-open-path",
   /** Main pushes a .lmi path to an already-running app (second instance) */
   openProjectRequest: "open-project-request",
+  recentsList: "recents-list",
+  recentsRemove: "recents-remove",
   confirmDiscard: "confirm-discard",
   requestCloseCheck: "request-close-check",
   confirmClose: "confirm-close",
@@ -167,6 +169,26 @@ export interface OpenProjectResult {
 
 export type DiscardChoice = "save" | "discard" | "cancel";
 
+/* ── Recent files / projects (landing page) ── */
+
+export type RecentKind = "project" | "image";
+
+export interface RecentEntry {
+  kind: RecentKind;
+  /** Abs path — verified to still exist when the list is served */
+  path: string;
+  /** File name (basename) for display */
+  name: string;
+  /** Last used, ms epoch */
+  ts: number;
+}
+
+/** Landing recents — newest first, already filtered to existing files. */
+export interface RecentsData {
+  projects: RecentEntry[];
+  images: RecentEntry[];
+}
+
 /* ── Export ── */
 
 /** One rendered page ready to be written to disk */
@@ -262,6 +284,10 @@ export interface LuminaAPI {
   getPendingOpenPath(): Promise<string | null>;
   /** Push a .lmi path from main while the app is already running */
   onOpenProjectRequest(cb: (path: string) => void): void;
+  /** Recently opened .lmi projects + manually imported images (newest first) */
+  getRecents(): Promise<RecentsData>;
+  /** Remove one entry from the recent lists by its absolute path */
+  removeRecent(path: string): Promise<void>;
   confirmDiscard(message: string): Promise<DiscardChoice>;
   /** Fired by main before the window closes — renderer must reply via confirmClose */
   onRequestCloseCheck(cb: () => void): void;
