@@ -1231,28 +1231,58 @@ body.resizing-row {
   pointer-events: none;
 }
 
-/* ── Layer editor (source/translation) ── */
+/* ── Layer editor (Original | Translation tabs) ── */
 .layer-editor {
   padding: 2px 8px 8px 30px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
-.layer-editor-field {
+.layer-editor-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
+  gap: 2px;
+  background: #101012;
+  border: 1px solid #2e2e32;
+  border-radius: 6px;
+  padding: 2px;
 }
-.layer-editor-label {
-  font-size: 0.58rem;
+.layer-editor-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 3px 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #8a8a8a;
+  font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #6a6a6a;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
-.layer-editor-label-translation {
+.layer-editor-tab:hover {
+  color: #d4d4d4;
+}
+.layer-editor-tab.active {
+  background: #1f1f23;
   color: #e94560;
+}
+.le-tab-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #e94560;
+  flex-shrink: 0;
+}
+.layer-editor-tab.active .le-tab-dot {
+  background: #e94560;
 }
 .layer-editor-textarea {
   width: 100%;

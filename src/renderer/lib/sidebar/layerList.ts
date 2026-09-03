@@ -18,6 +18,67 @@ const KIND_KEYS: Record<PageLayer["type"], string> = {
   image: "layers.kindImage",
 };
 
+// Active editor tab per selected layer id ("source" | "translation"), kept
+// across sidebar re-renders while the row stays selected. Collapsed rows are
+// pruned in wireEvents. Without this the default (content-derived) would
+// re-apply after every blur commit and yank the user between tabs while
+// typing.
+const _editorTabs: Record<string, "source" | "translation"> = {};
+
+function editorTabFor(layer: PageLayer): "source" | "translation" {
+  return (
+    _editorTabs[layer.id] ||
+    ((layer.translation || "").trim() ? "translation" : "source")
+  );
+}
+
+function editorTabButton(
+  which: "source" | "translation",
+  active: "source" | "translation",
+  hasContent: boolean,
+): string {
+  return (
+    '<button type="button" class="layer-editor-tab' +
+    (active === which ? " active" : "") +
+    '" data-tab="' +
+    which +
+    '">' +
+    "<span>" +
+    esc(i18n.t(which === "source" ? "layers.source" : "layers.translation")) +
+    "</span>" +
+    (hasContent ? '<span class="le-tab-dot"></span>' : "") +
+    "</button>"
+  );
+}
+
+// Content dots sit on INACTIVE tabs that hold text — a silent cue that the
+// hidden field is filled (the active tab's content is already visible).
+function syncEditorTabs(
+  row: HTMLElement,
+  active: "source" | "translation",
+  layer: PageLayer,
+): void {
+  row
+    .querySelectorAll<HTMLButtonElement>(".layer-editor-tab")
+    .forEach(function (b) {
+      const which = b.getAttribute("data-tab") as "source" | "translation";
+      b.classList.toggle("active", which === active);
+      const filled =
+        which === "source"
+          ? !!(layer.source || "").trim()
+          : !!(layer.translation || "").trim();
+      const show = filled && which !== active;
+      const dot = b.querySelector(".le-tab-dot");
+      if (show && !dot) {
+        const d = document.createElement("span");
+        d.className = "le-tab-dot";
+        b.appendChild(d);
+      } else if (!show && dot) {
+        dot.remove();
+      }
+    });
+}
+
 function layerName(layer: PageLayer): string {
   const text = layer.translation || layer.source || "";
   const trimmed = text.trim();
@@ -133,29 +194,32 @@ function layerRowHTML(page: Page, layer: PageLayer): string {
     "</button>" +
     "</div>";
 
-  // Expanded editor for the selected text layer
-  if (
-    selected &&
-    (layer.type === "text-dialogue" || layer.type === "text-free")
-  ) {
+  // Expanded editor for the selected text layer — one textarea at a time,
+  // switched through the Original | Translation tabs (the other field keeps
+  // its content; a dot on the inactive tab shows it's filled).
+  if (selected && isText) {
+    const tab = editorTabFor(layer);
+    const hasSrc = (layer.source || "").trim().length > 0;
+    const hasTr = (layer.translation || "").trim().length > 0;
     html +=
       '<div class="layer-editor">' +
-      '<div class="layer-editor-field">' +
-      '<div class="layer-editor-label">' +
-      esc(i18n.t("layers.source")) +
+      '<div class="layer-editor-tabs">' +
+      editorTabButton("source", tab, hasSrc && tab !== "source") +
+      editorTabButton("translation", tab, hasTr && tab !== "translation") +
       "</div>" +
-      '<textarea class="layer-editor-textarea" data-field="source" rows="2" draggable="false" placeholder="' +
-      esc(i18n.t("layers.sourcePlaceholder")) +
+      '<textarea class="layer-editor-textarea' +
+      (tab === "translation" ? " layer-editor-translation" : "") +
+      '" data-field="' +
+      tab +
+      '" rows="4" draggable="false" placeholder="' +
+      esc(
+        i18n.t(
+          tab === "source"
+            ? "layers.sourcePlaceholder"
+            : "layers.translationPlaceholder",
+        ),
+      ) +
       '"></textarea>' +
-      "</div>" +
-      '<div class="layer-editor-field">' +
-      '<div class="layer-editor-label layer-editor-label-translation">' +
-      esc(i18n.t("layers.translation")) +
-      "</div>" +
-      '<textarea class="layer-editor-textarea layer-editor-translation" data-field="translation" rows="3" draggable="false" placeholder="' +
-      esc(i18n.t("layers.translationPlaceholder")) +
-      '"></textarea>' +
-      "</div>" +
       "</div>";
   }
 
@@ -167,6 +231,14 @@ export function wireEvents(): void {
   const items = document.querySelectorAll<HTMLElement>(
     ".layer-row[data-layer-id]",
   );
+  // Editor tabs are per-selection state: drop the stored tab as soon as the
+  // row collapses so a positional id reused elsewhere starts fresh.
+  items.forEach(function (el) {
+    if (!el.classList.contains("selected")) {
+      const id = el.getAttribute("data-layer-id");
+      if (id) delete _editorTabs[id];
+    }
+  });
   items.forEach(function (el) {
     el.addEventListener("click", function (e) {
       const target = e.target as HTMLElement;
@@ -198,6 +270,44 @@ export function wireEvents(): void {
       }
     });
   });
+
+  // Editor tab switching — the textarea loses focus on mousedown, so the
+  // existing blur handler commits pending edits BEFORE this click fires.
+  document
+    .querySelectorAll<HTMLButtonElement>(".layer-editor-tab")
+    .forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        const row = btn.closest(".layer-row") as HTMLElement | null;
+        if (!row) return;
+        const id = row.getAttribute("data-layer-id") as string;
+        const tab = btn.getAttribute("data-tab") as "source" | "translation";
+        const page = state.getActivePage();
+        const layer = page?.layers.find(function (l) {
+          return l.id === id;
+        });
+        if (!layer) return;
+        _editorTabs[id] = tab;
+        syncEditorTabs(row, tab, layer);
+        const ta = row.querySelector<HTMLTextAreaElement>(
+          ".layer-editor-textarea",
+        );
+        if (ta) {
+          ta.setAttribute("data-field", tab);
+          ta.classList.toggle(
+            "layer-editor-translation",
+            tab === "translation",
+          );
+          ta.placeholder = i18n.t(
+            tab === "source"
+              ? "layers.sourcePlaceholder"
+              : "layers.translationPlaceholder",
+          );
+          ta.value =
+            tab === "source" ? layer.source || "" : layer.translation || "";
+        }
+      });
+    });
 
   // Drag & drop reorder (replaces the old ↑/↓ buttons).
   // Rows only accept drops from layers of the SAME type — the dialogue

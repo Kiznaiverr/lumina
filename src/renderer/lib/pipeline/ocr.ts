@@ -6,6 +6,7 @@ import { history } from "../history";
 import { canvas } from "../canvas/index";
 import { sidebar } from "../sidebar";
 import { models } from "../models";
+import { normalizeAutoText } from "./textNorm";
 import type { OcrResult } from "../../types";
 
 export const ocr = {
@@ -37,11 +38,12 @@ export const ocr = {
         throw new Error(result?.detail || "OCR failed");
 
       (result.results || []).forEach(function (r) {
+        const text = normalizeAutoText(r.text || "");
         const det = page.textDetections[r.index];
-        if (det) det.text = r.text;
+        if (det) det.text = text;
         // Mirror into the unified layer model
         const layer = page.layers[r.index];
-        if (layer && layer.type === "text-dialogue") layer.source = r.text;
+        if (layer && layer.type === "text-dialogue") layer.source = text;
       });
 
       // Boxes stay visible after OCR (toggle in the header) — they only
@@ -122,9 +124,10 @@ export const ocr = {
           intact = false;
           return;
         }
-        det.text = r.text;
+        det.text = normalizeAutoText(r.text || "");
         const layer = page.layers[indices[k2]];
-        if (layer && layer.type === "text-dialogue") layer.source = r.text;
+        if (layer && layer.type === "text-dialogue")
+          layer.source = normalizeAutoText(r.text || "");
       });
 
       canvas.render();

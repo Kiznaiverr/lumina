@@ -8,6 +8,7 @@ import { ui } from "../ui";
 import { history } from "../history";
 import { canvas } from "../canvas/index";
 import { sidebar } from "../sidebar";
+import { normalizeAutoText } from "./textNorm";
 import type { TextDetection } from "../../types";
 
 const STORAGE_KEY = "lumina-translate";
@@ -191,7 +192,7 @@ export const translate = {
         if (!r) return;
         // Fall back to the source text when the model skipped the index, so
         // no text silently disappears from the page.
-        det.translated = r.text || det.text || "";
+        det.translated = normalizeAutoText(r.text || "") || det.text || "";
         // Mirror into the unified layer model
         const detIdx = page.textDetections.indexOf(det);
         const layer = page.layers[detIdx];
@@ -262,7 +263,7 @@ export const translate = {
       if (!result || !result.results || !result.results[0])
         throw new Error(result?.detail || "Translation failed");
 
-      const translated = result.results[0].text;
+      const translated = normalizeAutoText(result.results[0].text || "");
       layer.translation = translated;
       // Mirror into the parallel detection model
       if (layer.type === "text-dialogue" && i < page.textDetections.length) {
