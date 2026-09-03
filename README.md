@@ -14,6 +14,7 @@ Lumina is a desktop application for manga, manhwa, and manhua translation. It au
 - [Project File Format (.lmi)](#project-file-format-lmi)
 - [Development](#development)
 - [Roadmap](#roadmap)
+- [Changelog](#changelog)
 - [License](#license)
 
 ## Features
@@ -137,12 +138,12 @@ The models directory is resolved in this order: the `LUMINA_MODEL_DIR` environme
 | Detect   | `rfdetr_seg`   | Ready           | CUDA / DirectML / CPU            |
 | OCR      | `manga_ocr`    | Ready (default) | CUDA / DirectML (decoder on CPU) |
 | OCR      | `baberu`       | Ready           | CUDA / DirectML (decoder on CPU) |
-| OCR      | `ppocrv6`      | In development  | CUDA / DirectML / CPU            |
+| OCR      | `ppocrv6`      | Ready           | CUDA / DirectML / CPU            |
 | OCR      | `paddleocr_vl` | In development  | CUDA or CPU (no DirectML)        |
 | Inpaint  | `lama_manga`   | Ready (default) | CUDA or CPU (no DirectML)        |
 | Inpaint  | `lama`         | Ready           | CPU only                         |
 
-"Ready" models are stable; "In development" models work but may still have rough edges. `rtdetr` is the default detector because it is Apache-2.0 licensed; `rfdetr_seg` offers better segmentation quality but is trained on the Manga109 dataset and is restricted to academic/research use (see [License](#license)).
+"Ready" models are stable; "In development" models work but may still have rough edges.
 
 ## GPU Acceleration
 
@@ -192,6 +193,10 @@ The backend is started automatically by the Electron main process; no separate s
 ## Roadmap
 
 See [TODO.md](TODO.md) for the current list of known issues and planned work.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the release history of Lumina.
 
 ## License
 
