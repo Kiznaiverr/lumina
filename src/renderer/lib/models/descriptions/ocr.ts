@@ -41,12 +41,14 @@ PP-OCRv6 medium oleh PaddlePaddle — pengenalan untuk 50+ bahasa termasuk Jepan
 • Trained on real manga typesetting: vertical text, horizontal text, and sound effects (SFX).
 • Understands stylized bubble layouts better than general-purpose OCR.
 • Runs fast on CPU — the recommended default for manga.
+• ⚠ Model limitation: long text can be cut off mid-word (e.g. "workhorse" → "wo"). Bubble-level accuracy is strong, but very long bubbles lose the tail end. The translation step can usually reconstruct the missing text from context.
 • Source: huggingface.co/genshiai-daichi/baberu-ocr`,
     id: `Baberu OCR (oleh genshiai-daichi) — model multibahasa 115M parameter (Jepang / Cina / Inggris) yang dirancang khusus untuk gelembung ucapan manga.
 
 • Dilatih pada tata letak manga asli: teks vertikal, teks horizontal, dan efek suara (SFX).
 • Lebih memahami layout gelembung yang bergaya daripada OCR tujuan umum.
 • Cepat di CPU — default yang direkomendasikan untuk manga.
+• ⚠ Keterbatasan model: teks yang terlalu panjang bisa terpotong di tengah kata (contoh: "workhorse" jadi "wo"). Akurasi per-gelembung kuat, tapi gelembung yang sangat panjang kehilangan bagian akhirnya. Langkah penerjemahan biasanya bisa merekonstruksi teks yang hilang dari konteks.
 • Sumber: huggingface.co/genshiai-daichi/baberu-ocr`,
   },
   paddleocr_vl: {

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Layer editor now switches between the original and translated text via tabs instead of stacked fields.
+- Add description about Baberu OCR warning that long text may be cut off mid-word.
 
 ### Fixed
 
