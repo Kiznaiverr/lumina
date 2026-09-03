@@ -38,8 +38,8 @@
 - [x] register file extension
 - [x] cancel download
 - [x] minimal update checker
-- [ ] fix trimmed or unfinished ocr result when text too long
-- [ ] setup electron updater
+- [ ] fix trimmed or unfinished baberu-ocr result when text too long
+- [x] setup electron updater
 - [ ] custom NSIS uninstaller
 - [ ] tokenizers (paddleocr_vl): replace the "pip install tokenizers" error message in decoder.py, add an `is_ready()` check, and bundle the wheel to be extracted to `runtime_deps` when the user selects the paddleocr_vl download.
 - [x] auto clear selection tool when it converted

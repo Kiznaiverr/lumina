@@ -36,6 +36,9 @@ export const IPC = {
   confirmClose: "confirm-close",
   exportImages: "export-images",
   checkForUpdates: "check-for-updates",
+  downloadUpdate: "download-update",
+  installUpdate: "install-update",
+  updateProgress: "update-progress",
   openUpdateUrl: "open-update-url",
 } as const;
 
@@ -208,6 +211,22 @@ export interface CheckUpdateResult {
   error?: string;
 }
 
+/** Live auto-update state pushed from main while downloading/installing. */
+export interface UpdateProgress {
+  state: "downloading" | "downloaded" | "error";
+  /** 0-100 download percent */
+  percent?: number;
+  /** Bytes downloaded so far */
+  transferred?: number;
+  /** Total bytes to download */
+  total?: number;
+  /** Bytes per second (electron-updater reports this) */
+  speed?: number;
+  /** New version once downloaded */
+  version?: string;
+  error?: string;
+}
+
 /* ── window.lumina API exposed by preload.ts ── */
 
 export interface LuminaAPI {
@@ -249,8 +268,14 @@ export interface LuminaAPI {
   /** Tell main it may (true) or must not (false) close the window */
   confirmClose(ok: boolean): Promise<void>;
   exportImages(payload: ExportPayload): Promise<ExportResult>;
-  /** Minimal updater: GitHub latest-release check (never downloads) */
+  /** Auto-updater: GitHub latest-release check (never downloads) */
   checkForUpdates(): Promise<CheckUpdateResult>;
+  /** Download the newer installer — progress pushed via onUpdateProgress */
+  downloadUpdate(): Promise<void>;
+  /** Quit & install the downloaded update */
+  installUpdate(): Promise<void>;
+  /** Push auto-update state (downloading/downloaded/error) from main */
+  onUpdateProgress(cb: (msg: UpdateProgress) => void): void;
   /** Open the release page in the default browser */
   openUpdateUrl(url: string): Promise<void>;
 }

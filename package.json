@@ -7,7 +7,7 @@
   "main": "dist/main/main.js",
   "scripts": {
     "build": "npm run build:main && npm run build:preload && npm run build:renderer && npm run typecheck",
-    "build:main": "esbuild src/main/main.ts --bundle --platform=node --format=esm --external:electron --outfile=dist/main/main.js",
+    "build:main": "esbuild src/main/main.ts --bundle --platform=node --format=esm --external:electron --external:electron-updater --outfile=dist/main/main.js",
     "build:preload": "esbuild src/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/preload.cjs",
     "build:renderer": "esbuild src/renderer/renderer.ts --bundle --outfile=dist/renderer/bundle.js --format=iife --target=es2022 --loader:.html=text && node scripts/copy-renderer-assets.mjs",
     "typecheck": "tsc -p tsconfig.json",
@@ -17,6 +17,7 @@
     "dist": "npm run build && npm run bundle && electron-builder --config scripts/electron-builder.config.mjs"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "konva": "^10.3.1",
     "lucide": "^1.33.0"
   },

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - planned 06-09-2026
 
+### Added
+
+- **`electron-updater`**: no more manual installer downloads — Lumina checks for new releases on launch and updates itself in place. Only the changed files are fetched (delta update via `blockmap`), not the full installer; installation runs through the `NSIS wizard` after a restart.
+
 ### Changed
 
 - Layer editor now switches between the original and translated text via tabs instead of stacked fields.

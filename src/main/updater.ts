@@ -1,64 +1,133 @@
-/* ── Minimal update checker ──
- * Checks GitHub's latest *published* release (drafts are ignored) once per
- * launch. If a newer version exists, the renderer shows an update button
- * that opens the release page in the default browser. No auto-download.
+/* ── Auto-updater (electron-updater + GitHub releases) ──
+ * Checks GitHub's latest *published* release once per launch (draft
+ * releases have no downloadable assets, so they are skipped). Download
+ * starts on demand from the renderer button; progress is pushed to the
+ * renderer, which reuses the model-download progress bar. Installing
+ * quits Lumina and runs the NSIS installer (non-silent, so the user can
+ * pick an install directory).
+ *
+ * In dev (npm start) there is no feed config, so this module no-ops.
  */
-import { app, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
+import updaterPkg from "electron-updater";
 import { IPC } from "../shared/bridge";
+import type { CheckUpdateResult, UpdateProgress } from "../shared/bridge";
 
-const OWNER = "lumina-tl";
-const REPO = "lumina";
-// `/releases/latest` never returns prereleases (404 for our -preview tags),
-// so fetch the newest release overall — drafts stay excluded by the API.
-const API = `https://api.github.com/repos/${OWNER}/${REPO}/releases?per_page=1`;
-const PAGE = `https://github.com/${OWNER}/${REPO}/releases`;
+// electron-updater is CommonJS — esbuild keeps it external (the dynamic
+// require("fs") inside fs-extra breaks when bundled into ESM), so destructure
+// from the default import instead of a named import.
+const { autoUpdater } = updaterPkg;
 
-/** Compare semver-ish strings. 1 = a newer, -1 = b newer, 0 = equal.
- *  "0.1.0-experimental-preview" < "0.1.0" (prerelease is older than stable). */
-function compareVersions(a: string, b: string): number {
-  const numeric = (s: string) =>
-    s.replace(/^v/i, "").split("-")[0].split(".").map(Number);
-  const pa = numeric(a);
-  const pb = numeric(b);
-  for (let i = 0; i < 3; i++) {
-    const x = pa[i] || 0;
-    const y = pb[i] || 0;
-    if (x !== y) return x > y ? 1 : -1;
+const UPDATE_URL = "https://github.com/lumina-tl/lumina/releases";
+
+let _window: BrowserWindow | null = null;
+let _checking = false;
+let _downloading = false;
+let _downloadedVersion: string | null = null;
+
+// Download/install are one-way flows — wire the events once at module load.
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
+
+function _push(progress: UpdateProgress): void {
+  if (_window && !_window.isDestroyed()) {
+    _window.webContents.send(IPC.updateProgress, progress);
   }
-  const preA = a.includes("-");
-  const preB = b.includes("-");
-  if (preA && !preB) return -1;
-  if (!preA && preB) return 1;
-  return 0;
 }
 
-export function registerUpdaterIpc(): void {
+autoUpdater.on("download-progress", function (p) {
+  _push({
+    state: "downloading",
+    percent: p.percent,
+    transferred: p.transferred,
+    total: p.total,
+    speed: p.bytesPerSecond,
+  });
+});
+
+autoUpdater.on("update-downloaded", function (info) {
+  _downloading = false;
+  _downloadedVersion = info.version;
+  _push({ state: "downloaded", version: info.version });
+});
+
+// Only push download-phase errors — check-phase failures are handled by
+// the promise in _checkOnce (the renderer button is hidden either way).
+autoUpdater.on("error", function (e) {
+  if (!_downloading) return;
+  _downloading = false;
+  _push({ state: "error", error: String((e as Error)?.message || e) });
+});
+
+function _checkOnce(): Promise<CheckUpdateResult> {
+  const current = app.getVersion();
+  return new Promise(function (resolve) {
+    let done = false;
+    const finish = function (r: CheckUpdateResult) {
+      if (done) return;
+      done = true;
+      resolve(r);
+    };
+    const onAvailable = function (info: { version: string }) {
+      finish({
+        available: true,
+        current,
+        latest: info.version,
+        url: UPDATE_URL,
+      });
+    };
+    const onNotAvailable = function () {
+      finish({ available: false, current });
+    };
+    const onError = function (e: unknown) {
+      finish({ available: false, error: String((e as Error)?.message || e) });
+    };
+    autoUpdater.once("update-available", onAvailable);
+    autoUpdater.once("update-not-available", onNotAvailable);
+    autoUpdater.once("error", onError);
+    void autoUpdater.checkForUpdates().catch(onError);
+  });
+}
+
+export function registerUpdaterIpc(win: BrowserWindow | null): void {
+  _window = win;
+
   ipcMain.removeHandler(IPC.checkForUpdates);
   ipcMain.handle(IPC.checkForUpdates, async () => {
-    try {
-      const res = await fetch(API, {
-        headers: {
-          Accept: "application/vnd.github+json",
-          "User-Agent": "lumina",
-        },
-      });
-      if (!res.ok) return { available: false, error: `HTTP ${res.status}` };
-      const data = (await res.json()) as {
-        tag_name?: string;
-        html_url?: string;
-      }[];
-      const latest = String(data?.[0]?.tag_name ?? "").replace(/^v/i, "");
-      const current = app.getVersion();
-      if (!latest) return { available: false, error: "no-tag" };
+    if (!app.isPackaged) return { available: false, error: "dev" };
+    if (_downloadedVersion) {
       return {
-        available: compareVersions(latest, current) > 0,
-        current,
-        latest,
-        url: data[0]?.html_url || PAGE,
+        available: true,
+        current: app.getVersion(),
+        latest: _downloadedVersion,
+        url: UPDATE_URL,
       };
-    } catch (e) {
-      return { available: false, error: String(e) };
     }
+    if (_checking) return { available: false };
+    _checking = true;
+    const res = await _checkOnce();
+    _checking = false;
+    return res;
+  });
+
+  ipcMain.removeHandler(IPC.downloadUpdate);
+  ipcMain.handle(IPC.downloadUpdate, async () => {
+    if (_downloading || _downloadedVersion) return;
+    _downloading = true;
+    try {
+      await autoUpdater.downloadUpdate();
+    } catch (e) {
+      _downloading = false;
+      _push({ state: "error", error: String((e as Error)?.message || e) });
+    }
+  });
+
+  ipcMain.removeHandler(IPC.installUpdate);
+  ipcMain.handle(IPC.installUpdate, () => {
+    if (!_downloadedVersion) return;
+    // Non-silent installer: keeps the "choose install dir" page of the
+    // NSIS wizard, and relaunches the app when it finishes.
+    autoUpdater.quitAndInstall(false, true);
   });
 
   ipcMain.removeHandler(IPC.openUpdateUrl);

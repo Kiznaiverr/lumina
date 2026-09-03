@@ -3,6 +3,9 @@ name: Release
 on:
   push:
     branches: [main]
+    paths:
+      - "package.json"
+  workflow_dispatch:
 
 jobs:
   release:
@@ -45,15 +48,32 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npm run dist
 
-      - name: Create draft release
+      # Release notes come from the versioned "## [<version>]" section.
+      # Falls back to generated notes if the section is missing so the release never fails.
+      - name: Extract release notes
+        if: steps.check.outputs.skipped == 'false'
+        shell: bash
+        run: |
+          if node scripts/extract-release-notes.mjs "${{ steps.version.outputs.version }}" .release-body.md; then
+            echo "notes=file" >> "$GITHUB_OUTPUT"
+          else
+            echo "notes=generate" >> "$GITHUB_OUTPUT"
+          fi
+        id: notes
+
+      - name: Create release
         if: steps.check.outputs.skipped == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          PRE=""
-          if [[ "${{ steps.version.outputs.version }}" == *-* ]]; then PRE="--prerelease"; fi
+          if [[ "${{ steps.notes.outputs.notes }}" == "file" ]]; then
+            NOTES="--notes-file .release-body.md"
+          else
+            NOTES="--generate-notes"
+          fi
           gh release create "v${{ steps.version.outputs.version }}" \
-            "dist/Lumina-Setup-DML-${{ steps.version.outputs.version }}.exe" \
-            --repo "${{ github.repository }}" --draft $PRE --generate-notes \
+            dist/Lumina-Setup-DML-${{ steps.version.outputs.version }}.exe \
+            dist/latest.yml dist/*.blockmap \
+            --repo "${{ github.repository }}" $NOTES \
             --title "Lumina v${{ steps.version.outputs.version }}"

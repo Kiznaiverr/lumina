@@ -16,6 +16,11 @@
   "header.exportAll": "Ekspor semua halaman (Ctrl+Shift+E)",
   "header.update": "Versi baru tersedia",
   "update.available": "Update tersedia: v{{version}}",
+  "update.downloading": "Mengunduh update…",
+  "update.downloaded": "Update v{{version}} selesai diunduh — klik tombol untuk memasang",
+  "update.install": "Restart untuk memasang v{{version}}",
+  "update.downloadError": "Gagal mengunduh update",
+  "update.retry": "Update gagal — klik untuk mencoba lagi",
 
   "export.title": "Ekspor",
   "export.titleAll": "Ekspor semua",

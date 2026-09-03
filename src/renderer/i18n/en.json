@@ -16,6 +16,11 @@
   "header.exportAll": "Export all pages (Ctrl+Shift+E)",
   "header.update": "A new version is available",
   "update.available": "Update available: v{{version}}",
+  "update.downloading": "Downloading update…",
+  "update.downloaded": "Update v{{version}} downloaded — click the button to install",
+  "update.install": "Restart to install v{{version}}",
+  "update.downloadError": "Update download failed",
+  "update.retry": "Update failed — click to retry",
 
   "export.title": "Export",
   "export.titleAll": "Export all",

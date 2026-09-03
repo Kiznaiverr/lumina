@@ -53,7 +53,7 @@ function createWindow(): void {
   registerConfigHandlers();
   registerProjectIpc();
   registerExportIpc();
-  registerUpdaterIpc();
+  registerUpdaterIpc(mainWindow);
 
   // First .lmi path at launch — pulled once by the renderer
   ipcMain.removeHandler(IPC.pendingOpenPath);
