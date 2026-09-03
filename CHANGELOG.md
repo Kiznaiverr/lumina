@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Layer editor now switches between the original and translated text via tabs instead of stacked fields.
 - Model descriptions updated: PP-OCRv6 graduated from "in development" — its long / multi-line horizontal text strength is now documented, with cross-references to Baberu OCR for very long bubbles (and vice versa: Japanese manga typesetting is still best handled by manga-ocr / Baberu). The description also warns that PP-OCRv6 was not trained on manga text rendered at an angle, so rotated / skewed text is rarely recognized accurately.
 - Removed the 16 px box expansion before OCR — it distorted crop aspect ratios (which re-triggered the orientation misdetection bug in PP-OCRv6).
+- UI redesign: Landing page now shows recent projects and images. 
 
 ### Fixed
 

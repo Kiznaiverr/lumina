@@ -31,7 +31,16 @@ function _esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function _rows(
+/** Absolute path → loadable file:// URL (for image previews) */
+function _fileUrl(p: string): string {
+  let norm = p.replace(/\\/g, "/");
+  if (!norm.startsWith("/")) norm = "/" + norm;
+  return "file://" + encodeURI(norm).replace(/#/g, "%23").replace(/\?/g, "%3F");
+}
+
+const MAX_PER_GROUP = 4;
+
+function _grid(
   kind: "project" | "image",
   list: { path: string; name: string }[],
 ): string {
@@ -46,27 +55,28 @@ function _rows(
       "</div>"
     );
   }
-  return list
+  const items = list
+    .slice(0, MAX_PER_GROUP)
     .map((e) => {
+      const thumb =
+        kind === "image"
+          ? '<div class="landing-thumb" style="background-image:url(\'' +
+            _fileUrl(e.path) +
+            "')\"></div>"
+          : '<div class="landing-thumb landing-thumb-project"><i data-lucide="package"></i></div>';
       return (
-        '<div class="landing-row" data-kind="' +
+        '<div class="landing-grid-item" data-kind="' +
         kind +
         '" data-path="' +
         _esc(e.path) +
         '">' +
-        '<div class="landing-row-main">' +
-        '<div class="landing-row-name" title="' +
+        thumb +
+        '<div class="landing-grid-name" title="' +
         _esc(e.name) +
         '">' +
         _esc(e.name) +
         "</div>" +
-        '<div class="landing-row-path" title="' +
-        _esc(e.path) +
-        '">' +
-        _esc(e.path) +
-        "</div>" +
-        "</div>" +
-        '<button class="landing-row-remove" title="' +
+        '<button class="landing-grid-remove" title="' +
         _esc(i18n.t("landing.remove")) +
         '" data-remove="' +
         _esc(e.path) +
@@ -75,6 +85,7 @@ function _rows(
       );
     })
     .join("");
+  return '<div class="landing-grid">' + items + "</div>";
 }
 
 function _html(data: RecentsData): string {
@@ -100,13 +111,13 @@ function _html(data: RecentsData): string {
     '<div class="landing-group-label">' +
     _esc(i18n.t("landing.projects")) +
     "</div>" +
-    _rows("project", data.projects) +
+    _grid("project", data.projects) +
     "</div>" +
     '<div class="landing-group">' +
     '<div class="landing-group-label">' +
     _esc(i18n.t("landing.images")) +
     "</div>" +
-    _rows("image", data.images) +
+    _grid("image", data.images) +
     "</div>" +
     "</div>" +
     "</div>"
@@ -151,7 +162,7 @@ function _onClick(e: MouseEvent): void {
     return;
   }
 
-  const row = target.closest(".landing-row") as HTMLElement | null;
+  const row = target.closest(".landing-grid-item") as HTMLElement | null;
   if (!row) return;
   const path = row.getAttribute("data-path");
   const kind = row.getAttribute("data-kind");
