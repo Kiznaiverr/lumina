@@ -55,21 +55,28 @@ class BaseOcrModel(ABC):
     def download(self, progress_callback: ProgressCallback = None) -> None:
         """Fetch missing files; progress = cumulative bytes over pending files."""
         self.model_dir.mkdir(parents=True, exist_ok=True)
+
         base_url = f"https://huggingface.co/{self.model_id}/resolve/main/"
+        jobs: list[tuple[str, str]] = []  # (url, filename)
+        for f in self.download_files:
+            jobs.append((base_url + f + "?download=true", f))
+        pending = [j for j in jobs if not (self.model_dir / j[1]).is_file()]
+        if not pending:
+            log.info(f"OCR model already present: {self.model_id}")
+            return
 
         log.info(f"Downloading OCR model {self.model_id} ...")
-        pending = [f for f in self.download_files if not (self.model_dir / f).is_file()]
 
         # Grand total = sum of HEAD Content-Length, so progress never
         # overshoots 100% on multi-file models. ?download=true resolves xet blobs.
         grand_total = 0
         sizes: dict[str, int] = {}
-        for f in pending:
+        for url, f in pending:
             if is_cancelled():
                 raise DownloadCancelled()
             try:
                 req = urllib.request.Request(
-                    base_url + f + "?download=true",
+                    url,
                     method="HEAD",
                     headers={"User-Agent": "Lumina/0.1"},
                 )
@@ -81,15 +88,13 @@ class BaseOcrModel(ABC):
                 grand_total += sizes[f]
 
         done = 0
-        for f in pending:
+        for url, f in pending:
             if is_cancelled():
                 raise DownloadCancelled()
             dest = self.model_dir / f
             dest.parent.mkdir(parents=True, exist_ok=True)
             part = dest.with_suffix(dest.suffix + ".part")
-            req = urllib.request.Request(
-                base_url + f + "?download=true", headers={"User-Agent": "Lumina/0.1"}
-            )
+            req = urllib.request.Request(url, headers={"User-Agent": "Lumina/0.1"})
             try:
                 with urllib.request.urlopen(req) as resp, open(part, "wb") as out:
                     total = int(resp.headers.get("Content-Length", -1))

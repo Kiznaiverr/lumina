@@ -129,6 +129,7 @@
   "models.sectionDetect": "Deteksi Teks",
   "models.sectionOcr": "OCR",
   "models.sectionInpaint": "Inpainting",
+  "models.sectionAux": "AngleNet",
   "models.ready": "Terpasang",
   "models.missing": "Belum terpasang",
   "models.download": "Unduh",

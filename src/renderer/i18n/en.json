@@ -129,6 +129,7 @@
   "models.sectionDetect": "Text Detection",
   "models.sectionOcr": "OCR",
   "models.sectionInpaint": "Inpainting",
+  "models.sectionAux": "AngleNet",
   "models.ready": "Installed",
   "models.missing": "Not installed",
   "models.download": "Download",

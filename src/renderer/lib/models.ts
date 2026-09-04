@@ -2,6 +2,8 @@
  * Owns model check/download state and gates the header pipeline buttons.
  *
  * Startup only CHECKS — downloads are manual, from Settings → Models.
+ * (The tiny AngleNet aux model is the exception: the backend auto-
+ * downloads it in the background, since it's needed for textAngle.)
  * - check():        fetch registry, refresh button states
  * - download(ids):  download the given model ids ("" = all), re-check after
  * - setHasImage():  track whether a page is loaded (pipeline needs both)
@@ -74,9 +76,11 @@ function selectedReady(kind: string): boolean {
   return !!m && m.ready;
 }
 
-/** True when every kind (detect / ocr / inpaint) has its selected model installed. */
+/** True when every pipeline kind (detect / ocr / inpaint) has its selected
+ *  model installed. Aux models (AngleNet) are auto-managed and never block
+ *  the pipeline, so they don't count toward the warning badge. */
 function allReady(): boolean {
-  const kinds = new Set(_models.map((m) => m.kind));
+  const kinds = new Set(_models.map((m) => m.kind).filter((k) => k !== "aux"));
   return kinds.size > 0 && Array.from(kinds).every((k) => selectedReady(k));
 }
 

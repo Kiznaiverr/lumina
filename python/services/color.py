@@ -29,6 +29,8 @@ from typing import Optional
 import numpy as np
 from PIL import Image
 
+from services import anglenet
+
 DIST_THRESHOLD = 40.0
 MIN_FG_PIXELS = 20
 MAX_FG_RATIO = 0.8
@@ -87,7 +89,11 @@ def _box_style(crop: np.ndarray) -> tuple[Optional[str], Optional[float]]:
 
     color = np.median(fg.astype(np.float32), axis=0)
     color_hex = "#%02x%02x%02x" % tuple(int(round(c)) for c in color)
-    angle = _blob_angle(fg_mask)
+    # Text slant from AngleNet (error ~2.9°) when available, else the PCA
+    # heuristic (error ~9°) so translated layers rotate to match the page.
+    angle = anglenet.lean_deg(crop)
+    if angle is None:
+        angle = _blob_angle(fg_mask)
     return color_hex, angle
 
 

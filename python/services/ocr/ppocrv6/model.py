@@ -68,6 +68,8 @@ class PPOcrV6Model(BaseOcrModel):
         log.info(f"PP-OCRv6 ready ({len(chars)} chars)")
 
     def ocr_boxes(self, image_path: str, boxes: list[dict]) -> list[str]:
+        import numpy as np
+
         from PIL import Image
 
         self._load()
@@ -83,7 +85,11 @@ class PPOcrV6Model(BaseOcrModel):
             x1 = min(img.width, x0 + max(1, int(b["w"])))
             y1 = min(img.height, y0 + max(1, int(b["h"])))
             crop = img.crop((x0, y0, x1, y1))
-            lines, vertical = prep.split_lines(prep.to_bgr(crop))
+            crop_bgr = prep.to_bgr(crop)
+
+            # split_lines decides vertical/horizontal from the crop content.
+            lines, vertical = prep.split_lines(crop_bgr)
+
             parts: list[str] = []
             for line in lines:
                 tensor = prep.preprocess(line)[None]

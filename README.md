@@ -2,6 +2,8 @@
 
 Lumina is a desktop application for manga, manhwa, and manhua translation. It automates the core pipeline — text detection, OCR, translation, inpainting, and typesetting — but every step stays editable: full automation is rarely accurate enough, so a light human pass is expected to polish the final result. All models run locally through ONNX Runtime; translation is the only step that calls external AI APIs.
 
+![Lumina main interface](showcase/screenshot.png)
+
 ## Table of Contents
 
 - [Features](#features)
@@ -27,8 +29,6 @@ Lumina is a desktop application for manga, manhwa, and manhua translation. It au
 - **GPU acceleration** with per-model execution provider control.
 
 ## Showcase
-
-![Lumina main interface](showcase/screenshot.png)
 
 The following examples may not be frequently updated and may not represent the effect of the current main branch version.
 
@@ -142,8 +142,11 @@ The models directory is resolved in this order: the `LUMINA_MODEL_DIR` environme
 | OCR      | `paddleocr_vl` | In development  | CUDA or CPU (no DirectML)        |
 | Inpaint  | `lama_manga`   | Ready (default) | CUDA or CPU (no DirectML)        |
 | Inpaint  | `lama`         | Ready           | CPU only                         |
+| Aux      | `anglenet`     | Ready (aux)     | CPU (forced)                     |
 
 "Ready" models are stable; "In development" models work but may still have rough edges.
+
+`anglenet` is a tiny global model (~2 MB) that the app auto-downloads in the background on first launch (it also shows up in the model check endpoint, so it can be fetched again manually if needed). It measures the slant of each detected text crop so typesetting can rotate translated text to match the original (`textAngle`); if the file is missing, slant falls back to the PCA heuristic.
 
 ## GPU Acceleration
 
@@ -155,7 +158,7 @@ Lumina uses ONNX Runtime with GPU support where available.
 
 ## Installers
 
-Prebuilt Windows installers ship with the DirectML runtime only. The installer is produced by a GitHub Actions workflow that runs on every version bump (push to `main`) and publishes it as a **draft release** on the [Releases](https://github.com/lumina-tl/lumina/releases) page — notes are auto-generated from commits and can be edited before publishing. The artifact is named `Lumina-Setup-DML-<version>.exe` (for example `Lumina-Setup-DML-0.1.0-experimental-preview.exe`). DirectML runs on any GPU that supports DirectX 12 — including NVIDIA — and falls back to CPU on machines without a compatible GPU.
+Prebuilt Windows installers ship with the DirectML runtime only. The installer is built by a GitHub Actions workflow that runs on a version bump (a push to `main` touching `package.json`) or can be triggered manually; if a release for that version already exists, the workflow skips it. It publishes a release titled `Lumina v<version>` on the [Releases](https://github.com/lumina-tl/lumina/releases) page, attaching the `Lumina-Setup-DML-<version>.exe` artifact together with the auto-update feed files (`latest.yml`, `.blockmap`) — the app checks this feed at launch and can update itself, so a one-time install is usually all that's needed. Release notes are taken from the matching `## [<version>]` section in [CHANGELOG.md](CHANGELOG.md); if that section is missing, notes are generated from the commits. DirectML runs on any GPU that supports DirectX 12 — including NVIDIA — and falls back to CPU on machines without a compatible GPU.
 
 A CUDA installer is not available yet — but `CUDA acceleration` still works when `running from source`: set up the Python backend with the `onnxruntime-gpu[cuda,cudnn]` wheel (see [Development](#development)) and start the app with `npm start`.
 

@@ -71,6 +71,28 @@ def _cleanup_stale_parts() -> None:
 _cleanup_stale_parts()
 
 
+def _auto_download_anglenet() -> None:
+    """Background auto-download of the global AngleNet model at startup.
+
+    AngleNet is tiny (~2 MB) and needed for textAngle on every page, so it
+    is fetched automatically instead of waiting for a manual Settings
+    download. Skips silently when already present; a failure only logs.
+    """
+    try:
+        from services import anglenet
+
+        if anglenet.is_ready():
+            return
+        log.info("AngleNet missing - starting background auto-download")
+        anglenet.download()
+        log.info("AngleNet auto-download finished")
+    except Exception as e:
+        log.error(f"AngleNet auto-download failed: {e}")
+
+
+threading.Thread(target=_auto_download_anglenet, daemon=True).start()
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -244,8 +266,18 @@ def _all_model_infos() -> list[dict]:
     from services.detect import get_models_info as detect_infos
     from services.ocr import get_models_info as ocr_infos
     from services.inpaint import get_models_info as inpaint_infos
+    from services import anglenet
 
-    return detect_infos() + ocr_infos() + inpaint_infos()
+    aux = {
+        "id": "anglenet",
+        "name": "AngleNet",
+        "kind": "aux",
+        "status": "ready",
+        "ready": anglenet.is_ready(),
+        "size": anglenet.size(),
+        "prefer": "cpu",
+    }
+    return detect_infos() + ocr_infos() + inpaint_infos() + [aux]
 
 
 @app.get("/models", response_model=ModelStatus)
@@ -314,6 +346,11 @@ def model_download(req: ModelDownloadRequest):
         model = inpaint_service.MODELS[name]
         if not model.is_ready():
             targets.append(("inpaint", lambda m=model: m.download(_cb)))
+
+    from services import anglenet
+
+    if _wants("aux") and not anglenet.is_ready():
+        targets.append(("aux", lambda: anglenet.download(_cb)))
 
     if not targets:
         return {"status": "ok", "alreadyPresent": True}
