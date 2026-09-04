@@ -12,8 +12,6 @@ from .._base import (
     build_system_instruction,
     parse_numbered_batch,
 )
-from ..protocol.anthropic import chat as chat_anthropic
-from ..protocol.openai import chat as chat_openai
 
 
 def _resolve(config: dict) -> tuple[str, str, str, str]:
@@ -30,8 +28,14 @@ def _resolve(config: dict) -> tuple[str, str, str, str]:
 def _chat(
     base_url: str, api_key: str, model: str, style: str, system: str, user: str
 ) -> str:
+    # Import only the protocol for the configured style so the other SDK
+    # never loads (one provider = one SDK).
     if style == "anthropic":
+        from ..protocol.anthropic import chat as chat_anthropic
+
         return chat_anthropic(base_url, api_key, model, system, user)
+    from ..protocol.openai import chat as chat_openai
+
     return chat_openai(base_url, api_key, model, system, user)
 
 

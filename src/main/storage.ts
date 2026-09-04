@@ -15,15 +15,24 @@ function filePath(): string {
   return path.join(app.getPath("userData"), FILE_NAME);
 }
 
+// In-memory cache — the vault file is read at most once per process; every
+// translate used to re-read + decrypt the whole file 4× via getSecret.
+let _cache: Record<string, string> | null = null;
+
 function readAll(): Record<string, string> {
+  if (_cache) return _cache;
+  let data: Record<string, string>;
   try {
-    return JSON.parse(fs.readFileSync(filePath(), "utf-8"));
+    data = JSON.parse(fs.readFileSync(filePath(), "utf-8"));
   } catch {
-    return {};
+    data = {};
   }
+  _cache = data;
+  return _cache;
 }
 
 function writeAll(data: Record<string, string>): void {
+  _cache = data;
   const file = filePath();
   fs.mkdirSync(path.dirname(file), { recursive: true });
   // Write via temp file + rename so a crash can't corrupt the store
@@ -90,6 +99,12 @@ export function registerSecretHandlers(): void {
     setSecret(String(key), String(value ?? ""));
   });
   ipcMain.handle(IPC.secretsGet, (_e, key: string) => getSecret(String(key)));
+  ipcMain.handle(IPC.secretsGetMany, (_e, keys: string[]) => {
+    const out: Record<string, string | null> = {};
+    const list = Array.isArray(keys) ? keys : [];
+    for (const k of list) out[String(k)] = getSecret(String(k));
+    return out;
+  });
   ipcMain.handle(IPC.secretsDelete, (_e, key: string) =>
     deleteSecret(String(key)),
   );

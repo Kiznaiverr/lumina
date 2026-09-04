@@ -93,6 +93,24 @@ def _auto_download_anglenet() -> None:
 threading.Thread(target=_auto_download_anglenet, daemon=True).start()
 
 
+def _warmup_llm_sdks() -> None:
+    """Pre-import the LLM SDKs so the first /translate doesn't pay the import
+    cost inside the request. Runs non-blocking after startup; the window can
+    open immediately and by the time a user translates, the SDKs are loaded.
+    Importing is thread-safe (Python module lock) and idempotent.
+    """
+    try:
+        import openai  # noqa: F401
+        import anthropic  # noqa: F401
+
+        log.debug("LLM SDK warmup complete")
+    except Exception as e:
+        log.debug(f"LLM SDK warmup skipped: {e}")
+
+
+threading.Thread(target=_warmup_llm_sdks, daemon=True).start()
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}

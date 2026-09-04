@@ -10,27 +10,40 @@ provider/ and registering it in PROVIDERS.
 """
 from __future__ import annotations
 
+import importlib
 from typing import Callable
 
 from ._base import TranslateError
-from .provider import custom, gemini, grok, openrouter
 
 ProviderFn = Callable[[str, str, str, dict], str]
 BatchFn = Callable[[list[str], str, str, dict], list[str]]
 
-PROVIDERS: dict[str, ProviderFn] = {
-    "custom": custom.translate,
-    "openrouter": openrouter.translate,
-    "grok": grok.translate,
-    "gemini": gemini.translate,
+# Provider modules are imported LAZILY (first use) so the heavy SDK deps
+# (openai / anthropic) only load for the provider actually configured.
+_PROVIDERS: dict[str, str] = {
+    "custom": "custom",
+    "openrouter": "openrouter",
+    "grok": "grok",
+    "gemini": "gemini",
 }
 
-BATCH_PROVIDERS: dict[str, BatchFn] = {
-    "custom": custom.translate_batch,
-    "openrouter": openrouter.translate_batch,
-    "grok": grok.translate_batch,
-    "gemini": gemini.translate_batch,
-}
+_loaded: dict[str, object] = {}
+
+
+def _provider_module(name: str):
+    mod = _loaded.get(name)
+    if mod is None:
+        mod = importlib.import_module(f".provider.{name}", __package__)
+        _loaded[name] = mod
+    return mod
+
+
+def _provider_fn(name: str) -> ProviderFn:
+    return _provider_module(name).translate
+
+
+def _batch_fn(name: str) -> BatchFn | None:
+    return getattr(_provider_module(name), "translate_batch", None)
 
 
 def _provider_name(config: dict) -> str:
@@ -47,16 +60,19 @@ def _normalize_source(config: dict) -> str:
 
 def translate_text(text: str, config: dict) -> str:
     name = _provider_name(config)
-    fn = PROVIDERS.get(name)
-    if fn is None:
+    if name not in _PROVIDERS:
         raise TranslateError(f"Unknown translation provider: {name!r}")
-    return fn(text, _normalize_source(config), config.get("targetLang") or "en", config)
+    return _provider_fn(name)(
+        text, _normalize_source(config), config.get("targetLang") or "en", config
+    )
 
 
 def translate_texts(texts: list[str], config: dict) -> list[str]:
     """Translate a list of texts — native batch if the provider supports it,
     otherwise per-text loop."""
     name = _provider_name(config)
+    if name not in _PROVIDERS:
+        raise TranslateError(f"Unknown translation provider: {name!r}")
     source = _normalize_source(config)
     target = config.get("targetLang") or "en"
 
@@ -79,13 +95,11 @@ def translate_texts(texts: list[str], config: dict) -> list[str]:
     if meta:
         config = {**config, **meta}
 
-    batch_fn = BATCH_PROVIDERS.get(name)
+    batch_fn = _batch_fn(name)
     if batch_fn is not None:
         translated = batch_fn(payload, source, target, config)
     else:
-        fn = PROVIDERS.get(name)
-        if fn is None:
-            raise TranslateError(f"Unknown translation provider: {name!r}")
+        fn = _provider_fn(name)
         translated = []
         for (i, t) in non_empty:
             seg_config = config
@@ -106,6 +120,4 @@ __all__ = [
     "TranslateError",
     "translate_text",
     "translate_texts",
-    "PROVIDERS",
-    "BATCH_PROVIDERS",
 ]

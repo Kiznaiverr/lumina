@@ -21,6 +21,7 @@ export const IPC = {
   loadDefaultInstruction: "load-default-instruction",
   secretsSet: "secrets-set",
   secretsGet: "secrets-get",
+  secretsGetMany: "secrets-get-many",
   secretsDelete: "secrets-delete",
   modelsPathGet: "models-path-get",
   modelsPathSet: "models-path-set",
@@ -297,6 +298,8 @@ export interface LuminaAPI {
   loadDefaultInstruction(): Promise<string>;
   setSecret(key: string, value: string): Promise<void>;
   getSecret(key: string): Promise<string | null>;
+  /** Batch read — one IPC round-trip instead of one per key */
+  getSecrets(keys: string[]): Promise<Record<string, string | null>>;
   deleteSecret(key: string): Promise<void>;
   /** Resolved models directory + whether it's an env override */
   getModelsPath(): Promise<ModelsPathState>;

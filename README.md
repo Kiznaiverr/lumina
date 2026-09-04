@@ -11,6 +11,7 @@ Lumina is a desktop application for manga, manhwa, and manhua translation. It au
 - [How It Works](#how-it-works)
 - [Architecture](#architecture)
 - [Models](#models)
+- [Translation](#translation)
 - [GPU Acceleration](#gpu-acceleration)
 - [Installers](#installers)
 - [Project File Format (.lmi)](#project-file-format-lmi)
@@ -147,6 +148,20 @@ The models directory is resolved in this order: the `LUMINA_MODEL_DIR` environme
 "Ready" models are stable; "In development" models work but may still have rough edges.
 
 `anglenet` is a tiny global model (~2 MB) that the app auto-downloads in the background on first launch (it also shows up in the model check endpoint, so it can be fetched again manually if needed). It measures the slant of each detected text crop so typesetting can rotate translated text to match the original (`textAngle`); if the file is missing, slant falls back to the PCA heuristic.
+
+## Translation
+
+Translation is the only step that calls an external AI API — everything else (detection, OCR, inpainting, typesetting) runs fully offline. You pick a provider and enter its API key in the translation settings; the key never leaves your machine except as a request header sent directly to the provider you chose.
+
+| Provider   | Compatible with                         | Notes                                                                                                                                            |
+| ---------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Custom     | Any OpenAI- or Anthropic-compatible API | Bring your own base URL (Ollama, LM Studio, vLLM, OpenRouter, etc.); an `anthropic` style switch is available for Anthropic-compatible endpoints |
+| OpenRouter | OpenRouter                              | Uses your OpenRouter key and model                                                                                                               |
+| Groq       | Groq (GroqCloud)                        | Uses your Groq key and model                                                                                                                     |
+| Gemini     | Google Gemini                           | Uses your Gemini API key                                                                                                                         |
+
+- **API keys stay local and encrypted.** Keys are stored in Lumina's local secrets vault — encrypted with your operating system's credential facility (DPAPI on Windows, Keychain on macOS, libsecret on Linux) and persisted to `secrets.json` in the app's user-data folder. They are never written to project files (`.lmi`) or sent anywhere except directly to the provider you configured. If the OS encryption facility is unavailable, a fallback (base64 obfuscation) is used rather than failing.
+- **Providers load on demand.** The app only imports the SDK for the provider you actually use, so switching between providers (or running local-only models) has no startup cost for the others.
 
 ## GPU Acceleration
 

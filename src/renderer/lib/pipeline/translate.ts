@@ -117,14 +117,18 @@ export const translateSettings = {
   /** Full config incl. api keys — call before POST /translate */
   async loadWithSecrets(): Promise<TranslateConfig> {
     const cfg = this.load();
-    if (window.lumina.getSecret) {
+    if (window.lumina.getSecrets) {
       try {
-        cfg.llmApiKey = (await window.lumina.getSecret("llmApiKey")) || "";
-        cfg.openrouterApiKey =
-          (await window.lumina.getSecret("openrouterApiKey")) || "";
-        cfg.grokApiKey = (await window.lumina.getSecret("grokApiKey")) || "";
-        cfg.geminiApiKey =
-          (await window.lumina.getSecret("geminiApiKey")) || "";
+        const secrets = await window.lumina.getSecrets([
+          "llmApiKey",
+          "openrouterApiKey",
+          "grokApiKey",
+          "geminiApiKey",
+        ]);
+        cfg.llmApiKey = secrets.llmApiKey || "";
+        cfg.openrouterApiKey = secrets.openrouterApiKey || "";
+        cfg.grokApiKey = secrets.grokApiKey || "";
+        cfg.geminiApiKey = secrets.geminiApiKey || "";
         console.log(
           `[Lumina] secrets load: custom=${cfg.llmApiKey ? "set" : "empty"} openrouter=${cfg.openrouterApiKey ? "set" : "empty"} grok=${cfg.grokApiKey ? "set" : "empty"} gemini=${cfg.geminiApiKey ? "set" : "empty"}`,
         );

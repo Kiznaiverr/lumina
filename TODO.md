@@ -47,7 +47,7 @@
 - [x] auto clear selection tool when it converted
 - [x] add paintbucket, eyedropper, and brush tools for cleanup mask
 - [ ] fix undo/redo blinking 
-- [ ] better translation's secret key loading
+- [x] better translation's secret key loading
 - [ ] add masking tool for cleanup mask
 - [ ] installer CUDA variant? soon~
 - [ ] documentation website
