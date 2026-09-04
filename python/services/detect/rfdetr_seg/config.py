@@ -13,3 +13,10 @@ IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
 CLASS_THRESHOLDS = {0: 0.25, 1: 0.20, 2: 0.50, 3: 0.50}
+
+# Koharu-layout classes (ShiniShiho/koharu-layout-rfdetr-seg docs):
+#   0 = text       — dialogue, captions, titles, credits, other non-COO text
+#   1 = onomatopoeia — comic onomatopoeia and sound effects (COO)
+#   2 = bubble      — speech and text balloons
+#   3 = panel       — manga panels and frames
+CLASS_NAMES = {0: "text", 1: "onomatopoeia", 2: "bubble", 3: "panel"}

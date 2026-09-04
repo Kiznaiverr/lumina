@@ -9,6 +9,7 @@ import { models } from "../models";
 import type { DetectResult, PageLayer, TextDetection } from "../../types";
 import { sortReadingOrder } from "../readingOrder";
 import { defaultTypography, loadGlobalTypography } from "../../types";
+import { assignBubbleFitBoxes } from "../bubbleBox";
 
 export const detection = {
   /** Run detection on active page */
@@ -58,6 +59,16 @@ export const detection = {
       page.textDetections = sortedTexts;
       page.maskPath = result.maskPath ?? null;
 
+      // Balloon text gets a roomier typesetting box: the interior of its
+      // bubble shell. OCR & inpaint keep the glyph-tight text boxes above;
+      // only the dialogue layer bbox (which drives auto-fit + render) is
+      // widened so translated text fills the bubble instead of shrinking
+      // into the tight text rectangle.
+      const fitBoxes = assignBubbleFitBoxes(
+        sortedTexts,
+        result.bubbleDetections || [],
+      );
+
       page._selectedTextIdx = null;
 
       // Sync text detections into the unified layer model (dialogue layers).
@@ -66,10 +77,11 @@ export const detection = {
         return l.type === "text-free";
       });
       const dialogueLayers: PageLayer[] = sortedTexts.map(function (d, i) {
+        const fit = fitBoxes[i];
         return {
           id: "layer-t" + i,
           type: "text-dialogue" as const,
-          bbox: Object.assign({}, d.bbox),
+          bbox: fit ? Object.assign({}, fit) : Object.assign({}, d.bbox),
           source: d.text || "",
           translation: d.translated || "",
           // New dialogue layers inherit the global type defaults; the

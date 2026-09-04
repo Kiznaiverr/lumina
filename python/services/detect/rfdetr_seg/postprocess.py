@@ -5,7 +5,7 @@ from typing import Optional
 
 import numpy as np
 
-from .config import CLASS_THRESHOLDS, MASK_SIZE
+from .config import CLASS_NAMES, CLASS_THRESHOLDS, MASK_SIZE
 
 
 def split_outputs(
@@ -81,14 +81,16 @@ def postprocess(
         }
         conf = round(conf, 4)
 
-        if cls == 0:  # text
+        name = CLASS_NAMES.get(cls, "unknown")
+
+        if name == "text":
             text_detections.append(
                 {"bbox": bbox, "type": "text_free", "confidence": conf}
             )
             text_masks.append(np.asarray(masks[0, i]))
-        elif cls == 2:  # bubble
+        elif name == "bubble":
             bubble_detections.append({"bbox": bbox, "confidence": conf})
-        # cls 1 (onomatopoeia) and cls 3 (panel) are skipped
+        # onomatopoeia (1), panel (3) and unknown classes are skipped
 
     result = {
         "textDetections": text_detections,
