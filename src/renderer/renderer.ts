@@ -22,6 +22,8 @@ import "./lib/canvas/layers";
 import "./lib/canvas/masks";
 import { bindTextTool } from "./lib/canvas/textool";
 import { bindSelectTool } from "./lib/canvas/selectool";
+import { bindPaintTool } from "./lib/canvas/paintool";
+import { initPaintOptions } from "./lib/paintOptions";
 import { loadSystemFonts } from "./lib/fontLoader";
 import { createIcons } from "./lib/icons";
 import { project, handleCloseRequest } from "./lib/project";
@@ -64,6 +66,7 @@ function _loadImageAsPage(filePath: string): Promise<Page | null> {
         textDetections: [],
         layers: [],
         inpaintMasks: [],
+        cleanupMask: null,
         backgroundVisible: true,
         _selectedTextIdx: null,
         _selectedLayerId: null,
@@ -332,6 +335,8 @@ i18n.init().then(function () {
   canvas.initBindings();
   bindTextTool();
   bindSelectTool();
+  bindPaintTool();
+  initPaintOptions();
   sidebar.render();
 
   setDirtyListener(updateDirtyUI);

@@ -21,7 +21,7 @@ function fileUrl(p: string): string {
 }
 
 export function maskListHTML(page: Page | null): string {
-  if (!page || !page.inpaintMasks.length)
+  if (!page)
     return (
       '<div class="field-readonly">' + i18n.t("sidebar.noMasks") + "</div>"
     );
@@ -30,7 +30,71 @@ export function maskListHTML(page: Page | null): string {
   page.inpaintMasks.forEach(function (m, i) {
     html += maskRowHTML(page, m, i);
   });
+  // Cleanup raster layer row (brush/eraser/bucket) — or the Add button when
+  // it doesn't exist yet. Both always render, even with zero inpaint patches.
+  if (page.cleanupMask) html += cleanupRowHTML(page);
+  else html += addMaskHTML();
   return html;
+}
+
+/** "+ Add mask" — creates the empty Cleanup raster layer (one snapshot). */
+function addMaskHTML(): string {
+  return (
+    '<button class="mask-add-btn" id="mask-add" data-action="add-cleanup">' +
+    '<i data-lucide="plus"></i><span>' +
+    esc(i18n.t("masks.addMask")) +
+    "</span></button>"
+  );
+}
+
+function cleanupRowHTML(page: Page): string {
+  const mask = page.cleanupMask!;
+  const pct = Math.round(mask.opacity * 100);
+  const selected = page._selectedMaskId === mask.id;
+  return (
+    '<div class="layer-row' +
+    (selected ? " selected" : "") +
+    '" data-cleanup-id="' +
+    esc(mask.id) +
+    '">' +
+    '<div class="layer-row-main">' +
+    '<i data-lucide="brush" class="layer-icon"></i>' +
+    '<div class="layer-name-wrap">' +
+    '<span class="layer-name">' +
+    esc(i18n.t("masks.cleanup")) +
+    "</span>" +
+    (selected
+      ? '<div class="mask-opacity-line">' +
+        '<span class="mask-opacity-label">' +
+        esc(i18n.t("masks.opacity")) +
+        "</span>" +
+        '<input type="range" class="cleanup-opacity" min="0" max="100" value="' +
+        pct +
+        '">' +
+        '<span class="mask-opacity-value">' +
+        pct +
+        "%</span>" +
+        "</div>" +
+        '<div class="cleanup-actions">' +
+        '<button class="det-btn" data-action="clear" title="' +
+        esc(i18n.t("masks.clear")) +
+        '"><i data-lucide="eraser"></i></button>' +
+        '<button class="det-btn det-btn-danger" data-action="delete" title="' +
+        esc(i18n.t("masks.delete")) +
+        '"><i data-lucide="trash-2"></i></button>' +
+        "</div>"
+      : "") +
+    "</div>" +
+    '<button class="layer-eye" data-action="toggle-visible" title="' +
+    esc(i18n.t("layers.toggleVisible")) +
+    '">' +
+    (mask.visible
+      ? '<i data-lucide="eye"></i>'
+      : '<i data-lucide="eye-off"></i>') +
+    "</button>" +
+    "</div>" +
+    "</div>"
+  );
 }
 
 function maskRowHTML(page: Page, mask: InpaintMask, idx: number): string {
@@ -122,6 +186,59 @@ export function wireMaskEvents(): void {
         const id = row.getAttribute("data-mask-id") as string;
         canvas.setMaskOpacity(id, parseInt(r.value, 10) / 100);
         const val = row.querySelector<HTMLElement>(".mask-opacity-value");
+        if (val) val.textContent = r.value + "%";
+      };
+      r.addEventListener("input", sync);
+      r.addEventListener("change", function () {
+        sync();
+        history.snapshot();
+      });
+    });
+
+  // ── Cleanup raster layer row ──
+  const addBtn = document.getElementById("mask-add");
+  if (addBtn) {
+    addBtn.addEventListener("click", function () {
+      canvas.addCleanupMask();
+    });
+  }
+
+  document
+    .querySelectorAll<HTMLElement>(".layer-row[data-cleanup-id]")
+    .forEach(function (el) {
+      el.addEventListener("click", function (e) {
+        const target = e.target as HTMLElement;
+        const id = el.getAttribute("data-cleanup-id") as string;
+        const btn = target.closest(".det-btn") as HTMLButtonElement | null;
+        const eye = target.closest(".layer-eye") as HTMLButtonElement | null;
+        if (eye) {
+          e.stopPropagation();
+          canvas.toggleCleanupVisible();
+          return;
+        }
+        if (btn) {
+          e.stopPropagation();
+          const action = btn.getAttribute("data-action");
+          if (action === "clear") canvas.clearCleanupMask();
+          else canvas.deleteCleanupMask();
+          return;
+        }
+        if (target.closest(".cleanup-opacity")) return;
+        if (page) {
+          page._selectedMaskId = page._selectedMaskId === id ? null : id;
+          sidebar.render();
+        }
+      });
+    });
+
+  document
+    .querySelectorAll<HTMLInputElement>(".cleanup-opacity")
+    .forEach(function (r) {
+      const sync = function (): void {
+        canvas.setCleanupOpacity(parseInt(r.value, 10) / 100);
+        const val = r
+          .closest(".layer-row")!
+          .querySelector<HTMLElement>(".mask-opacity-value");
         if (val) val.textContent = r.value + "%";
       };
       r.addEventListener("input", sync);

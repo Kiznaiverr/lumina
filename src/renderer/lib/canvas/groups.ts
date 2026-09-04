@@ -168,11 +168,18 @@ canvas._createTextGroup = function (
 
   group.on("click", function (e) {
     e.cancelBubble = true;
+    // Paint tools own the pointer — never select detections while painting.
+    const t = state.activeTool;
+    if (t === "brush" || t === "eraser" || t === "bucket" || t === "eyedropper")
+      return;
     canvas.selectTextDetection(idx);
   });
   group.on("contextmenu", function (e) {
     e.cancelBubble = true;
     e.evt.preventDefault();
+    const t = state.activeTool;
+    if (t === "brush" || t === "eraser" || t === "bucket" || t === "eyedropper")
+      return;
     canvas.selectTextDetection(idx);
     const page = state.getActivePage();
     if (!page) return;
@@ -220,6 +227,9 @@ canvas._createTextGroup = function (
   });
   group.on("dblclick dbltap", function (e) {
     e.cancelBubble = true;
+    const t = state.activeTool;
+    if (t === "brush" || t === "eraser" || t === "bucket" || t === "eyedropper")
+      return;
     const page = state.getActivePage();
     if (!page) return;
     const d = page.textDetections[idx];

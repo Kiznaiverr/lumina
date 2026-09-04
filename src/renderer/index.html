@@ -78,6 +78,69 @@
           <i data-lucide="images" class="w-3 h-3"></i>
         </button>
       </div>
+      <div id="paint-options" class="hidden paint-options">
+        <label class="paint-opt paint-opt-color" title="Color">
+          <span class="paint-opt-label" data-i18n="paint.color">Color</span>
+          <input type="color" id="paint-color" value="#111111" />
+        </label>
+        <label class="paint-opt paint-opt-size" title="Size">
+          <span class="paint-opt-label" data-i18n="paint.size">Size</span>
+          <input type="range" id="paint-size" min="2" max="300" value="24" />
+          <span class="paint-opt-value" id="paint-size-value">24</span>
+        </label>
+        <label class="paint-opt paint-opt-opacity" title="Opacity">
+          <span class="paint-opt-label" data-i18n="paint.opacity">Opacity</span>
+          <input
+            type="range"
+            id="paint-opacity"
+            min="0"
+            max="100"
+            value="100"
+          />
+          <span class="paint-opt-value" id="paint-opacity-value">100%</span>
+        </label>
+        <label class="paint-opt paint-opt-hardness" title="Hardness">
+          <span class="paint-opt-label" data-i18n="paint.hardness"
+            >Hardness</span
+          >
+          <input
+            type="range"
+            id="paint-hardness"
+            min="0"
+            max="100"
+            value="50"
+          />
+          <span class="paint-opt-value" id="paint-hardness-value">50%</span>
+        </label>
+        <label class="paint-opt paint-opt-tolerance" title="Tolerance">
+          <span class="paint-opt-label" data-i18n="paint.tolerance"
+            >Tolerance</span
+          >
+          <input
+            type="range"
+            id="paint-tolerance"
+            min="0"
+            max="255"
+            value="32"
+          />
+          <span class="paint-opt-value" id="paint-tolerance-value">32</span>
+        </label>
+        <label class="paint-opt paint-opt-contiguous" title="Contiguous">
+          <input type="checkbox" id="paint-contiguous" checked />
+          <span data-i18n="paint.contiguous">Contiguous</span>
+        </label>
+        <span class="paint-opt paint-opt-hint" data-i18n="paint.eyedropperHint"
+          >Click to sample — returns to previous tool</span
+        >
+        <button
+          class="paint-opt-reset"
+          id="paint-reset"
+          data-i18n-title="paint.reset"
+          title="Reset to defaults"
+        >
+          <i data-lucide="rotate-ccw"></i>
+        </button>
+      </div>
       <span class="w-px h-4 bg-surface-3"></span>
       <div class="flex gap-1.5 ml-auto items-center">
         <button

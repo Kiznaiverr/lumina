@@ -7,6 +7,7 @@ import { state } from "./state";
 import { canvas } from "./canvas/index";
 import { sidebar } from "./sidebar";
 import { markDirty } from "./dirty";
+import { hydrateCleanupCanvas } from "./canvas/paintool/shared";
 import type { Page } from "../types";
 
 /** Convert a Windows path to a loadable file:// URL */
@@ -75,6 +76,14 @@ function _serializePage(p: Page): string {
       visible: m.visible,
       opacity: m.opacity,
     })),
+    cleanupMask: p.cleanupMask
+      ? {
+          id: p.cleanupMask.id,
+          visible: p.cleanupMask.visible,
+          opacity: p.cleanupMask.opacity,
+          imagePath: p.cleanupMask.imagePath,
+        }
+      : null,
     backgroundVisible: p.backgroundVisible,
     selections: _captureSelections ? _captureSelections() : null,
   });
@@ -94,6 +103,12 @@ interface PageSnapshot {
     visible: boolean;
     opacity: number;
   }>;
+  cleanupMask?: {
+    id: string;
+    visible: boolean;
+    opacity: number;
+    imagePath: string | null;
+  } | null;
 }
 
 /** Re-hydrate mask PNGs from their imagePath — decoded images are never
@@ -230,8 +245,22 @@ export const history = {
       image: undefined,
     }));
     page.inpaintMasks = masks as never;
+    // Cleanup raster layer: restore fields, drop the runtime canvas, and
+    // reload its PNG from the versioned path (same pattern as inpaint masks).
+    if (snap.cleanupMask) {
+      page.cleanupMask = {
+        id: snap.cleanupMask.id,
+        visible: snap.cleanupMask.visible,
+        opacity: snap.cleanupMask.opacity,
+        imagePath: snap.cleanupMask.imagePath,
+        cleanupCanvas: undefined,
+      };
+    } else {
+      page.cleanupMask = null;
+    }
     // Re-hydrate mask images asynchronously; render again once loaded.
     hydrateMaskImages(page);
+    hydrateCleanupCanvas(page);
     // Selections are transient but undoable — bring them back with the
     // page so Ctrl+Z removes the rectangle/lasso that was just drawn.
     if (snap.selections && _restoreSelections)

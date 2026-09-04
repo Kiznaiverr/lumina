@@ -143,6 +143,25 @@ function _render(): void {
     });
   }
 
+  // Cleanup raster layer (brush/eraser/bucket) — full-page canvas above the
+  // inpaint patches, below the text layers. Live-painted during strokes via
+  // the runtime canvas; reloaded from its PNG path on undo/redo/open.
+  const cleanup = page.cleanupMask;
+  if (cleanup && cleanup.visible && cleanup.cleanupCanvas) {
+    _layer.add(
+      new Konva.Image({
+        name: "cleanup-mask",
+        image: cleanup.cleanupCanvas,
+        x: off.x,
+        y: off.y,
+        width: page.naturalWidth * sr,
+        height: page.naturalHeight * sr,
+        opacity: cleanup.opacity,
+        listening: false,
+      }),
+    );
+  }
+
   // Detection overlays — shown only while boxes are toggled on, BEFORE the
   // first inpaint run; once mask layers exist the patches themselves are the
   // visual representation of the boxes. After OCR the boxes auto-hide (the

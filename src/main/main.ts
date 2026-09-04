@@ -10,6 +10,7 @@ import { registerIpcHandlers } from "./pipeline";
 import { registerSecretHandlers, registerConfigHandlers } from "./storage";
 import { registerProjectIpc, isLumiFileArg } from "./project";
 import { registerExportIpc } from "./export";
+import { registerTempCacheIpc } from "./tempCache";
 import { registerUpdaterIpc } from "./updater";
 import { registerRecentsIpc } from "./recents";
 import { MAIN_DIR } from "./paths";
@@ -54,6 +55,7 @@ function createWindow(): void {
   registerConfigHandlers();
   registerProjectIpc();
   registerExportIpc();
+  registerTempCacheIpc();
   registerUpdaterIpc(mainWindow);
   registerRecentsIpc();
 

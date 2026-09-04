@@ -45,7 +45,10 @@
 - [ ] custom NSIS uninstaller
 - [ ] tokenizers (paddleocr_vl): replace the "pip install tokenizers" error message in decoder.py, add an `is_ready()` check, and bundle the wheel to be extracted to `runtime_deps` when the user selects the paddleocr_vl download.
 - [x] auto clear selection tool when it converted
-- [ ] add more tools
+- [x] add paintbucket, eyedropper, and brush tools for cleanup mask
+- [ ] fix undo/redo blinking 
+- [ ] better translation's secret key loading
+- [ ] add masking tool for cleanup mask
 - [ ] installer CUDA variant? soon~
 - [ ] documentation website
 - [ ] testing and hunt another bugs

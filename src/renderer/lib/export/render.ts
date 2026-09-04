@@ -3,6 +3,7 @@
 import Konva from "konva";
 import { canvas } from "../canvas/index";
 import { makeNode } from "../canvas/textool/nodeFactory";
+import { ensureCleanupCanvas } from "../canvas/paintool/shared";
 import type { Page } from "../../types";
 import { st } from "./state";
 
@@ -37,6 +38,31 @@ export async function ensureMaskImages(page: Page): Promise<void> {
   }
 }
 
+/** Reload the cleanup layer from its PNG before compositing. Export can run
+ * right after open/undo where the runtime canvas isn't hydrated yet — the
+ * PNG is the persisted truth, so re-drawing it is always safe. Skipped when
+ * `_hydrated` says the canvas already matches imagePath. */
+function ensureCleanupForExport(page: Page): Promise<void> {
+  const mask = page.cleanupMask;
+  if (!mask || !mask.imagePath || mask._hydrated) return Promise.resolve();
+  const c = ensureCleanupCanvas(page);
+  if (!c) return Promise.resolve();
+  return new Promise(function (resolve) {
+    const img = new Image();
+    img.onload = function () {
+      const ctx = c.getContext("2d")!;
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0);
+      mask._hydrated = true;
+      resolve();
+    };
+    img.onerror = function () {
+      resolve(); // file missing — leave blank
+    };
+    img.src = fileUrl(mask.imagePath as string);
+  });
+}
+
 function dataUrlToBytes(dataUrl: string): Uint8Array {
   const bin = atob(dataUrl.split(",")[1]);
   const arr = new Uint8Array(bin.length);
@@ -63,6 +89,10 @@ export function estSize(page: Page): string {
 export async function renderPageToCanvas(
   page: Page,
 ): Promise<HTMLCanvasElement> {
+  // Ensure the cleanup layer's runtime canvas holds the persisted PNG before
+  // compositing (fresh open / undo can leave it un-hydrated).
+  await ensureCleanupForExport(page);
+
   const host = document.createElement("div");
   host.style.cssText =
     "position:fixed;left:-10000px;top:0;width:1px;height:1px;overflow:hidden;";
@@ -97,6 +127,21 @@ export async function renderPageToCanvas(
         width: m.bbox.w,
         height: m.bbox.h,
         opacity: m.opacity,
+      }),
+    );
+  }
+
+  // Cleanup raster layer (brush/eraser/bucket) — full-page, above patches.
+  const cc = page.cleanupMask ? ensureCleanupCanvas(page) : null;
+  if (page.cleanupMask && cc && page.cleanupMask.visible) {
+    layer.add(
+      new Konva.Image({
+        image: cc,
+        x: 0,
+        y: 0,
+        width: page.naturalWidth,
+        height: page.naturalHeight,
+        opacity: page.cleanupMask.opacity,
       }),
     );
   }

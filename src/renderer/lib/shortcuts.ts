@@ -18,6 +18,12 @@ export type ActionId =
   | "toolLasso"
   | "toolRect"
   | "toolText"
+  | "toolBrush"
+  | "toolEraser"
+  | "toolBucket"
+  | "toolEyedropper"
+  | "brushSizeDown"
+  | "brushSizeUp"
   | "zoomIn"
   | "zoomOut"
   | "zoomFit";
@@ -35,6 +41,12 @@ export const shortcuts = {
     toolLasso: "L",
     toolRect: "R",
     toolText: "T",
+    toolBrush: "B",
+    toolEraser: "E",
+    toolBucket: "G",
+    toolEyedropper: "I",
+    brushSizeDown: "[",
+    brushSizeUp: "]",
     zoomIn: "Ctrl+=",
     zoomOut: "Ctrl+-",
     zoomFit: "Ctrl+0",
@@ -144,6 +156,24 @@ export const shortcuts = {
         },
         toolText: function () {
           tools.setActive("text");
+        },
+        toolBrush: function () {
+          tools.setActive("brush");
+        },
+        toolEraser: function () {
+          tools.setActive("eraser");
+        },
+        toolBucket: function () {
+          tools.setActive("bucket");
+        },
+        toolEyedropper: function () {
+          tools.setActive("eyedropper");
+        },
+        brushSizeDown: function () {
+          tools.adjustBrushSize(-1);
+        },
+        brushSizeUp: function () {
+          tools.adjustBrushSize(1);
         },
         zoomIn: function () {
           canvas.zoomIn();

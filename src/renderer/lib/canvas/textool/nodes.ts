@@ -49,6 +49,16 @@ export function renderLayerTextNodes(): void {
     node.on("click tap", function (e) {
       e.cancelBubble = true;
       if (isEditing()) return;
+      // Paint tools own the pointer — brush/eraser/bucket/eyedropper must
+      // never select text layers underneath.
+      const t = state.activeTool;
+      if (
+        t === "brush" ||
+        t === "eraser" ||
+        t === "bucket" ||
+        t === "eyedropper"
+      )
+        return;
       const now = Date.now();
       if (now - (_lastClickAt[lay.id] || 0) < 350) {
         // Double-click → edit in place (switching to the text tool first).

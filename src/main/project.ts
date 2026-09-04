@@ -70,6 +70,16 @@ async function _handleSave(
         opacity: m.opacity,
         imageEntry: `patches/${String(i).padStart(3, "0")}-${String(j).padStart(3, "0")}.png`,
       })),
+      cleanupMask: p.cleanupMask
+        ? {
+            id: p.cleanupMask.id,
+            visible: p.cleanupMask.visible,
+            opacity: p.cleanupMask.opacity,
+            imageEntry: p.cleanupMask.imagePath
+              ? `cleanup/${String(i).padStart(3, "0")}.png`
+              : null,
+          }
+        : null,
     };
   });
 
@@ -110,6 +120,19 @@ async function _handleSave(
         console.warn(`[Lumina] Skipping missing patch: ${m.imagePath}`);
       }
     });
+    // Cleanup layer — one full-page PNG per page, only when the layer exists
+    if (p.cleanupMask && p.cleanupMask.imagePath) {
+      try {
+        entries.push({
+          name: `cleanup/${String(i).padStart(3, "0")}.png`,
+          data: fs.readFileSync(p.cleanupMask.imagePath),
+        });
+      } catch {
+        console.warn(
+          `[Lumina] Skipping missing cleanup PNG: ${p.cleanupMask.imagePath}`,
+        );
+      }
+    }
   });
 
   fs.writeFileSync(savePath, zipWrite(entries));
@@ -148,6 +171,7 @@ async function _handleOpen(
   const extractDir = path.join(EXTRACT_ROOT, `open-${Date.now()}`);
   fs.mkdirSync(path.join(extractDir, "pages"), { recursive: true });
   fs.mkdirSync(path.join(extractDir, "patches"), { recursive: true });
+  fs.mkdirSync(path.join(extractDir, "cleanup"), { recursive: true });
   for (const [name, data] of entries) {
     if (name === "project.json") continue;
     const dest = path.join(extractDir, name);
@@ -159,7 +183,7 @@ async function _handleOpen(
   }
 
   const pages: ProjectPageData[] = (proj.pages as any[]).map((p) => {
-    const { imageEntry, inpaintMasks, ...rest } = p;
+    const { imageEntry, inpaintMasks, cleanupMask, ...rest } = p;
     return {
       ...rest,
       filePath: path.join(extractDir, imageEntry as string),
@@ -170,6 +194,16 @@ async function _handleOpen(
         opacity: m.opacity,
         imagePath: path.join(extractDir, m.imageEntry as string),
       })),
+      cleanupMask: cleanupMask
+        ? {
+            id: cleanupMask.id,
+            visible: cleanupMask.visible,
+            opacity: cleanupMask.opacity,
+            imagePath: cleanupMask.imageEntry
+              ? path.join(extractDir, cleanupMask.imageEntry as string)
+              : null,
+          }
+        : null,
     };
   });
 

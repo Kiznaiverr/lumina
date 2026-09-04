@@ -139,6 +139,22 @@ export interface InpaintMask {
   image?: HTMLImageElement;
 }
 
+/** Full-page raster paint layer (brush/eraser/bucket). One per page,
+ * same size as the original image. Composite order: bg → inpaint masks →
+ * cleanup → text. Serialized by path; the canvas itself is runtime-only. */
+export interface CleanupMask {
+  id: string;
+  visible: boolean;
+  opacity: number; // 0-1
+  /** Abs path of the cleanup PNG (versioned per stroke-end), null while empty */
+  imagePath: string | null;
+  /** Runtime paint surface at natural size — not serialized */
+  cleanupCanvas?: HTMLCanvasElement;
+  /** True once the runtime canvas matches imagePath (hydrate/commit done).
+   * Runtime-only — export skips the PNG reload when set. */
+  _hydrated?: boolean;
+}
+
 export interface Page {
   filePath: string;
   fileName: string;
@@ -150,6 +166,8 @@ export interface Page {
   layers: PageLayer[];
   /** Inpaint patches — composited over the original image, one per mask layer */
   inpaintMasks: InpaintMask[];
+  /** Full-page raster paint layer (brush/eraser/bucket), null = not created */
+  cleanupMask: CleanupMask | null;
   /** Full-page binary text mask from /detect — passed to /inpaint to skip Otsu */
   maskPath?: string | null;
   /** Original image visibility (the background layer in the Layers tab) */
@@ -165,7 +183,15 @@ export interface Page {
   _panY?: number;
 }
 
-export type ToolId = "select" | "lasso" | "rect" | "text";
+export type ToolId =
+  | "select"
+  | "lasso"
+  | "rect"
+  | "text"
+  | "brush"
+  | "eraser"
+  | "bucket"
+  | "eyedropper";
 
 /** Response shape from POST /detect */
 export interface DetectResult {

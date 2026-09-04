@@ -9,6 +9,7 @@ import { state } from "./state";
 import * as i18n from "./i18n";
 import { ui } from "./ui";
 import { history, hydrateMaskImages } from "./history";
+import { hydrateCleanupCanvas } from "./canvas/paintool/shared";
 import { canvas } from "./canvas/index";
 import { sidebar } from "./sidebar";
 import { models } from "./models";
@@ -81,6 +82,14 @@ function buildPayload(savePath: string | null): ProjectSavePayload {
           visible: m.visible,
           opacity: m.opacity,
         })),
+        cleanupMask: p.cleanupMask
+          ? {
+              id: p.cleanupMask.id,
+              visible: p.cleanupMask.visible,
+              opacity: p.cleanupMask.opacity,
+              imagePath: p.cleanupMask.imagePath,
+            }
+          : null,
         backgroundVisible: p.backgroundVisible,
         _zoomLevel: p._zoomLevel,
         _panX: p._panX,
@@ -192,6 +201,7 @@ export const project = {
         textDetections: pd.textDetections as Page["textDetections"],
         layers: pd.layers as Page["layers"],
         inpaintMasks: pd.inpaintMasks.map((m) => ({ ...m })),
+        cleanupMask: pd.cleanupMask ? { ...pd.cleanupMask } : null,
         backgroundVisible: pd.backgroundVisible,
         _selectedTextIdx: null,
         _selectedLayerId: null,
@@ -205,6 +215,7 @@ export const project = {
     // Masks are stored as PNG paths — decode them now so the first render
     // shows the cleaned patches instead of raw text over the original image.
     pages.forEach((p) => hydrateMaskImages(p));
+    pages.forEach((p) => hydrateCleanupCanvas(p));
     state.activePageIdx =
       result.activePageIdx !== null && result.activePageIdx < pages.length
         ? result.activePageIdx

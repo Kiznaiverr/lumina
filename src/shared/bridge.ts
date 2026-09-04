@@ -37,6 +37,8 @@ export const IPC = {
   requestCloseCheck: "request-close-check",
   confirmClose: "confirm-close",
   exportImages: "export-images",
+  /** Write raw bytes to a unique temp file (paint-tool stroke PNGs) */
+  writeTempPng: "write-temp-png",
   checkForUpdates: "check-for-updates",
   downloadUpdate: "download-update",
   installUpdate: "install-update",
@@ -123,6 +125,14 @@ export interface ProjectPageData {
   textDetections: unknown[];
   layers: unknown[];
   inpaintMasks: ProjectMaskData[];
+  /** Full-page raster paint layer (optional — older projects lack it) */
+  cleanupMask?: {
+    id: string;
+    visible: boolean;
+    opacity: number;
+    /** Abs path of the cleanup PNG — rewritten to a zip entry by main */
+    imagePath: string | null;
+  } | null;
   backgroundVisible: boolean;
   _zoomLevel?: number;
   _panX?: number;
@@ -214,6 +224,23 @@ export interface ExportResult {
   count: number;
 }
 
+/* ── Paint tool temp PNGs (session cache, wiped on app close) ── */
+
+/** One versioned cleanup-stroke PNG the renderer wants cached on disk */
+export interface TempPngWritePayload {
+  /** PNG bytes */
+  data: Uint8Array;
+  /** Optional subdirectory under the session cache — default "cleanup" */
+  subdir?: string;
+  /** Optional suggested base name — default "cleanup" (a counter is appended) */
+  name?: string;
+}
+
+export interface TempPngWriteResult {
+  /** Absolute path of the written file */
+  path: string;
+}
+
 /* ── Fonts ── */
 
 export interface FontInfo {
@@ -294,6 +321,8 @@ export interface LuminaAPI {
   /** Tell main it may (true) or must not (false) close the window */
   confirmClose(ok: boolean): Promise<void>;
   exportImages(payload: ExportPayload): Promise<ExportResult>;
+  /** Persist paint-tool stroke PNG bytes to a unique session-cache file */
+  writeTempPng(payload: TempPngWritePayload): Promise<TempPngWriteResult>;
   /** Auto-updater: GitHub latest-release check (never downloads) */
   checkForUpdates(): Promise<CheckUpdateResult>;
   /** Download the newer installer — progress pushed via onUpdateProgress */

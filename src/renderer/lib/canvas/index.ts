@@ -45,6 +45,11 @@ export interface CanvasAPI {
   setMaskOpacity(id: string, opacity: number): void;
   toggleAllMasks(): void;
   toggleBackgroundVisible(): void;
+  addCleanupMask(): void;
+  toggleCleanupVisible(): void;
+  deleteCleanupMask(): void;
+  clearCleanupMask(): void;
+  setCleanupOpacity(opacity: number): void;
   /** Sync the header "show detection boxes" toggle with page state */
   updateBoxToggle(): void;
   _refreshTextGroup(idx: number): void;
@@ -111,6 +116,11 @@ export const canvas: CanvasAPI = {
   setMaskOpacity() {},
   toggleAllMasks() {},
   toggleBackgroundVisible() {},
+  addCleanupMask() {},
+  toggleCleanupVisible() {},
+  deleteCleanupMask() {},
+  clearCleanupMask() {},
+  setCleanupOpacity() {},
   updateBoxToggle() {},
   _refreshTextGroup() {},
   _updateStatus() {},
@@ -290,12 +300,17 @@ canvas._initPanDrag = function (): void {
       if (!panning) return;
       panning = false;
       const container = document.getElementById("canvas-container");
-      if (container)
-        container.style.cursor =
-          state.activeTool === "lasso" || state.activeTool === "rect"
-            ? "crosshair"
-            : state.activeTool === "text"
-              ? "text"
+      if (!container) return;
+      const t = state.activeTool;
+      const isPaint =
+        t === "brush" || t === "eraser" || t === "bucket" || t === "eyedropper";
+      container.style.cursor =
+        t === "lasso" || t === "rect"
+          ? "crosshair"
+          : t === "text"
+            ? "text"
+            : isPaint
+              ? "none"
               : "default";
     });
   }
@@ -318,6 +333,15 @@ function _bindHoverCursor(): void {
     if (state.activeTool === "lasso" || state.activeTool === "rect")
       return "crosshair";
     if (state.activeTool === "text") return "text";
+    // Paint tools hide the OS cursor — #paint-cursor renders crosshair /
+    // icon / brush circle instead.
+    if (
+      state.activeTool === "brush" ||
+      state.activeTool === "eraser" ||
+      state.activeTool === "bucket" ||
+      state.activeTool === "eyedropper"
+    )
+      return "none";
     return "default";
   };
 
@@ -421,6 +445,15 @@ canvas._initKeyboard = function (): void {
       return;
     // Delete selected detection
     if (e.key === "Delete" || e.key === "Backspace") {
+      // Paint tools own Delete — don't delete text layers while painting.
+      const t = state.activeTool;
+      if (
+        t === "brush" ||
+        t === "eraser" ||
+        t === "bucket" ||
+        t === "eyedropper"
+      )
+        return;
       const page = state.getActivePage();
       if (!page) return;
       // Detection boxes first — free-text layers have no parallel detection,
@@ -445,6 +478,10 @@ canvas._initDeselectClick = function (): void {
   if (!stage) return;
   _deselectBound = true;
   stage.on("click tap", function (e) {
+    // Paint tools handle their own clicks (brush stroke / bucket / eyedropper).
+    const t = state.activeTool;
+    if (t === "brush" || t === "eraser" || t === "bucket" || t === "eyedropper")
+      return;
     if (e.target === stage || e.target.getParent() === canvas.getLayer()) {
       canvas.selectTextDetection(null);
     }

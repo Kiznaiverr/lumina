@@ -939,7 +939,8 @@ body.resizing-settings * {
   opacity: 1;
 }
 /* Custom slider styling — thin track + round pink thumb */
-.mask-opacity {
+.mask-opacity,
+.cleanup-opacity {
   -webkit-appearance: none;
   appearance: none;
   flex: 1;
@@ -950,7 +951,8 @@ body.resizing-settings * {
   outline: none;
   cursor: pointer;
 }
-.mask-opacity::-webkit-slider-thumb {
+.mask-opacity::-webkit-slider-thumb,
+.cleanup-opacity::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 12px;
@@ -961,7 +963,8 @@ body.resizing-settings * {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   cursor: pointer;
 }
-.mask-opacity::-moz-range-thumb {
+.mask-opacity::-moz-range-thumb,
+.cleanup-opacity::-moz-range-thumb {
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -970,7 +973,8 @@ body.resizing-settings * {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   cursor: pointer;
 }
-.mask-opacity:hover::-webkit-slider-thumb {
+.mask-opacity:hover::-webkit-slider-thumb,
+.cleanup-opacity:hover::-webkit-slider-thumb {
   background: #ff7b92;
 }
 .layer-row.selected {
@@ -1714,6 +1718,229 @@ body.resizing-row {
   flex-shrink: 0;
 }
 
+/* ── Paint tool options bar (header) ── */
+.paint-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  height: 24px;
+  font-size: 0.68rem;
+  color: #b0b0b4;
+}
+.paint-options.hidden {
+  display: none;
+}
+.paint-opt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.paint-opt input[type="range"] {
+  width: 72px;
+  height: 14px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.paint-opt input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    #e94560 0%,
+    #e94560 var(--fill, 0%),
+    #3a3a3a var(--fill, 0%),
+    #3a3a3a 100%
+  );
+}
+.paint-opt input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: #e4e4e7;
+  border: 1px solid #52525b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.paint-opt input[type="color"] {
+  width: 24px;
+  height: 20px;
+  padding: 1px;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+.paint-opt input[type="checkbox"] {
+  accent-color: #e94560;
+}
+.paint-opt-value {
+  min-width: 26px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #969696;
+  font-size: 0.62rem;
+}
+.paint-opt-hint {
+  color: #6a6a6a;
+  font-style: italic;
+}
+.paint-opt-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #969696;
+  cursor: pointer;
+}
+.paint-opt-reset:hover {
+  background: #ffffff14;
+  color: #d4d4d8;
+}
+.paint-opt-reset svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Paint cursor (Photoshop-style: crosshair + tool icon + brush circle) ──
+ * Container is absolutely positioned at the pointer; children render the
+ * crosshair lines, the brush-size circle, and the tool icon. The OS cursor
+ * is hidden while a paint tool is active (paintool sets cursor:none). */
+#paint-cursor {
+  position: absolute;
+  z-index: 50;
+  pointer-events: none;
+  display: none;
+  transform: translate(-50%, -50%);
+}
+.pc-cross-h,
+.pc-cross-v {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.9);
+}
+.pc-cross-h {
+  width: 16px;
+  height: 1px;
+  transform: translate(-50%, -50%);
+}
+.pc-cross-v {
+  width: 1px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+}
+.pc-circle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+}
+.pc-circle.pc-eraser {
+  border-color: rgba(255, 80, 80, 0.9);
+}
+.pc-icon {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e1e1e;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.pc-icon svg {
+  width: 14px;
+  height: 14px;
+  color: #e94560;
+}
+
+/* ── Sample feedback chip (eyedropper) ──
+ * Small swatch + hex label that pops at the sampled point, then fades out. */
+.pc-sample-chip {
+  position: absolute;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  background: #1e1e1e;
+  border: 1px solid #4a4a4a;
+  border-radius: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-size: 0.62rem;
+  color: #d4d4d4;
+  pointer-events: none;
+  transition:
+    opacity 0.25s,
+    transform 0.25s;
+  transform-origin: bottom center;
+}
+.pc-sample-chip.pc-chip-out {
+  opacity: 0;
+}
+.pc-sample-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+.pc-sample-hex {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Cleanup mask row: Add mask button ── */
+.mask-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 5px 8px;
+  border: 1px dashed #3a3a3a;
+  border-radius: 6px;
+  background: transparent;
+  color: #b0b0b4;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+.mask-add-btn:hover {
+  border-color: #e94560;
+  color: #e94560;
+  background: rgba(233, 69, 96, 0.08);
+}
+.mask-add-btn svg {
+  width: 12px;
+  height: 12px;
+}
+.cleanup-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+
 /* ── Zoom controls ── */
 .zoom-btn {
   display: flex;
@@ -1758,6 +1985,13 @@ body.resizing-row {
 .tool-btn.active {
   background: #e94560;
   color: #fff;
+}
+/* Momentary eyedropper (Alt held) — amber ring so it's distinct from the
+   pink "active" state and the hover background. */
+.tool-btn.alt-highlight {
+  background: #ffffff14;
+  color: #d4d4d4;
+  box-shadow: inset 0 0 0 2px #e8a33d;
 }
 
 /* ── Header buttons ── */

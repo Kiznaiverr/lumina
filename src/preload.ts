@@ -49,6 +49,7 @@ const api: LuminaAPI = {
   },
   confirmClose: (ok: boolean) => ipcRenderer.invoke(IPC.confirmClose, ok),
   exportImages: (payload) => ipcRenderer.invoke(IPC.exportImages, payload),
+  writeTempPng: (payload) => ipcRenderer.invoke(IPC.writeTempPng, payload),
   checkForUpdates: () => ipcRenderer.invoke(IPC.checkForUpdates),
   downloadUpdate: () => ipcRenderer.invoke(IPC.downloadUpdate),
   installUpdate: () => ipcRenderer.invoke(IPC.installUpdate),

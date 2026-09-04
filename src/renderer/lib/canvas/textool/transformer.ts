@@ -59,8 +59,20 @@ export function syncTransformerSelection(): void {
       })
     : null;
   if (node) {
-    transformer.nodes([node]);
-    node.draggable(true);
+    // Paint tools own the pointer — never let a text node drag over a
+    // brush stroke (the brush needs the mousedown).
+    const paint =
+      state.activeTool === "brush" ||
+      state.activeTool === "eraser" ||
+      state.activeTool === "bucket" ||
+      state.activeTool === "eyedropper";
+    if (paint) {
+      transformer.nodes([]);
+      node.draggable(false);
+    } else {
+      transformer.nodes([node]);
+      node.draggable(true);
+    }
   } else {
     transformer.nodes([]);
   }

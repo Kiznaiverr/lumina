@@ -92,6 +92,13 @@ function tabHTML(
 }
 
 export const sidebar = {
+  /** Programmatic tab switch (paint-tool warn flow auto-opens Masks) */
+  setActiveTab(tab: "layers" | "masks"): void {
+    if (_activeTab === tab) return;
+    _activeTab = tab;
+    this.render();
+  },
+
   render(): void {
     const scroll = document.getElementById("sidebar-scroll");
     if (!scroll) return;
