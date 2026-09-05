@@ -1,21 +1,19 @@
 /**
- * Assemble the Python runtime bundle for the Lumina installer (DML).
+ * Assemble the Python runtime bundle for a Lumina installer variant.
  *
- * Usage:  node scripts/bundle.mjs
+ * Usage:  node scripts/bundle.mjs --variant=dml|cuda
  *
- * Produces build/bundle/ with the layout expected by
- * src/main/backend.ts (packaged mode):
- *
- *   python/            embeddable CPython + Lib/site-packages (backend deps,
- *                      NO onnxruntime — the DML wheel lives in ort/)
+ * Produces build/bundle-<variant>/:
+ *   python/            embeddable CPython + site-packages (no onnxruntime)
  *   ort/dml/           onnxruntime-directml wheel extracted here
- *   backend/           copy of python/ source (main.py, run_backend.py,
- *                      services/, utils/, prompts/, schemas.py)
+ *   ort/cuda.7z        FULL onnxruntime-gpu + nvidia/* runtime (LZMA-7z'd,
+ *                      GitHub 2GB limit); extracted by NSIS at install,
+ *                      archive deleted after setup
+ *   7zr.exe            (CUDA only) 7-Zip console used by setup
+ *   backend/           python/ source (main.py, services/, ...)
  *
- * The embeddable distribution ships a ._pth file that makes the interpreter
- * ignore PYTHONPATH, so we rewrite it to include Lib\site-packages (and
- * enable import site). run_backend.py (see python/run_backend.py) still
- * prepends the ORT dir via LUMINA_PYTHONPATH at startup.
+ * The embeddable's ._pth file ignores PYTHONPATH, so it's patched to enable
+ * site-packages; run_backend.py prepends the ORT dir via LUMINA_PYTHONPATH.
  */
 import { spawnSync } from "child_process";
 import { createWriteStream } from "fs";
@@ -41,19 +39,28 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPTS = path.join(ROOT, "scripts");
 const BUILD = path.join(ROOT, "build");
 const WHEELS = path.join(BUILD, "wheels");
+const WHEELS_CUDA = path.join(BUILD, "wheels-cuda");
 const WHEELS_BACKEND = path.join(BUILD, "wheels-backend");
 const EMBED_DIR = path.join(BUILD, "embed");
 
+// 7-Zip console (7zr.exe) — bundled with the CUDA installer for the NSIS
+// customInstall macro to extract ort/cuda.7z (GitHub 2GB limit forces
+// shipping the runtime compressed). Creates 7z multi-threaded with % output;
+// only READS 7z, so wheels are unpacked with bsdtar. LGPL. 7-zip.org.
+const SEVENZR_URL = "https://www.7-zip.org/a/7zr.exe";
+const SEVENZR_EXE = path.join(BUILD, "7zr.exe");
+const SEVENZR_MIN_BYTES = 300 * 1024; // ~600KB, reject truncated downloads
+
 const REQ_BACKEND = path.join(SCRIPTS, "requirements-backend.txt");
 const REQ_ORT = path.join(SCRIPTS, "requirements-ort.txt");
+const REQ_ORT_CUDA = path.join(SCRIPTS, "requirements-ort-cuda.txt");
 
 const PY_VER = "3.13.5"; // must match the cp313 wheels in build/wheels
 const EMBED_ZIP = path.join(EMBED_DIR, `python-${PY_VER}-embed-amd64.zip`);
 const EMBED_URL = `https://www.python.org/ftp/python/${PY_VER}/python-${PY_VER}-embed-amd64.zip`;
 
-// Wheels ORT needs -> site-packages. Kept out of requirements-backend.txt so
-// the pinned versions (requirements-ort.txt) win over anything pip resolves
-// transitively for the backend.
+// Wheels ORT needs -> site-packages, kept out of requirements-backend.txt so
+// the pinned versions (requirements-ort*.txt) win over transitive resolves.
 const COMMON_DEPS = new Set([
   "flatbuffers",
   "mpmath",
@@ -62,8 +69,6 @@ const COMMON_DEPS = new Set([
   "protobuf",
   "sympy",
 ]);
-
-const OUT = path.join(BUILD, "bundle");
 
 function sh(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { stdio: "inherit", ...opts });
@@ -91,13 +96,8 @@ async function fetchFile(url, dest, minBytes = 0) {
   }
 }
 
-/**
- * Validate a zip archive: header PK\x03\x04 AND an intact End-Of-Central-
- * Directory record (PK\x05\x06) near the file tail. A truncated download
- * passes a header-only check but has no valid EOCD, so this catches partial
- * files (the python.org embeddable zip is ~10.9MB, not ~30MB — size alone
- * is a poor signal).
- */
+/** Validate a zip: header + intact End-Of-Central-Directory near the tail
+ * (catches truncated downloads, e.g. the ~10.9MB embeddable zip). */
 function isZip(pathname) {
   let fd;
   try {
@@ -116,8 +116,7 @@ function isZip(pathname) {
 }
 
 function distName(wheel) {
-  // wheel filename: {name}-{version}-{...}.whl ; all COMMON_DEPS are
-  // single-token names so the first dash-split segment is safe here.
+  // {name}-{version}-... ; COMMON_DEPS are single-token names
   return wheel.split("-")[0].replaceAll("_", "-").toLowerCase();
 }
 
@@ -129,8 +128,7 @@ function listWheels(dir) {
     : [];
 }
 
-/** Extract a zip via bsdtar (reads python.org zips fine; PowerShell 7's
- * Expand-Archive throws FileFormatException on them, so no fallback). */
+/** Extract a zip via bsdtar (PowerShell Expand-Archive can't read them). */
 function extractZip(zip, dest) {
   if (!isZip(zip)) throw new Error(`Not a valid zip: ${zip}`);
   mkdirSync(dest, { recursive: true });
@@ -157,8 +155,7 @@ function copyTree(src, dst, skip = (rel) => false) {
 }
 
 async function ensureEmbeddedPython() {
-  // Re-download if the cached zip is missing/corrupt. Real size is ~10.9MB;
-  // the earlier "10.7MB" half-file had a truncated tail with no EOCD.
+  // Re-download if missing/corrupt
   if (
     existsSync(EMBED_ZIP) &&
     isZip(EMBED_ZIP) &&
@@ -172,10 +169,22 @@ async function ensureEmbeddedPython() {
   await fetchFile(EMBED_URL, EMBED_ZIP, 8 * 1024 * 1024);
 }
 
-/** Resolve a Python that can run `pip download`. Dev machines have venv/;
- * CI runners don't (venv/ is gitignored), but any host Python with pip can
- * cross-download win_amd64 wheels via --platform/--python-version — no need
- * for an actual cp313 interpreter. */
+/** Download 7zr.exe once (CUDA bundles only). */
+async function ensureSevenZr() {
+  if (
+    existsSync(SEVENZR_EXE) &&
+    statSync(SEVENZR_EXE).size > SEVENZR_MIN_BYTES
+  ) {
+    console.log(`7zr.exe already cached: ${SEVENZR_EXE}`);
+    return;
+  }
+  mkdirSync(BUILD, { recursive: true });
+  rmSync(SEVENZR_EXE, { force: true });
+  await fetchFile(SEVENZR_URL, SEVENZR_EXE, SEVENZR_MIN_BYTES);
+}
+
+/** Python with pip for cross-downloading win_amd64 wheels (venv if present,
+ * else any host python — CI has no venv). */
 function pipCmd() {
   const venv = path.join(ROOT, "venv", "Scripts", "python.exe");
   if (existsSync(venv)) return [venv, "-m", "pip"];
@@ -209,21 +218,25 @@ function downloadBackendWheels() {
   ]);
 }
 
-function downloadOrtWheels() {
-  if (listWheels(WHEELS).length > 0) {
-    console.log(`ORT wheels already downloaded: ${WHEELS}`);
+function downloadOrtWheels(variant) {
+  const dir = variant === "cuda" ? WHEELS_CUDA : WHEELS;
+  const req = variant === "cuda" ? REQ_ORT_CUDA : REQ_ORT;
+  if (listWheels(dir).length > 0) {
+    console.log(`ORT wheels already downloaded: ${dir}`);
     return;
   }
-  mkdirSync(WHEELS, { recursive: true });
+  mkdirSync(dir, { recursive: true });
   const [pip, ...pipArgs] = pipCmd();
-  // --no-deps: requirements-ort.txt pins the full set, so nothing else
-  // should be pulled in.
+  // CUDA: no --no-deps so the [cuda,cudnn] extra pulls the nvidia_* wheels
+  // (cublas, cudnn, cufft, curand, nvrtc, runtime, nvjitlink) — they must
+  // ship in ort/cuda.7z or the CUDA EP can't load.
+  const noDeps = variant !== "cuda";
   sh(pip, [
     ...pipArgs,
     "download",
     "-r",
-    REQ_ORT,
-    "--no-deps",
+    req,
+    ...(noDeps ? ["--no-deps"] : []),
     "--only-binary=:all:",
     "--platform",
     "win_amd64",
@@ -232,8 +245,54 @@ function downloadOrtWheels() {
     "--implementation",
     "cp",
     "--dest",
-    WHEELS,
+    dir,
   ]);
+}
+
+/**
+ * Archive the CUDA runtime (onnxruntime/ + nvidia/ + dist-info) into
+ * ort/cuda.7z (LZMA2, GitHub 2GB limit) — no pruning, parity with dev venv.
+ * NSIS extracts it into resources/ort/cuda at setup, then deletes it.
+ *
+ * Wheels are unpacked with bsdtar (7zr only reads 7z), then compressed with
+ * the bundled 7zr.exe: multi-threaded LZMA2 with % progress (bsdtar's tar -a
+ * is single-threaded and silent on a ~2.4GB payload). */
+function archiveOrtCuda(wheelDir, ortRoot) {
+  const wheels = listWheels(wheelDir).filter((w) =>
+    w.startsWith("onnxruntime"),
+  );
+  const ortWheel =
+    wheels.find((w) => !w.includes("onnxruntime_gpu")) || wheels[0];
+  if (!ortWheel) throw new Error(`onnxruntime wheel not found in ${wheelDir}`);
+  const run = (args, opts = {}) => {
+    const r = spawnSync(SEVENZR_EXE, args, { stdio: "inherit", ...opts });
+    if (r.error || r.status !== 0) {
+      throw new Error(`7zr failed (exit ${r.status}): ${args.join(" ")}`);
+    }
+  };
+  // 1. onnxruntime wheel -> ortRoot
+  console.log(`  ort: extracting ${ortWheel}`);
+  extractZip(path.join(wheelDir, ortWheel), ortRoot);
+  // 2. nvidia wheels -> ortRoot/nvidia (each wheel already contains
+  //    nvidia/<pkg>/...; shared nvidia/__init__.py just gets overwritten)
+  for (const w of listWheels(wheelDir).filter((w) => w.startsWith("nvidia_"))) {
+    console.log(`  nvidia: extracting ${w}`);
+    extractZip(path.join(wheelDir, w), ortRoot);
+  }
+  // 3. 7z the whole ortRoot (LZMA2 max, multi-threaded), then delete it
+  const sevenZip = path.join(ortRoot + ".7z");
+  rmSync(sevenZip, { force: true });
+  console.log("  7z: compressing ort/cuda.7z (LZMA2 -mx=9, multi-threaded)...");
+  run(["a", "-t7z", "-mx=9", sevenZip, "."], { cwd: ortRoot });
+  // Defender/indexer can briefly hold handles -> EBUSY; retry
+  rmSync(ortRoot, {
+    recursive: true,
+    force: true,
+    maxRetries: 20,
+    retryDelay: 500,
+  });
+  const sz = statSync(sevenZip).size / 1024 / 1024;
+  console.log(`  ort/cuda.7z: ${sz.toFixed(0)} MB`);
 }
 
 function fixPth(pythonDir) {
@@ -257,22 +316,32 @@ function fixPth(pythonDir) {
 }
 
 async function main() {
-  console.log("=== Bundling Lumina (DML) ===");
+  const variantArg = process.argv.find((a) => a.startsWith("--variant="));
+  const variant = variantArg ? variantArg.split("=")[1] : "dml";
+  if (variant !== "dml" && variant !== "cuda") {
+    throw new Error(`Unknown variant '${variant}' (expected dml|cuda)`);
+  }
+  const out = path.join(BUILD, `bundle-${variant}`);
+  const wheelDir = variant === "cuda" ? WHEELS_CUDA : WHEELS;
+  const ortVer = variant === "cuda" ? "1.24.4+cuda12" : "1.24.4";
+
+  console.log(`=== Bundling Lumina (${variant.toUpperCase()}) ===`);
 
   mkdirSync(BUILD, { recursive: true });
   await ensureEmbeddedPython();
+  if (variant === "cuda") await ensureSevenZr();
   downloadBackendWheels();
-  downloadOrtWheels();
+  downloadOrtWheels(variant);
 
-  rmSync(OUT, { recursive: true, force: true });
-  mkdirSync(OUT, { recursive: true });
+  rmSync(out, { recursive: true, force: true });
+  mkdirSync(out, { recursive: true });
 
   // 1. embeddable python
-  extractZip(EMBED_ZIP, path.join(OUT, "python"));
-  const pyRoot = path.join(OUT, "python");
+  extractZip(EMBED_ZIP, path.join(out, "python"));
+  const pyRoot = path.join(out, "python");
   fixPth(pyRoot);
 
-  // 2. backend deps -> site-packages (common ORT deps win from build/wheels)
+  // 2. backend deps -> site-packages (common ORT deps win from wheelDir)
   const sitePkgs = path.join(pyRoot, "Lib", "site-packages");
   mkdirSync(sitePkgs, { recursive: true });
   const backendWheels = listWheels(WHEELS_BACKEND).filter(
@@ -284,39 +353,48 @@ async function main() {
   for (const w of backendWheels) {
     extractZip(path.join(WHEELS_BACKEND, w), sitePkgs);
   }
-  const commonWheels = listWheels(WHEELS).filter(
+  const commonWheels = listWheels(wheelDir).filter(
     (w) => COMMON_DEPS.has(distName(w)) && !w.startsWith("onnxruntime"),
   );
   console.log(
     `Extracting ${commonWheels.length} common wheels -> site-packages`,
   );
   for (const w of commonWheels) {
-    extractZip(path.join(WHEELS, w), sitePkgs);
+    extractZip(path.join(wheelDir, w), sitePkgs);
   }
 
-  // 3. onnxruntime-directml
-  const dml = listWheels(WHEELS).find((w) =>
-    w.startsWith("onnxruntime_directml"),
+  // 3. onnxruntime variant — DML: extracted to ort/dml/; CUDA: FULL runtime
+  // archived as ort/cuda.7z (LZMA), extracted by NSIS customInstall during
+  // setup. 7zr.exe ships alongside so the installer can extract without
+  // relying on the host having 7-Zip installed.
+  const ortWheel = listWheels(wheelDir).find((w) =>
+    w.startsWith("onnxruntime"),
   );
-  if (!dml)
-    throw new Error("onnxruntime_directml wheel not found in build/wheels");
-  extractZip(path.join(WHEELS, dml), path.join(OUT, "ort", "dml"));
+  if (!ortWheel) throw new Error(`onnxruntime wheel not found in ${wheelDir}`);
+  const ortRoot = path.join(out, "ort", variant);
+  if (variant === "cuda") {
+    archiveOrtCuda(wheelDir, ortRoot);
+    // ship 7zr.exe next to the archive for the installer to extract with
+    copyFileSync(SEVENZR_EXE, path.join(out, "7zr.exe"));
+  } else {
+    extractZip(path.join(wheelDir, ortWheel), ortRoot);
+  }
 
   // 4. backend source (real files — Python cannot read inside asar)
   copyTree(
     path.join(ROOT, "python"),
-    path.join(OUT, "backend"),
+    path.join(out, "backend"),
     (rel) => rel === "__pycache__" || rel.endsWith(".pyc"),
   );
 
   // 5. manifest
   writeFileSync(
-    path.join(OUT, "manifest.json"),
+    path.join(out, "manifest.json"),
     JSON.stringify(
       {
-        variant: "dml",
+        variant,
         python: PY_VER,
-        onnxruntime: "1.24.4",
+        onnxruntime: ortVer,
         backend: "resources/backend (from python/)",
         generatedAt: new Date().toISOString(),
       },
@@ -328,10 +406,18 @@ async function main() {
   // sanity checks
   const checks = [
     [path.join(pyRoot, "python.exe"), "python.exe"],
-    [path.join(OUT, "backend", "run_backend.py"), "run_backend.py"],
+    [path.join(out, "backend", "run_backend.py"), "run_backend.py"],
     [path.join(sitePkgs, "numpy"), "numpy in site-packages"],
-    [path.join(OUT, "ort", "dml", "onnxruntime"), "onnxruntime in ort/dml"],
   ];
+  if (variant === "cuda") {
+    checks.push([path.join(out, "ort", "cuda.7z"), "ort/cuda.7z archive"]);
+    checks.push([path.join(out, "7zr.exe"), "7zr.exe extractor"]);
+  } else {
+    checks.push([
+      path.join(ortRoot, "onnxruntime"),
+      `onnxruntime in ort/${variant}`,
+    ]);
+  }
   for (const [p, label] of checks) {
     if (!existsSync(p)) throw new Error(`Bundle check failed: ${label}`);
   }
@@ -348,10 +434,17 @@ async function main() {
     walk(dir);
     return (n / 1024 / 1024).toFixed(0);
   };
-  console.log(`\n=== Done: ${OUT} ===`);
-  console.log(`  python:  ${mb(path.join(OUT, "python"))} MB`);
-  console.log(`  ort/dml: ${mb(path.join(OUT, "ort", "dml"))} MB`);
-  console.log(`  total:   ${mb(OUT)} MB`);
+  console.log(`\n=== Done: ${out} ===`);
+  console.log(`  python:  ${mb(path.join(out, "python"))} MB`);
+  if (variant === "cuda") {
+    const a = path.join(out, "ort", "cuda.7z");
+    console.log(
+      `  ort/cuda.7z: ${(statSync(a).size / 1024 / 1024).toFixed(0)} MB`,
+    );
+  } else {
+    console.log(`  ort/${variant}: ${mb(path.join(out, "ort", variant))} MB`);
+  }
+  console.log(`  total:   ${mb(out)} MB`);
 }
 
 main();

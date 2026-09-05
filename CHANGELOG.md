@@ -5,12 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - planned 06-09-2026
+## [0.2.0] - 05-09-2026
 
 ### Added
 
+- **Differential updates**: starting with this version, updating is much smaller and faster — the app only downloads the changed parts of the new version instead of the whole installer again, and installs it automatically when you launch.
+- **CUDA installer variant**: for NVIDIA GPU users, a separate `Lumina-Setup-CUDA` installer is available — **highly recommended** if you have an NVIDIA GPU, otherwise stick with the regular (DML) installer.
 - **New tools**: brush, eraser, paint bucket (flood fill) and eyedropper for editing the new cleanup raster layer (show/hide, opacity, clear, delete) — with a Photoshop-like shortcut
-- **Auto-update**: starting with this version, the app can update itself automatically when you launch it. Previously, every new version meant downloading and running the installer again by hand — from now on, that's no longer necessary.
 - **Re-OCR a single text box**: if the text reading (OCR) for one bubble came out wrong, right-click it and pick a different OCR model just for that box — no need to redo the whole page. This can also be undone if the new result isn't better.
 - **Text now fits the bubble shape**: translated text now follows the actual shape of the speech bubble instead of just a straight box, so it looks neater and sits better inside. If a bubble contains multiple separate text pieces, it keeps the old straight-box behavior to stay safe.
 - **Tilted text detection (AngleNet)**: adds a very small, fast model that measures the slant of each text crop, so translated text is rotated to match the original typesetting. It's a global companion model auto-downloaded in the background on first launch.

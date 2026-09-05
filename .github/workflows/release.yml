@@ -41,12 +41,19 @@ jobs:
         if: steps.check.outputs.skipped == 'false'
         run: npm ci
 
-      - name: Build & bundle installer
+      - name: Build & bundle installer (DML)
         if: steps.check.outputs.skipped == 'false'
         env:
           # Signing deferred — no cert discovery in CI
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-        run: npm run dist
+        run: npm run dist:dml
+
+      - name: Build & bundle installer (CUDA)
+        if: steps.check.outputs.skipped == 'false'
+        env:
+          # Signing deferred — no cert discovery in CI
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run dist:cuda
 
       # Release notes come from the versioned "## [<version>]" section.
       # Falls back to generated notes if the section is missing so the release never fails.
@@ -73,7 +80,9 @@ jobs:
             NOTES="--generate-notes"
           fi
           gh release create "v${{ steps.version.outputs.version }}" \
-            dist/Lumina-Setup-DML-${{ steps.version.outputs.version }}.exe \
-            dist/latest.yml dist/*.blockmap \
+            dist/dml/Lumina-Setup-DML-${{ steps.version.outputs.version }}.exe \
+            dist/cuda/Lumina-Setup-CUDA-${{ steps.version.outputs.version }}.exe \
+            dist/dml/latest-dml.yml dist/dml/*.blockmap \
+            dist/cuda/latest-cuda.yml dist/cuda/*.blockmap \
             --repo "${{ github.repository }}" $NOTES \
             --title "Lumina v${{ steps.version.outputs.version }}"

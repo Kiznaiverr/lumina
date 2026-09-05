@@ -103,26 +103,23 @@ interface PythonLaunch {
   pythonPath: string | null;
 }
 
-/** Writable app-private folder for runtime artifacts (deps, logs). */
-export function runtimeDir(): string {
-  return path.join(app.getPath("userData"), "runtime");
-}
-
 /**
  * Resolve the active onnxruntime variant folder.
  *
  * The EP is fixed at install time (one variant is bundled per installer):
- * bundled DML at <resources>/ort/dml (universal installer) first, then
- * bundled CUDA at <resources>/ort/cuda (CUDA installer). Returns null when
- * no variant is present — the backend then runs without onnxruntime
- * (models unavailable).
+ *   - CUDA: the FULL runtime is extracted from ort/cuda.7z by the NSIS
+ *     installer into <resources>/ort/cuda (setup-time extraction, archive
+ *     deleted afterwards).
+ *   - DML:  extracted at build time to <resources>/ort/dml — used in place.
+ * Returns null when no variant is present — the backend then runs without
+ * onnxruntime (models unavailable).
  */
 export function activeOrtDir(): string | null {
-  const bundledDml = path.join(process.resourcesPath, "ort", "dml");
-  const bundledCuda = path.join(process.resourcesPath, "ort", "cuda");
   const has = (d: string) => fs.existsSync(path.join(d, "onnxruntime"));
+  const bundledCuda = path.join(process.resourcesPath, "ort", "cuda");
+  const bundledDml = path.join(process.resourcesPath, "ort", "dml");
+  if (has(bundledCuda)) return bundledCuda; // CUDA installer (extracted by setup)
   if (has(bundledDml)) return bundledDml;
-  if (has(bundledCuda)) return bundledCuda;
   return null;
 }
 
@@ -145,9 +142,7 @@ function pythonLaunch(): PythonLaunch {
     const pyApp = path.join(res, "backend");
     const sitePkgs = path.join(pyRoot, "Lib", "site-packages");
     const ortDir = activeOrtDir();
-    const extra = ortDir
-      ? [runtimeDir(), ortDir, sitePkgs]
-      : [runtimeDir(), sitePkgs];
+    const extra = ortDir ? [ortDir, sitePkgs] : [sitePkgs];
     return {
       dir: pyApp,
       entry: path.join(pyApp, "run_backend.py"),

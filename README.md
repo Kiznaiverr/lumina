@@ -167,15 +167,20 @@ Translation is the only step that calls an external AI API — everything else (
 
 Lumina uses ONNX Runtime with GPU support where available.
 
-- **One execution provider per environment.** The DirectML and CUDA wheels cannot coexist in a single Python environment. The released installer bundles DirectML only (works on any GPU). `CUDA acceleration` still works, but it requires `running from source` because a CUDA installer is not available yet (see [Installers](#installers)).
+- **One execution provider per environment.** The DirectML and CUDA wheels cannot coexist in a single Python environment. Two installers ship, one per provider: the universal DirectML installer and the NVIDIA-only CUDA installer (see [Installers](#installers)).
 - **`LUMINA_EP` environment variable** overrides the runtime preference: `auto` (CUDA → DirectML → CPU, falling back per wheel), `cuda` (CUDA, falling back to CPU — never DirectML), `dml`, or `cpu`.
 - **Per-model preferences** are baked into each model's configuration. Some models cannot run on certain providers: `lama` is CPU-only (GPU acceleration is ignored when enabled), `lama_manga` and `paddleocr_vl` never use DirectML (CUDA when available, otherwise CPU), and some OCR models keep their autoregressive decoder on CPU regardless of the chosen provider.
 
 ## Installers
 
-Prebuilt Windows installers ship with the DirectML runtime only. The installer is built by a GitHub Actions workflow that runs on a version bump (a push to `main` touching `package.json`) or can be triggered manually; if a release for that version already exists, the workflow skips it. It publishes a release titled `Lumina v<version>` on the [Releases](https://github.com/lumina-tl/lumina/releases) page, attaching the `Lumina-Setup-DML-<version>.exe` artifact together with the auto-update feed files (`latest.yml`, `.blockmap`) — the app checks this feed at launch and can update itself, so a one-time install is usually all that's needed. Release notes are taken from the matching `## [<version>]` section in [CHANGELOG.md](CHANGELOG.md); if that section is missing, notes are generated from the commits. DirectML runs on any GPU that supports DirectX 12 — including NVIDIA — and falls back to CPU on machines without a compatible GPU.
+Two Windows installers ship, one per execution provider:
 
-A CUDA installer is not available yet — but `CUDA acceleration` still works when `running from source`: set up the Python backend with the `onnxruntime-gpu[cuda,cudnn]` wheel (see [Development](#development)) and start the app with `npm start`.
+- **`Lumina-Setup-DML-<version>.exe`** — DirectML (CPU + DirectML), universal: runs on any DirectX 12 GPU — including NVIDIA — and falls back to CPU on machines without a compatible GPU. Choose this if you don't have an NVIDIA RTX/GTX card.
+- **`Lumina-Setup-CUDA-<version>.exe`** — CUDA 12, NVIDIA-only. **Highly recommended over the DML installer if you have an NVIDIA RTX/GTX card** — it's noticeably faster. Larger download; requires an NVIDIA GPU with a reasonably recent driver.
+
+Both are published as a release on the [Releases](https://github.com/lumina-tl/lumina/releases) page, together with their update feed files. Each variant uses its own update channel, so a DML install only ever updates from DML artifacts and a CUDA install only from CUDA artifacts. Updates are differential — the app downloads only the parts that changed, not the whole installer — and install on launch, so a one-time install is usually all that's needed. Release notes are taken from the matching `## [<version>]` section in [CHANGELOG.md](CHANGELOG.md); if that section is missing, notes are generated from the commits.
+
+When running from source, pick the provider wheel yourself: `onnxruntime-directml` for universal GPU support, or `onnxruntime-gpu[cuda,cudnn]` for NVIDIA CUDA (see [Development](#development)), then start the app with `npm start`.
 
 ## Project File Format (.lmi)
 

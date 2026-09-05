@@ -1,7 +1,9 @@
 /**
  * electron-builder config for the Lumina DML installer.
  *
- * Builds dist/Lumina-Setup-DML.exe (CPU + DirectML, universal).
+ * Builds dist/dml/Lumina-Setup-DML-<version>.exe (CPU + DirectML, universal).
+ * - publish.channel "dml" -> latest-dml.yml feed (CUDA installs use a
+ *   separate channel, so the two variants never cross-update).
  */
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,24 +15,25 @@ const config = {
   appId: "com.lumina.app",
   productName: "Lumina",
   directories: {
-    output: "dist",
+    output: "dist/dml",
     // Icon & installer assets live here (NOT build/ — that folder is
     // gitignored because it holds generated bundle artifacts)
     buildResources: "assets",
   },
   files: ["dist/**"],
   asar: true,
-  // Generates latest.yml + .blockmap so electron-updater can resolve the
-  // feed. Actual upload happens in CI (draft release) — publishing itself
-  // is disabled so the workflow keeps full control over drafts.
+  // Generates latest-dml.yml + .blockmap so electron-updater can resolve the
+  // DML channel feed. Actual upload happens in CI (draft release) — publishing
+  // itself is disabled so the workflow keeps full control over drafts.
   publish: {
     provider: "github",
-    owner: "Kiznaiverr",
+    owner: "lumina-tl",
     repo: "lumina",
+    channel: "dml",
   },
   extraResources: [
     {
-      from: path.join(ROOT, "build", "bundle"),
+      from: path.join(ROOT, "build", "bundle-dml"),
       to: ".",
       filter: ["**/*"],
     },

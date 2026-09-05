@@ -7,6 +7,9 @@ onnxruntime variant folder, site-packages) through ``LUMINA_PYTHONPATH``
 (os.pathsep-joined) and we insert them into ``sys.path`` here, before any
 Lumina import happens.
 
+The CUDA runtime is extracted by the installer itself (NSIS customInstall),
+so this file never decompresses anything — it only wires up import paths.
+
 In development this file is not used — ``main.py`` is run directly with
 the venv interpreter, where normal path rules apply.
 """
