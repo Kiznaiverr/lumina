@@ -15,9 +15,9 @@
     "dev": "npm run build && electron dist/main/main.js",
     "bundle:dml": "node scripts/bundle.mjs --variant=dml",
     "bundle:cuda": "node scripts/bundle.mjs --variant=cuda",
-    "dist:dml": "npm run build && npm run bundle:dml && electron-builder --config scripts/electron-builder.config.mjs",
-    "dist:cuda": "npm run build && npm run bundle:cuda && electron-builder --config scripts/electron-builder.config.cuda.mjs",
-    "dist:all": "npm run build && npm run bundle:dml && npm run bundle:cuda && electron-builder --config scripts/electron-builder.config.mjs && electron-builder --config scripts/electron-builder.config.cuda.mjs"
+    "dist:dml": "npm run build && npm run bundle:dml && electron-builder --config scripts/electron-builder.config.mjs --publish never",
+    "dist:cuda": "npm run build && npm run bundle:cuda && electron-builder --config scripts/electron-builder.config.cuda.mjs --publish never",
+    "dist:all": "npm run build && npm run bundle:dml && npm run bundle:cuda && electron-builder --config scripts/electron-builder.config.mjs --publish never && electron-builder --config scripts/electron-builder.config.cuda.mjs --publish never"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
