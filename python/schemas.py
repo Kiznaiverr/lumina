@@ -60,7 +60,6 @@ class OcrResponse(BaseModel):
 
 class TranslateConfig(BaseModel):
     provider: str  # "custom" | "openrouter" | "grok" | "gemini"
-    sourceLang: str = "auto"  # "auto" = model detects the source language
     targetLang: str = "en"
     apiKey: str | None = None
     llmBaseUrl: str | None = None

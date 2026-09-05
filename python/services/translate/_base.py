@@ -1,6 +1,7 @@
 """Shared transport, errors and prompt helpers for translation providers."""
 from __future__ import annotations
 
+import ast
 import json
 import re
 import urllib.error
@@ -78,7 +79,7 @@ def _render_template(template: str, values: dict) -> str:
 
 
 def build_system_instruction(
-    config: dict, target: str, source: str, previous_line: str | None = None
+    config: dict, target: str, previous_line: str | None = None
 ) -> str:
     """Render the system instruction; previous_line falls back to config.
 
@@ -95,7 +96,6 @@ def build_system_instruction(
         config.get("llmInstruction") or load_default_instruction(),
         {
             "target_language": target,
-            "source_language": source,
             "previous_line": previous_line,
         },
     )
@@ -120,10 +120,12 @@ def build_batch_prompt(
     previous_lines: list[str] | None = None,
     types: list[str] | None = None,
 ) -> str:
-    """User prompt for one numbered-list chat completion over many texts.
+    """User prompt for one JSON chat completion over many texts.
 
-    Line breaks inside a segment are escaped as ⏎ so multiline bubble text
-    (vertical text, stacked lines) cannot corrupt the numbered-list format.
+    The input is a JSON array of {id, text, type?, context?} objects in
+    reading order; the expected output is a JSON object mapping each id to
+    its translation. JSON escapes line breaks natively, so multiline bubble
+    text needs no sentinel character.
 
     ``previous_lines`` (optional, aligned with ``texts`` by index) is the
     already-translated preceding dialogue, oldest first, giving the model the
@@ -133,28 +135,25 @@ def build_batch_prompt(
     ``types`` (optional, aligned with ``texts`` by index) is the detector's
     segment type (text_bubble/text_free/...), so the model can match register.
     """
-    escaped = [
-        t.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "⏎")
-        for t in texts
-    ]
     ctx = previous_lines or [""] * len(texts)
     ty = types or [""] * len(texts)
-    lines: list[str] = []
-    for i, (t, c, k) in enumerate(zip(escaped, ctx, ty)):
-        lines.append(f"[{i}] {t}")
+    segments: list[dict] = []
+    for i, (t, c, k) in enumerate(zip(texts, ctx, ty)):
+        seg: dict = {"id": i, "text": t}
         label = _SEGMENT_TYPE_LABELS.get(k, k)
         if label:
-            lines.append(f"    type: {label}")
+            seg["type"] = label
         if c:
-            lines.append(f"    context: {c}")
-    numbered = "\n".join(lines)
+            seg["context"] = c
+        segments.append(seg)
     return (
         f"Target language: {target}\n\n"
-        "This is a manga page. The input is a numbered list of text segments "
+        "This is a manga page. The input is a JSON array of text segments "
         "(OCR output) in reading order; the OCR text may be truncated or "
-        "imperfect. Each segment may be followed by indented 'type:' "
-        "(dialogue / narration / SFX) and 'context:' (preceding dialogue, "
-        "already translated, oldest first) lines.\n"
+        "imperfect. Each segment has an \"id\", the source \"text\", and may "
+        "carry a \"type\" (dialogue (speech bubble) / narration/caption / "
+        "SFX) and a \"context\" (preceding dialogue, already translated, "
+        "oldest first).\n"
         "Translate EVERY segment. Use the context to:\n"
         "- complete truncated lines: if a segment is cut off mid-phrase, "
         "translate the complete intended line;\n"
@@ -164,14 +163,14 @@ def build_batch_prompt(
         "more formal.\n"
         "- if a segment is already fully in the target language, return it "
         "unchanged.\n"
-        "Keep ⏎ line breaks in your translation.\n"
-        "Output ONLY a numbered list in the same format with the same indices, "
-        "one line per segment — never skip, merge, or reorder indices. Type and "
-        "context lines are input only; do not repeat them in your output. If "
-        "you cannot translate a segment, repeat its source text.\n"
-        "[0] translation of segment 0\n"
-        "[1] translation of segment 1\n\n"
-        f"{numbered}"
+        "- preserve the source text's line breaks as escaped \"\\n\" inside "
+        "the translated string.\n"
+        "Respond with ONLY a JSON object mapping each segment id (as a string "
+        'key) to its translation, e.g. {"0": "translation of 0", "1": '
+        '"translation of 1"}. Never skip, merge, or renumber ids; type, '
+        "context, and source text must not appear in the output. If you "
+        "cannot translate a segment, repeat its source text as the value.\n\n"
+        f"{json.dumps(segments, ensure_ascii=False)}"
     )
 
 
@@ -197,3 +196,80 @@ def parse_numbered_batch(raw: str, count: int, label: str = "LLM") -> list[str]:
             f"{missing} — filling with empty strings"
         )
     return results
+
+
+_FENCE_RE = re.compile(r"^```[a-zA-Z]*\s*(.*?)```\s*$", re.DOTALL)
+
+
+def _strip_code_fence(raw: str) -> str:
+    """Remove a single ```...``` wrapper some models add around JSON."""
+    m = _FENCE_RE.match(raw.strip())
+    return m.group(1).strip() if m else raw.strip()
+
+
+def _segment_value(value) -> str:
+    """Coerce a JSON value into the segment's translation text."""
+    if isinstance(value, str):
+        return value
+    if value is None or isinstance(value, bool):
+        return ""
+    return str(value)
+
+
+def _warn_missing(seen: list[bool], count: int, label: str) -> None:
+    missing = [i for i, ok in enumerate(seen) if not ok]
+    if missing:
+        log.warn(
+            f"{label} batch response missing translations for indices: "
+            f"{missing} — filling with empty strings"
+        )
+
+
+def parse_batch_response(raw: str, count: int, label: str = "LLM") -> list[str]:
+    """Parse a model batch response into a size-`count` list.
+
+    JSON first — an object {id: translation} (preferred) or an array of
+    translations, tolerating code fences, single quotes and trailing commas —
+    falling back to the legacy numbered-list parser when the response is not
+    JSON-shaped at all.
+    """
+    cleaned = _strip_code_fence(raw)
+
+    data = None
+    if cleaned[:1] in ("{", "["):
+        try:
+            data = json.loads(cleaned)
+        except Exception:
+            pass
+        if data is None:
+            try:  # tolerate single quotes / trailing commas
+                data = ast.literal_eval(cleaned)
+            except Exception:
+                data = None
+        if data is None:
+            log.warn(
+                f"{label} batch response looked like JSON but failed to parse "
+                "— falling back to numbered-list parsing"
+            )
+
+    if isinstance(data, dict):
+        results: list[str] = [""] * count
+        seen = [False] * count
+        for key, value in data.items():
+            try:
+                idx = int(key)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= idx < count and not seen[idx]:
+                results[idx] = _segment_value(value)
+                seen[idx] = True
+        _warn_missing(seen, count, label)
+        return results
+
+    if isinstance(data, list):
+        n = min(len(data), count)
+        seen = [True] * n + [False] * (count - n)
+        _warn_missing(seen, count, label)
+        return [_segment_value(v) for v in data[:n]] + [""] * (count - n)
+
+    return parse_numbered_batch(raw, count, label)

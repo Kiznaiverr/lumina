@@ -64,8 +64,6 @@
   "settings.providerGrok": "Grok",
   "settings.providerGemini": "Gemini",
   "settings.trTargetLang": "Bahasa tujuan",
-  "settings.trSourceLang": "Bahasa sumber",
-  "settings.sourceAuto": "Otomatis (deteksi model)",
   "settings.trOpenRouterKey": "API key OpenRouter",
   "settings.trGrokKey": "API key Grok",
   "settings.trToggleKey": "Tampilkan/sembunyikan API key",

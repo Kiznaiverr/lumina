@@ -1,8 +1,8 @@
 """Translation providers — pluggable registry.
 
 Each provider module in provider/ exposes:
-  translate(text, source, target, config) -> str          (single)
-  translate_batch(texts, source, target, config) -> list  (optional, native batch)
+  translate(text, target, config) -> str          (single)
+  translate_batch(texts, target, config) -> list  (optional, native batch)
 
 Protocol clients (wire formats) live in protocol/ and are shared across
 providers that speak the same API. Add a new provider by dropping a module in
@@ -15,8 +15,8 @@ from typing import Callable
 
 from ._base import TranslateError
 
-ProviderFn = Callable[[str, str, str, dict], str]
-BatchFn = Callable[[list[str], str, str, dict], list[str]]
+ProviderFn = Callable[[str, str, dict], str]
+BatchFn = Callable[[list[str], str, dict], list[str]]
 
 # Provider modules are imported LAZILY (first use) so the heavy SDK deps
 # (openai / anthropic) only load for the provider actually configured.
@@ -52,19 +52,11 @@ def _provider_name(config: dict) -> str:
     return "custom" if name == "llm" else name
 
 
-def _normalize_source(config: dict) -> str:
-    """"auto" or empty -> "" so the prompt tells the model to detect it."""
-    source = (config.get("sourceLang") or "auto").strip()
-    return "" if source.lower() == "auto" else source
-
-
 def translate_text(text: str, config: dict) -> str:
     name = _provider_name(config)
     if name not in _PROVIDERS:
         raise TranslateError(f"Unknown translation provider: {name!r}")
-    return _provider_fn(name)(
-        text, _normalize_source(config), config.get("targetLang") or "en", config
-    )
+    return _provider_fn(name)(text, config.get("targetLang") or "en", config)
 
 
 def translate_texts(texts: list[str], config: dict) -> list[str]:
@@ -73,7 +65,6 @@ def translate_texts(texts: list[str], config: dict) -> list[str]:
     name = _provider_name(config)
     if name not in _PROVIDERS:
         raise TranslateError(f"Unknown translation provider: {name!r}")
-    source = _normalize_source(config)
     target = config.get("targetLang") or "en"
 
     # Keep empty texts out of the API call; restore them positionally after.
@@ -97,7 +88,7 @@ def translate_texts(texts: list[str], config: dict) -> list[str]:
 
     batch_fn = _batch_fn(name)
     if batch_fn is not None:
-        translated = batch_fn(payload, source, target, config)
+        translated = batch_fn(payload, target, config)
     else:
         fn = _provider_fn(name)
         translated = []
@@ -108,7 +99,7 @@ def translate_texts(texts: list[str], config: dict) -> list[str]:
                 seg_config = {**config, "previousLines": [prev_lines[i]]}
             if types:
                 seg_config = {**seg_config, "types": [types[i]]}
-            translated.append(fn(t, source, target, seg_config))
+            translated.append(fn(t, target, seg_config))
 
     results = [""] * len(texts)
     for (i, _), tr in zip(non_empty, translated):

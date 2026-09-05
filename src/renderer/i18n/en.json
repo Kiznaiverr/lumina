@@ -64,8 +64,6 @@
   "settings.providerGrok": "Grok",
   "settings.providerGemini": "Gemini",
   "settings.trTargetLang": "Target language",
-  "settings.trSourceLang": "Source language",
-  "settings.sourceAuto": "Auto (model detects)",
   "settings.trOpenRouterKey": "OpenRouter API key",
   "settings.trGrokKey": "Grok API key",
   "settings.trToggleKey": "Show/hide API key",

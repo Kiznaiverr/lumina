@@ -53,7 +53,6 @@ function buildPayload(savePath: string | null): ProjectSavePayload {
   const cfg = translateSettings.load();
   const settings: ProjectSettingsData = {
     provider: cfg.provider,
-    sourceLang: cfg.sourceLang,
     targetLang: cfg.targetLang,
     llmBaseUrl: cfg.llmBaseUrl,
     llmModel: cfg.llmModel,

@@ -6,7 +6,7 @@ from .._base import (
     build_batch_prompt,
     build_single_prompt,
     build_system_instruction,
-    parse_numbered_batch,
+    parse_batch_response,
 )
 from ..protocol.openai import chat
 
@@ -22,21 +22,21 @@ def _resolve(config: dict) -> tuple[str, str, str]:
     )
 
 
-def translate(text: str, source: str, target: str, config: dict) -> str:
+def translate(text: str, target: str, config: dict) -> str:
     base_url, api_key, model = _resolve(config)
     if not model:
         raise TranslateError("LLM model not configured")
-    system = build_system_instruction(config, target, source)
+    system = build_system_instruction(config, target)
     return chat(base_url, api_key, model, system, build_single_prompt(text, target))
 
 
 def translate_batch(
-    texts: list[str], source: str, target: str, config: dict
+    texts: list[str], target: str, config: dict
 ) -> list[str]:
     base_url, api_key, model = _resolve(config)
     if not model:
         raise TranslateError("LLM model not configured")
-    system = build_system_instruction(config, target, source, previous_line="")
+    system = build_system_instruction(config, target, previous_line="")
     raw = chat(
         base_url,
         api_key,
@@ -48,5 +48,6 @@ def translate_batch(
             previous_lines=config.get("previousLines"),
             types=config.get("types"),
         ),
+        json_mode=True,
     )
-    return parse_numbered_batch(raw, len(texts))
+    return parse_batch_response(raw, len(texts))

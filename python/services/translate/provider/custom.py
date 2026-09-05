@@ -10,7 +10,7 @@ from .._base import (
     build_batch_prompt,
     build_single_prompt,
     build_system_instruction,
-    parse_numbered_batch,
+    parse_batch_response,
 )
 
 
@@ -26,7 +26,13 @@ def _resolve(config: dict) -> tuple[str, str, str, str]:
 
 
 def _chat(
-    base_url: str, api_key: str, model: str, style: str, system: str, user: str
+    base_url: str,
+    api_key: str,
+    model: str,
+    style: str,
+    system: str,
+    user: str,
+    json_mode: bool = False,
 ) -> str:
     # Import only the protocol for the configured style so the other SDK
     # never loads (one provider = one SDK).
@@ -36,30 +42,30 @@ def _chat(
         return chat_anthropic(base_url, api_key, model, system, user)
     from ..protocol.openai import chat as chat_openai
 
-    return chat_openai(base_url, api_key, model, system, user)
+    return chat_openai(base_url, api_key, model, system, user, json_mode=json_mode)
 
 
-def translate(text: str, source: str, target: str, config: dict) -> str:
+def translate(text: str, target: str, config: dict) -> str:
     base_url, style, api_key, model = _resolve(config)
     if not base_url:
         raise TranslateError("LLM base URL not configured")
     if not model:
         raise TranslateError("LLM model not configured")
-    system = build_system_instruction(config, target, source)
+    system = build_system_instruction(config, target)
     return _chat(
         base_url, api_key, model, style, system, build_single_prompt(text, target)
     )
 
 
 def translate_batch(
-    texts: list[str], source: str, target: str, config: dict
+    texts: list[str], target: str, config: dict
 ) -> list[str]:
     base_url, style, api_key, model = _resolve(config)
     if not base_url:
         raise TranslateError("LLM base URL not configured")
     if not model:
         raise TranslateError("LLM model not configured")
-    system = build_system_instruction(config, target, source, previous_line="")
+    system = build_system_instruction(config, target, previous_line="")
     raw = _chat(
         base_url,
         api_key,
@@ -72,5 +78,6 @@ def translate_batch(
             previous_lines=config.get("previousLines"),
             types=config.get("types"),
         ),
+        json_mode=True,
     )
-    return parse_numbered_batch(raw, len(texts))
+    return parse_batch_response(raw, len(texts))

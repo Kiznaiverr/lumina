@@ -143,7 +143,6 @@ export interface ProjectPageData {
 /** Non-secret translate settings embedded in the project file */
 export interface ProjectSettingsData {
   provider?: string;
-  sourceLang?: string;
   targetLang?: string;
   llmBaseUrl?: string;
   llmModel?: string;

@@ -40,35 +40,6 @@ export const translationTab = {
       }),
     );
 
-    // ── Source language — "auto" lets the model detect it ──
-    general.appendChild(
-      this._row(i18n.t("settings.trSourceLang"), (row) => {
-        const sel = document.createElement("select");
-        sel.id = "tr-source-lang";
-        sel.className = "field-select";
-        for (const [value, label] of [
-          ["auto", i18n.t("settings.sourceAuto")],
-          ["ja", "Japanese"],
-          ["en", "English"],
-          ["id", "Bahasa Indonesia"],
-          ["ko", "Korean"],
-          ["zh", "Chinese"],
-          ["fr", "French"],
-          ["es", "Spanish"],
-          ["pt", "Portuguese"],
-          ["ru", "Russian"],
-          ["de", "German"],
-        ] as const) {
-          const opt = document.createElement("option");
-          opt.value = value;
-          opt.textContent = label;
-          sel.appendChild(opt);
-        }
-        row.appendChild(sel);
-        return sel;
-      }),
-    );
-
     // ── Target language — free-form language code (e.g. "en") ──
     general.appendChild(
       this._row(i18n.t("settings.trTargetLang"), (row) => {
@@ -221,7 +192,6 @@ export const translationTab = {
 
     // ── Wiring ──
     const providerSel = pane.querySelector<HTMLSelectElement>("#tr-provider")!;
-    const sourceSel = pane.querySelector<HTMLSelectElement>("#tr-source-lang")!;
     const targetInput =
       pane.querySelector<HTMLInputElement>("#tr-target-lang")!;
     const persist = () => this._persist(pane);
@@ -236,7 +206,7 @@ export const translationTab = {
       persist();
     });
     // "input" fires on every keystroke/paste — keys are committed immediately
-    [sourceSel, targetInput, llmOpts, geminiOpts].forEach((root) => {
+    [targetInput, llmOpts, geminiOpts].forEach((root) => {
       root
         .querySelectorAll("input, select")
         .forEach((el) => el.addEventListener("input", persist));
@@ -278,10 +248,8 @@ export const translationTab = {
   _applyLocal(pane: HTMLElement): void {
     const cfg = translateSettings.load();
     const providerSel = pane.querySelector<HTMLSelectElement>("#tr-provider");
-    const sourceSel = pane.querySelector<HTMLSelectElement>("#tr-source-lang");
     const targetInput = pane.querySelector<HTMLInputElement>("#tr-target-lang");
     if (providerSel) providerSel.value = cfg.provider;
-    if (sourceSel) sourceSel.value = cfg.sourceLang;
     if (targetInput) targetInput.value = cfg.targetLang;
     const set = (id: string, v: string) => {
       const el = pane.querySelector<HTMLInputElement | HTMLTextAreaElement>(
@@ -380,9 +348,6 @@ export const translationTab = {
     const cfg: TranslateConfig = {
       provider: (pane.querySelector<HTMLSelectElement>("#tr-provider")?.value ??
         "gemini") as TranslateConfig["provider"],
-      sourceLang:
-        pane.querySelector<HTMLSelectElement>("#tr-source-lang")?.value ??
-        "auto",
       targetLang: (val("tr-target-lang") || "en").toLowerCase(),
       llmBaseUrl: val("tr-llm-url"),
       llmApiKey: val("tr-custom-key"),

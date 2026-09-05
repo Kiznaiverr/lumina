@@ -21,7 +21,6 @@ type StoredConfig = Omit<
 
 export interface TranslateConfig {
   provider: "custom" | "openrouter" | "grok" | "gemini";
-  sourceLang: string;
   targetLang: string;
   llmBaseUrl: string;
   llmApiKey: string;
@@ -39,8 +38,6 @@ export interface TranslateConfig {
 function defaultConfig(): TranslateConfig {
   return {
     provider: "gemini",
-    // "auto" = let the model detect the source language from the text
-    sourceLang: "auto",
     targetLang: "en",
     llmBaseUrl: "",
     llmApiKey: "",
@@ -78,7 +75,6 @@ export const translateSettings = {
   save(cfg: TranslateConfig): void {
     const stored: StoredConfig = {
       provider: cfg.provider,
-      sourceLang: cfg.sourceLang,
       targetLang: cfg.targetLang,
       llmBaseUrl: cfg.llmBaseUrl,
       llmModel: cfg.llmModel,
