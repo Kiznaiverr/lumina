@@ -1,6 +1,6 @@
 {
   "name": "lumina",
-  "version": "0.1.0-experimental-preview",
+  "version": "0.2.0",
   "description": "Manga/Manhwa/Manhua Translation Automation Desktop App",
   "author": "Kiznavierr",
   "type": "module",
@@ -13,8 +13,11 @@
     "typecheck": "tsc -p tsconfig.json",
     "start": "npm run build && electron dist/main/main.js",
     "dev": "npm run build && electron dist/main/main.js",
-    "bundle": "node scripts/bundle.mjs",
-    "dist": "npm run build && npm run bundle && electron-builder --config scripts/electron-builder.config.mjs"
+    "bundle:dml": "node scripts/bundle.mjs --variant=dml",
+    "bundle:cuda": "node scripts/bundle.mjs --variant=cuda",
+    "dist:dml": "npm run build && npm run bundle:dml && electron-builder --config scripts/electron-builder.config.mjs",
+    "dist:cuda": "npm run build && npm run bundle:cuda && electron-builder --config scripts/electron-builder.config.cuda.mjs",
+    "dist:all": "npm run build && npm run bundle:dml && npm run bundle:cuda && electron-builder --config scripts/electron-builder.config.mjs && electron-builder --config scripts/electron-builder.config.cuda.mjs"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
