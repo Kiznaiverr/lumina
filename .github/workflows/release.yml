@@ -82,7 +82,7 @@ jobs:
           gh release create "v${{ steps.version.outputs.version }}" \
             dist/dml/Lumina-Setup-DML-${{ steps.version.outputs.version }}.exe \
             dist/cuda/Lumina-Setup-CUDA-${{ steps.version.outputs.version }}.exe \
-            dist/dml/latest-dml.yml dist/dml/*.blockmap \
-            dist/cuda/latest-cuda.yml dist/cuda/*.blockmap \
+            dist/dml/dml.yml dist/dml/*.blockmap \
+            dist/cuda/cuda.yml dist/cuda/*.blockmap \
             --repo "${{ github.repository }}" $NOTES \
             --title "Lumina v${{ steps.version.outputs.version }}"

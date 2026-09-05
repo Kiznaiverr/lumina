@@ -4,7 +4,7 @@
  * Builds dist/cuda/Lumina-Setup-CUDA-<version>.exe (CUDA 12 EP, NVIDIA-only).
  * - LZMA2 maximum compression to keep the ~1.5GB NVIDIA runtime as small as
  *   possible (GitHub's 2GB per-file upload limit).
- * - publish.channel "cuda" -> latest-cuda.yml feed so CUDA installs only ever
+ * - publish.channel "cuda" -> cuda.yml feed so CUDA installs only ever
  *   update from CUDA artifacts (DML channel is separate).
  */
 import path from "path";
@@ -22,7 +22,7 @@ const config = {
   },
   files: ["dist/**"],
   asar: true,
-  // Generates latest-cuda.yml + .blockmap so electron-updater can resolve the
+  // Generates cuda.yml + .blockmap so electron-updater can resolve the
   // CUDA channel feed. Actual upload happens in CI (draft release) —
   // publishing itself is disabled so the workflow keeps full control.
   publish: {

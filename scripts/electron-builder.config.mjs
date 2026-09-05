@@ -2,7 +2,7 @@
  * electron-builder config for the Lumina DML installer.
  *
  * Builds dist/dml/Lumina-Setup-DML-<version>.exe (CPU + DirectML, universal).
- * - publish.channel "dml" -> latest-dml.yml feed (CUDA installs use a
+ * - publish.channel "dml" -> dml.yml feed (CUDA installs use a
  *   separate channel, so the two variants never cross-update).
  */
 import path from "path";
@@ -22,7 +22,7 @@ const config = {
   },
   files: ["dist/**"],
   asar: true,
-  // Generates latest-dml.yml + .blockmap so electron-updater can resolve the
+  // Generates dml.yml + .blockmap so electron-updater can resolve the
   // DML channel feed. Actual upload happens in CI (draft release) — publishing
   // itself is disabled so the workflow keeps full control over drafts.
   publish: {
