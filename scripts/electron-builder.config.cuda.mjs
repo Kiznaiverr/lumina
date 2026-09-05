@@ -20,8 +20,11 @@ const config = {
     output: "dist/cuda",
     buildResources: "assets",
   },
-  files: ["dist/**"],
-  asar: true,
+  // Only the compiled app code goes into app.asar. Never use dist/** here:
+  // electron-builder writes its output into dist/dml + dist/cuda, so a
+  // dist/** glob would pack the whole previous installer output (including
+  // a full Electron runtime) into the asar.
+  files: ["dist/main/**", "dist/preload/**", "dist/renderer/**"],
   // Generates cuda.yml + .blockmap so electron-updater can resolve the
   // CUDA channel feed. Actual upload happens in CI (draft release) —
   // publishing itself is disabled so the workflow keeps full control.
@@ -59,7 +62,7 @@ const config = {
   },
   // CUDA bundle is dominated by nvidia DLLs — solid LZMA2 maximum gives the
   // best compression; the extra build/install time is worth staying <2GB.
-  compression: "maximum",
+  compression: "store",
 };
 
 export default config;

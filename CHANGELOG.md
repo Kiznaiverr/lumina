@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 05-09-2026
+
+### Fixed
+
+- **CUDA installer no longer pops a scary console window**: extracting the ~1.5 GB CUDA runtime used to open a separate terminal during setup. Extraction now runs inside the installer process itself, driving the native progress bar — no terminal, no "details view" needed.
+- **Installers are dramatically smaller**: the app package (`app.asar`) was accidentally including the previous build's entire unpacked output (a second full Electron runtime, ~1.7 GB). It's now limited to the actual app code (~2 MB), shrinking both the DML and CUDA installers significantly.
+
 ## [0.2.0] - 05-09-2026
 
 ### Added
