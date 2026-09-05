@@ -62,7 +62,7 @@ const config = {
   },
   // CUDA bundle is dominated by nvidia DLLs — solid LZMA2 maximum gives the
   // best compression; the extra build/install time is worth staying <2GB.
-  compression: "store",
+  compression: "maximum",
 };
 
 export default config;

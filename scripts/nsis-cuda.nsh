@@ -26,12 +26,15 @@
     SetOutPath "$INSTDIR\resources\ort\cuda"
     Nsis7z::Extract "$INSTDIR\resources\ort\cuda.7z"
     Pop $0
-    StrCmp $0 0 lumina_cuda_ok
-      MessageBox MB_OK|MB_ICONEXCLAMATION "CUDA runtime extraction failed (error $0).$\n$\nThe app will not have CUDA models available. Reinstall to try again." /SD IDOK
-      Goto lumina_cuda_done
-    lumina_cuda_ok:
+    ; Nsis7z::Extract does not reliably return 0 on success — judge by the
+    ; marker DLL instead (electron-builder's own extractAppPackage.nsh uses
+    ; IfErrors + CopyFiles checks, never `StrCmp $0 0`).
+    IfFileExists "$INSTDIR\resources\ort\cuda\onnxruntime\capi\onnxruntime.dll" 0 lumina_cuda_failed
       Delete "$INSTDIR\resources\ort\cuda.7z"
       DetailPrint "CUDA runtime extracted."
+      Goto lumina_cuda_done
+    lumina_cuda_failed:
+      MessageBox MB_OK|MB_ICONEXCLAMATION "CUDA runtime extraction failed (error $0).$\n$\nThe app will not have CUDA models available. Reinstall to try again." /SD IDOK
       Goto lumina_cuda_done
   lumina_cuda_noarchive:
     DetailPrint "CUDA archive not found — skipping extraction."
